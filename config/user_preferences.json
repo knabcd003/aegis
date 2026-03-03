@@ -1,0 +1,10 @@
+{
+    "philosophy": "value",
+    "max_pe_ratio": 15,
+    "sectors": [
+        "tech",
+        "healthcare"
+    ],
+    "risk_tolerance": "moderate",
+    "max_position_size_pct": 0.10
+}
