@@ -51,6 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange }) =
                 <div className="nav-title">OPERATIONS</div>
                 <ul style={{ listStyle: 'none' }}>
                     <li className={`nav-item ${currentView === 'dashboard' ? 'active' : ''}`} onClick={() => onViewChange('dashboard')}>Live Orders</li>
+                    <li className={`nav-item ${currentView === 'sandbox' ? 'active' : ''}`} onClick={() => onViewChange('sandbox')}>Sandbox</li>
                     <li className={`nav-item ${currentView === 'config' ? 'active' : ''}`} onClick={() => onViewChange('config')}>Strategy Config</li>
                     <li className={`nav-item ${currentView === 'api' ? 'active' : ''}`} onClick={() => onViewChange('api')}>API Management</li>
                     <li className={`nav-item ${currentView === 'performance' ? 'active' : ''}`} onClick={() => onViewChange('performance')}>Performance</li>
