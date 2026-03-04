@@ -1,0 +1,3 @@
+"""
+Quant Engine package initialization.
+"""
