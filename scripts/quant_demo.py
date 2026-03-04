@@ -94,5 +94,32 @@ def run_quant_demo():
     else:
         print("Failed to fetch intraday data.")
 
+    from engines.quant.chronos_forecaster import ChronosForecaster
+
+    # 4. Price Forecasting (Chronos)
+    print("\n" + "="*50)
+    print("--- 4. ML Price Forecasting (Chronos-Bolt 205M) ---")
+    print("Fetching SPY 90-day historical prices...")
+    
+    spy_90d = engine.get_prices("SPY", days=90, interval="1d")
+    if spy_90d is not None and not spy_90d.empty:
+        forecaster = ChronosForecaster()
+        print("Feeding tokenized prices into the zero-shot language model to predict the next 7 days...")
+        forecast_res = forecaster.predict(spy_90d, prediction_length=7)
+        if "error" in forecast_res:
+            print(f"Chronos Error: {forecast_res['error']}")
+        else:
+            print(f"\n=> 7-Day Forecast for SPY:")
+            last_price = spy_90d['close'].iloc[-1]
+            med_end = forecast_res['median'][-1]
+            pct_chg = ((med_end - last_price) / last_price) * 100
+            
+            print(f"     Last Known Price: ${last_price:.2f}")
+            print(f"     Median Predicted in 7d: ${med_end:.2f} ({pct_chg:+.2f}%)")
+            print(f"     90th %ile (Bull Case): ${forecast_res['upper_bound'][-1]:.2f}")
+            print(f"     10th %ile (Bear Case): ${forecast_res['lower_bound'][-1]:.2f}")
+    else:
+        print("Failed to fetch 90d data for Chronos.")
+
 if __name__ == '__main__':
     run_quant_demo()
