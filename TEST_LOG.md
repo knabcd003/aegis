@@ -6,19 +6,38 @@
 
 ## Phase 1: Data Ingestion Engine
 
-### yfinance Connector Tests — Mar 3, 2026
+### yfinance Connector — Round 1 (Mar 3, 2026)
+Basic methods: prices, fundamentals, news.
 
 | # | Test | Ticker | Result | Details |
 |---|------|--------|--------|---------|
-| 1 | `get_prices()` 30 days | AAPL | ✅ Pass | 20 bars, range 2026-02-02 to 2026-03-02. Columns: date, open, high, low, close, volume |
-| 2 | `get_fundamentals()` | AAPL | ✅ Pass | P/E 33.3, market cap $3.87T, EPS $7.91, analyst: buy, target $293.29, sector: Technology |
-| 3 | `get_news()` | AAPL | ✅ Pass | 10 headlines returned. Sources: Yahoo Finance, Simply Wall St. Top: "Apple unveils new MacBooks powered by M5 chips" |
-| 4 | `get_prices()` 30 days | NVDA | ✅ Pass | 20 bars, latest close $182.48 |
-| 5 | `get_fundamentals()` | NVDA | ✅ Pass | P/E 36.7, market cap $4.37T, analyst: strong_buy, target $264.25 |
-| 6 | `get_prices()` invalid ticker | ZZZZZZ | ✅ Pass | Returns None gracefully, no crash. Error logged: "No price data returned for ZZZZZZ" |
-| 7 | `health_check()` | AAPL | ✅ Pass | Returns True |
+| 1 | `get_prices()` 30 days | AAPL | ✅ Pass | 20 bars, 2026-02-02 to 2026-03-02 |
+| 2 | `get_fundamentals()` | AAPL | ✅ Pass | P/E 33.3, mcap $3.87T, EPS $7.91, analyst: buy |
+| 3 | `get_news()` | AAPL | ✅ Pass | 10 headlines (MacBook M5, iPhone 17e) |
+| 4 | `get_prices()` 30 days | NVDA | ✅ Pass | 20 bars, close $182.48 |
+| 5 | `get_fundamentals()` | NVDA | ✅ Pass | P/E 36.7, mcap $4.37T, strong_buy |
+| 6 | Invalid ticker | ZZZZZZ | ✅ Pass | Returns None, no crash |
+| 7 | `health_check()` | — | ✅ Pass | Returns True |
 
-**Summary:** 7/7 tests passed. yfinance connector successfully returns real market data for valid tickers and handles invalid tickers gracefully.
+**Result: 7/7 passed**
+
+---
+
+### yfinance Connector — Round 2 (Mar 3, 2026)
+Expanded methods: financials, options, insiders, recommendations, short interest.
+
+| # | Test | Ticker | Result | Details |
+|---|------|--------|--------|---------|
+| 8 | `get_financials()` | AAPL | ✅ Pass | 6 quarters. Assets $379B, debt $90B, cash $45B, equity $88B. Revenue $143B, net income $42B, EBITDA $54B, FCF $51B |
+| 9 | `get_options()` | AAPL | ✅ Pass | 25 expirations, 34 call / 32 put strikes. P/C vol ratio 0.484, P/C OI ratio 0.516, ATM call IV 65.7%, ATM put IV 53.9% |
+| 10 | `get_insider_activity()` | AAPL | ✅ Pass | 75 insider txns. Top holders: Vanguard 1.4B shares, BlackRock 1.15B, State Street 604M. 10 mutual funds |
+| 11 | `get_recommendations()` | AAPL | ✅ Pass | 4 periods. Current: 5 strong buy, 24 buy, 16 hold, 1 sell = 61.7% bullish |
+| 12 | Expanded `get_fundamentals()` | AAPL | ✅ Pass | Short ratio 2.32, shares short 133M, short % float 0.91%, insider % 1.84%, institutional % 65.2% |
+| 13 | Full suite | NVDA | ✅ Pass | All 7 methods return valid data. Revenue $68B, FCF $34B, P/C 0.707, IV 95.6%, 150 insider txns, 95% bullish |
+| 14 | All methods invalid ticker | ZZZZZZ | ✅ Pass | All 7 methods return None/empty gracefully, no crashes |
+| 15 | `health_check()` | — | ✅ Pass | Returns True |
+
+**Result: 8/8 passed (15/15 total)**
 
 ---
 
@@ -26,37 +45,27 @@
 
 ### Data Engine (registry + cache)
 - [ ] Multiple connectors register correctly
-- [ ] Fallback: if yfinance fails, tries Alpaca
-- [ ] Parquet cache saves data locally
-- [ ] Cache serves stale data when API is down
-- [ ] Cache TTL respects freshness windows
-
-### Expanded yfinance
-- [ ] `get_financials()` returns balance sheet / income / cash flow
-- [ ] `get_options()` returns options chain with IV
-- [ ] `get_insider_activity()` returns insider transactions
-- [ ] `get_short_interest()` returns short data
+- [ ] Fallback logic works
+- [ ] Parquet cache saves/loads data
+- [ ] Cache TTL freshness
 
 ### FRED Connector
 - [ ] Connects with API key
-- [ ] Returns macro indicators (fed funds, CPI, GDP, unemployment)
+- [ ] Returns macro indicators
 
 ### FinBERT Connector
 - [ ] Model loads on CPU
-- [ ] Scores positive headline correctly
-- [ ] Scores negative headline correctly
-- [ ] Handles empty/malformed text
+- [ ] Scores positive/negative headlines correctly
+- [ ] Handles malformed text
 
 ### Alpaca Connector
-- [ ] Authenticates with API key
-- [ ] Returns prices (backup path)
+- [ ] Authenticates
+- [ ] Returns prices (backup)
 - [ ] Places paper trade
-- [ ] Gets account balance
 
 ### SEC EDGAR Connector
-- [ ] Fetches 10-K filing for a ticker
-- [ ] Returns parsed text sections
+- [ ] Fetches 10-K filing
+- [ ] Returns parsed text
 
 ### Finnhub Connector
-- [ ] Authenticates with API key
 - [ ] Returns earnings transcript
