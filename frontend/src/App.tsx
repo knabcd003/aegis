@@ -6,7 +6,6 @@ import { AssetTerminal } from './components/AssetTerminal';
 import { StrategyConfig } from './components/StrategyConfig';
 import { ApiManagement } from './components/ApiManagement';
 import { Performance } from './components/Performance';
-import { Sandbox } from './components/Sandbox';
 
 function App() {
   const [currentView, setCurrentView] = useState('dashboard');
@@ -26,7 +25,6 @@ function App() {
       case 'config': return <StrategyConfig />;
       case 'api': return <ApiManagement />;
       case 'performance': return <Performance />;
-      case 'sandbox': return <Sandbox />;
       default: return <Dashboard onSelectAsset={(ticker: string) => setCurrentTicker(ticker)} />;
     }
   };

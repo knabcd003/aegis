@@ -17,9 +17,6 @@ from typing import List
 import json
 from langchain_core.prompts import PromptTemplate
 from langchain_anthropic import ChatAnthropic
-from backtesting.runner import BacktestRunner
-from backtesting.data_store import HistoricalDataStore
-from backtesting.analytics import BacktestAnalytics
 
 app = FastAPI(title="Aegis AI Trading API")
 
@@ -69,22 +66,6 @@ class ConfigPayload(BaseModel):
 
 class NLConfigPayload(BaseModel):
     prompt: str
-
-class BacktestPayload(BaseModel):
-    tickers: List[str]
-    start_date: str
-    end_date: str
-    strategy: dict = {}
-    use_llm: bool = False
-    eval_frequency_days: int = 5
-
-class DataDownloadPayload(BaseModel):
-    tickers: List[str]
-    start_date: str
-    end_date: str
-
-bt_runner = BacktestRunner()
-data_store = HistoricalDataStore()
 
 @app.get("/api/health")
 def health_check():
@@ -228,56 +209,3 @@ def execute_approved_trade(req: TradeRequest):
 
 if __name__ == "__main__":
     uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)
-
-# ── Backtesting Endpoints ───────────────────────────────────────────────
-
-@app.post("/api/backtest/run")
-def run_backtest(payload: BacktestPayload, background_tasks: BackgroundTasks):
-    """Launch a backtest with the given configuration. Returns run_id immediately."""
-    config = {
-        "tickers": payload.tickers,
-        "start_date": payload.start_date,
-        "end_date": payload.end_date,
-        "strategy": payload.strategy or ConfigManager.load_config(),
-        "use_llm": payload.use_llm,
-        "eval_frequency_days": payload.eval_frequency_days,
-    }
-    # Run synchronously for now (could move to background_tasks for large runs)
-    run_id = bt_runner.run_backtest(config)
-    return {"status": "completed", "run_id": run_id}
-
-@app.get("/api/backtest/results")
-def list_backtest_results():
-    """List all completed backtest runs."""
-    return bt_runner.list_runs()
-
-@app.get("/api/backtest/results/{run_id}")
-def get_backtest_result(run_id: int):
-    """Retrieve detailed results for a specific backtest run."""
-    result = bt_runner.get_run_results(run_id)
-    if not result:
-        raise HTTPException(status_code=404, detail="Run not found")
-    return result
-
-@app.get("/api/backtest/compare")
-def compare_backtests(ids: str):
-    """Compare two backtest runs side-by-side. Query: ?ids=1,2"""
-    try:
-        id_list = [int(x.strip()) for x in ids.split(",")]
-        if len(id_list) != 2:
-            raise HTTPException(status_code=400, detail="Provide exactly 2 run IDs")
-        run_a = bt_runner.get_run_results(id_list[0])
-        run_b = bt_runner.get_run_results(id_list[1])
-        if not run_a or not run_b:
-            raise HTTPException(status_code=404, detail="One or both runs not found")
-        return BacktestAnalytics.compare_runs(run_a, run_b)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid run IDs")
-
-@app.post("/api/backtest/download-data")
-def download_data(payload: DataDownloadPayload):
-    """Download historical data for the given tickers and date range."""
-    results = data_store.download_historical_data(
-        payload.tickers, payload.start_date, payload.end_date
-    )
-    return {"status": "completed", "results": results}

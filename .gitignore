@@ -57,6 +57,3 @@ Thumbs.db
 # Project specifics
 aegis.db
 chroma_db/
-data/market/
-data/backtest_results/
-data/cache/
