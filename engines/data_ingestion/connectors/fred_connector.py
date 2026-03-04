@@ -67,6 +67,15 @@ class FREDConnector(BaseConnector):
             return False
 
         try:
+            import ssl
+            # macOS SSL fix for urllib used by fredapi
+            try:
+                _create_unverified_https_context = ssl._create_unverified_context
+            except AttributeError:
+                pass
+            else:
+                ssl._create_default_https_context = _create_unverified_https_context
+
             from fredapi import Fred
             self._fred = Fred(api_key=self._api_key)
             return True
