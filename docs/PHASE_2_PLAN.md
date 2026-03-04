@@ -8,12 +8,38 @@ The **Quant Engine** is the mathematical core of the Aegis system. It has three 
 
 All components will pull data exclusively through the existing `DataEngine`.
 
-## User Review Required
-No immediate changes to API keys are needed, as this relies on the data ingestion engine. I will install the advanced mathematical libraries (`hmmlearn`, `riskfolio-lib`). Please review this architecture below before we start building.
+---
+
+## 🔬 Component 1 Deep Dive: HMM Regime Detection
+
+### Architecture (`engines/quant/hmm_model.py`)
+We will use `hmmlearn.GaussianHMM` to detect the underlying (hidden) market state from observable market data.
+- **States:** `n_components=3` (Bull, Bear, Volatile/Chop).
+- **Observable Inputs:** 
+  1. `SPY` Daily Log Returns (momentum/direction).
+  2. `VIX` Daily Levels (fear/volatility).
+- **Class Structure:**
+  - `MarketRegimeHMM.train(df)`: Fits the Gaussian HMM on historical data. Post-processes the output to consistently map the 3 hidden states to human labels (e.g., the state with highest variance and lowest mean return is labeled "Bear/Vol").
+  - `MarketRegimeHMM.predict(df)`: Runs inference on recent data to determine the *current* regime probability.
+  - `MarketRegimeHMM.save(...) / load(...)`: Serializes the fitted model via `joblib` so we don't retrain on every request.
+
+### Testing Plan (`tests/unit/test_hmm_model.py`)
+
+#### 1. Unit Test (Synthetic Data)
+- Generate a fake Pandas DataFrame simulating two distinct regimes:
+  - Regime A: Positive drift, low variance (Mock Bull).
+  - Regime B: Negative drift, high variance (Mock Bear).
+- **Assertion:** Ensure `MarketRegimeHMM` successfully converges, identifies 2 unique states, and accurately maps the high-variance state to the "Bear" or "Volatile" label.
+
+#### 2. Validation Test (Real Historical Crash)
+- Use `DataEngine` to pull real `SPY` and `VIX` data from 2019 to 2021.
+- Feed the data into the HMM.
+- **Assertion:** Verify that the HMM classifies the quiet 2019 market correctly (Bull), and robustly transitions into a Bear/Volatile state during the **March 2020 COVID Crash**. 
+- This proves the math actually works on out-of-sample real-world shock events.
 
 ---
 
-## Architecture
+## Architecture Context
 
 ```mermaid
 graph TD
@@ -35,34 +61,6 @@ graph TD
 ```
 
 ## Proposed Changes
-
-### Quant Engine Module
-I will create the following new files to build the engine:
-
-#### [NEW] engines/quant/base_quant_model.py
-An abstract base class for quant models, establishing a standard interface for training and inference endpoints.
-
-#### [NEW] engines/quant/hmm_model.py
-Implements `hmmlearn.GaussianHMM` to detect market regimes. 
-- Input: SPY daily returns, VIX levels (from `DataEngine`).
-- Output: Probabilities of discrete hidden states mapped to Market Regimes.
-
-#### [NEW] engines/quant/portfolio_optimizer.py
-Implements `riskfolio-lib`.
-- Input: Historical price matrix of the current portfolio universe.
-- Output: Optimal weight allocations calculated via Hierarchical Risk Parity (HRP).
-
-#### [NEW] engines/quant/vpin_calculator.py
-Calculates Volume-Synchronized Probability of Informed Trading.
-- Input: High-resolution price/volume data (from Alpaca or yfinance intraday).
-- Output: VPIN metric flagging toxic order flow.
-
-## Verification Plan
-
-### Automated Tests
-1. **Mock Data:** I will write `pytest` unit tests parsing synthetic DataFrames into each component to verify mathematical outputs without API calls.
-2. **HMM Validation:** Feed a known period of extreme volatility (e.g., March 2020) and verify the HMM correctly transitions to the Bear/High-Vol state.
-3. **Optimization Validation:** Provide 5 uncorrelated assets and verify Riskfolio-Lib allocates to risk parity constraints correctly.
-
-### Output Integration
-Verify that the outputs dictionary matches the expected schema needed by the subsequent Analyst and Sentinel Engines.
+- Create `engines/quant/__init__.py`.
+- Create `engines/quant/hmm_model.py`.
+- Create `tests/unit/test_hmm_model.py` and implement the synthetic and historical shock tests.
