@@ -24,25 +24,19 @@ Built a basic LangGraph trading system with 4 agents (Researcher, Quant, Analyst
 
 ---
 
-## Phase 1: Data Ingestion Engine (In Progress)
+## Phase 1: Data Ingestion Engine (Completed)
 **Date:** Mar 3, 2026
-**Status:** 🔨 Building
+**Status:** ✅ Complete
 
 ### Completed
-- **`engines/data_ingestion/base_connector.py`** — Abstract connector interface. Defines standard methods: `get_prices()`, `get_fundamentals()`, `get_news()`, `health_check()`. All connectors implement this so the rest of the system never touches external APIs directly.
-- **`engines/data_ingestion/connectors/yfinance_connector.py`** — Primary data source. Prices, fundamentals (P/E, market cap, EPS, sector, analyst rating), and news headlines. No API key required. Tested and verified with real AAPL + NVDA data.
-- **Installed `yfinance` package**
-
-### In Progress
-- `data_engine.py` — Registry + Parquet cache layer
-
-### Pending
-- Expand yfinance connector: financial statements, options chains, insider activity, short interest
-- `fred_connector.py` — Macro indicators (free API key)
-- `finbert_connector.py` — NLP sentiment scoring (local CPU model)
-- `alpaca_connector.py` — Backup prices + paper trade execution
-- `sec_edgar_connector.py` — 10-K/10-Q filing text
-- `finnhub_connector.py` — Earnings transcripts
+- **`base_connector.py`** — Abstract connector interface.
+- **`yfinance_connector.py`** — Prices, fundamentals, news, financial statements, options chains, insider activity.
+- **`data_engine.py`** — Central registry + fallback routing + Parquet/JSON cache + DuckDB SQL query layer.
+- **`fred_connector.py`** — Macro indicators (Fed funds, CPI, GDP, unemployment, yield spread). 
+- **`finbert_connector.py`** — Local CPU NLP sentiment scoring (Hugging Face ProsusAI/finbert).
+- **`sec_edgar_connector.py`** — CIK lookup, 10-K/10-Q filing lists, full text + section extraction. No API key needed.
+- **`finnhub_connector.py`** — Earnings transcripts, real-time news, calendar events (requires key).
+- **`alpaca_connector.py`** — Backup prices + paper trade execution (requires key).
 
 ### Key Decisions
 - **yfinance over FMP** — Covers fundamentals + prices + news in one free library. Eliminated FMP dependency entirely.
@@ -53,7 +47,10 @@ Built a basic LangGraph trading system with 4 agents (Researcher, Quant, Analyst
 
 ## Future Phases (Planned)
 
-### Phase 2: Quant Engine
+## Phase 2: Quant Engine (In Progress)
+**Date:** Mar 3, 2026
+**Status:** 🔨 Building
+
 HMM regime detection, Riskfolio-Lib portfolio optimization, VPIN order flow toxicity.
 
 ### Phase 3: Analyst Engine

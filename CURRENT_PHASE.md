@@ -1,75 +1,47 @@
-# Aegis AI — Current Phase
+# Aegis AI — Current Phase Tracker
 
-> **Phase 1: Data Ingestion Engine**
-> Last updated: Mar 3, 2026
+> **Phase 2: Quant Engine**
+> **Progress:** 0% [⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜]
 
 ---
 
-## What We're Building
+## 🎯 Current Objectives
+Build the mathematical core of the system. The Quant Engine takes raw market data and computes regime probabilities, portfolio weights, and order flow toxicity.
 
-A pluggable data ingestion engine that pulls market data from multiple sources, normalizes it into a standard format, caches it in Parquet, and serves it through a single interface. All downstream systems (Quant, Analyst, Sentinel) consume from this engine — they never touch external APIs directly.
+## 📋 Tasks
 
-## Progress
+### 1. HMM Regime Detection (`hmmlearn`)
+- [ ] Implement `hmm_model.py`
+- [ ] Train GaussianHMM on VIX & SPY returns
+- [ ] Output current market state (Bull, Bear, Chop)
+- [ ] Cache state outputs
 
-```
-[██████░░░░░░░░░░░░░░] 30%
-```
+### 2. Portfolio Optimization (`riskfolio-lib`)
+- [ ] Implement `portfolio_optimizer.py`
+- [ ] Pull historical price data via DataEngine
+- [ ] Calculate Hierarchical Risk Parity (HRP) weights
+- [ ] Calculate Conditional Drawdown at Risk (CDaR) constraints
+- [ ] Output target portfolio allocations
 
-### Done
-- [x] `base_connector.py` — abstract interface
-- [x] `yfinance_connector.py` — prices, fundamentals, news (tested ✅)
-- [x] Frontend nuked (kept design system)
-- [x] Old backend nuked
+### 3. VPIN Order Flow (`flowrisk`)
+- [ ] Implement `vpin_calculator.py`
+- [ ] Compute Volume-Synchronized Probability of Informed Trading
+- [ ] Flag high-toxicity (dumping) conditions
 
-### Building Now
-- [ ] Expand yfinance connector: financials, options, insiders, short interest
-- [ ] `data_engine.py` — connector registry + Parquet cache
-
-### Up Next
-- [ ] `fred_connector.py` — macro data
-- [ ] `finbert_connector.py` — NLP sentiment
-- [ ] `sec_edgar_connector.py` — SEC filing text
-- [ ] `finnhub_connector.py` — earnings transcripts
-- [ ] `alpaca_connector.py` — backup prices + trade execution
-
-## Current File Structure
-
-```
-Aegis_AI/
-├── engines/
-│   └── data_ingestion/
-│       ├── base_connector.py      ✅ Done
-│       ├── data_engine.py         🔨 Next
-│       └── connectors/
-│           ├── yfinance_connector.py  ✅ Done
-│           ├── fred_connector.py      ⬜ Pending
-│           ├── finbert_connector.py   ⬜ Pending
-│           ├── alpaca_connector.py    ⬜ Pending
-│           ├── sec_edgar_connector.py ⬜ Pending
-│           └── finnhub_connector.py   ⬜ Pending
-├── config/
-│   ├── manager.py
-│   └── user_preferences.json
-├── frontend/src/
-│   ├── index.css              ✅ Design system kept
-│   └── main.tsx               ✅ Entry point kept
-├── BUILD_LOG.md
-├── TEST_LOG.md
-├── CURRENT_PHASE.md           ← you are here
-├── requirements.txt
-└── .env
+## 📁 File Structure Focus
+```text
+engines/
+├── data_ingestion/       ✅ (Completed)
+└── quant/                🔨 (Current Focus)
+    ├── __init__.py
+    ├── hmm_model.py
+    ├── portfolio_optimizer.py
+    └── vpin_calculator.py
 ```
 
-## Decisions Made This Phase
+## 🧠 Key Decisions
+- **HMM vs Simple Moving Averages:** Using HMM for probabilistic regime detection (from research report) rather than simple technical indicators.
+- **HRP vs Markowitz:** Using Hierarchical Risk Parity via Riskfolio-Lib because it handles out-of-sample data better than traditional Mean-Variance optimization.
 
-| Decision | Rationale |
-|----------|-----------|
-| yfinance as primary data source | Free, no key, covers ~70% of all data needs |
-| Dropped FMP entirely | yfinance provides same fundamentals for free |
-| Parquet + DuckDB for storage | Columnar storage + SQL queries, no server |
-| MLflow for experiment tracking | Free, local, Databricks-style dashboard |
-| FinBERT for NLP (not Claude) | $0 local inference on CPU for sentiment scoring |
-
-## Blockers
-
-None. Current phase requires no API keys (yfinance is free).
+## 🚧 Blockers / Needs
+- Need to verify `flowrisk` and `riskfolio-lib` pip installation compatibility.
