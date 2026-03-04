@@ -37,9 +37,10 @@ class BaseConnector(ABC):
         ...
 
     @abstractmethod
-    def get_prices(self, ticker: str, days: int = 30) -> Optional[pd.DataFrame]:
+    def get_prices(self, ticker: str, days: int = 30, interval: str = "1d") -> Optional[pd.DataFrame]:
         """
         Fetch OHLCV price data.
+        interval: e.g., '1d', '1m', '5m', '1h'
 
         Returns DataFrame with columns: date, open, high, low, close, volume
         Sorted by date ascending. Returns None on failure.

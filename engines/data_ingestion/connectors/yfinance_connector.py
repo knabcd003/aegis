@@ -35,24 +35,32 @@ class YFinanceConnector(BaseConnector):
 
     # ── Prices ───────────────────────────────────────────────────────────
 
-    def get_prices(self, ticker: str, days: int = 30) -> Optional[pd.DataFrame]:
+    def get_prices(self, ticker: str, days: int = 30, interval: str = "1d") -> Optional[pd.DataFrame]:
         """
-        Fetch daily OHLCV data for the given ticker.
+        Fetch daily or intraday OHLCV data for the given ticker.
         Returns a standardized DataFrame or None on failure.
         """
         try:
             stock = yf.Ticker(ticker)
             end = datetime.now()
             start = end - timedelta(days=days)
-            df = stock.history(start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"))
+            
+            # yfinance requires 'start'/'end' as strings for daily, but datetimes for intraday
+            # but history() also accepts datetimes objects.
+            df = stock.history(start=start, end=end, interval=interval)
 
             if df.empty:
-                print(f"[{self.name}] No price data returned for {ticker}")
+                print(f"[{self.name}] No price data returned for {ticker} (interval={interval})")
                 return None
 
             df = df.reset_index()
+            # Depending on timezone/interval, index might be 'Datetime' or 'Date'
+            if "Datetime" in df.columns:
+                df = df.rename(columns={"Datetime": "date"})
+            else:
+                df = df.rename(columns={"Date": "date"})
+                
             df = df.rename(columns={
-                "Date": "date",
                 "Open": "open",
                 "High": "high",
                 "Low": "low",
@@ -60,7 +68,12 @@ class YFinanceConnector(BaseConnector):
                 "Volume": "volume",
             })
             df = df[["date", "open", "high", "low", "close", "volume"]].copy()
-            df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
+            
+            if interval == "1d":
+                df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
+            else:
+                df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d %H:%M:%S")
+                
             return df
 
         except Exception as e:

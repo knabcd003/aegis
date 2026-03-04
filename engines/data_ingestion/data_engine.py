@@ -110,32 +110,34 @@ class DataEngine:
 
     # ── Data Access Methods ──────────────────────────────────────────────
 
-    def get_prices(self, ticker: str, days: int = 30,
+    def get_prices(self, ticker: str, days: int = 30, interval: str = "1d",
                    ttl_override: Optional[int] = None) -> Optional[pd.DataFrame]:
         """Fetch OHLCV prices — cache-first with fallback across connectors."""
-        cache_path = self._cache_path("prices", ticker, ext="parquet")
+        # Append interval to cache key so daily vs intraday are stored separately
+        cache_key = ticker if interval == "1d" else f"{ticker}_{interval}"
+        cache_path = self._cache_path("prices", cache_key, ext="parquet")
 
         # Check cache
         if self._is_cache_fresh(cache_path, "prices", ttl_override):
             df = self._read_parquet_cache(cache_path)
-            print(f"[engine] Prices for {ticker}: served from cache")
+            print(f"[engine] Prices for {ticker} ({interval}): served from cache")
             return df
 
         # Try connectors in priority order
         for conn in self._get_connectors_for("prices"):
             try:
-                df = conn.get_prices(ticker, days)
+                df = conn.get_prices(ticker, days=days, interval=interval)
                 if df is not None and not df.empty:
                     self._write_parquet_cache(cache_path, df)
-                    print(f"[engine] Prices for {ticker}: fetched from {conn.name}, cached to Parquet")
+                    print(f"[engine] Prices for {ticker} ({interval}): fetched from {conn.name}, cached to Parquet")
                     return df
             except Exception as e:
-                print(f"[engine] {conn.name} failed for prices/{ticker}: {e}")
+                print(f"[engine] {conn.name} failed for prices/{ticker} ({interval}): {e}")
                 continue
 
         # Serve stale cache if all connectors fail
         if cache_path.exists():
-            print(f"[engine] All connectors failed for prices/{ticker}, serving stale cache")
+            print(f"[engine] All connectors failed for prices/{ticker} ({interval}), serving stale cache")
             return self._read_parquet_cache(cache_path)
 
         return None

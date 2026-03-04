@@ -81,8 +81,8 @@ class AlpacaConnector(BaseConnector):
 
     # ── Price Data (backup source) ───────────────────────────────────────
 
-    def get_prices(self, ticker: str, days: int = 30):
-        """Fetch daily OHLCV bars from Alpaca as backup to yfinance."""
+    def get_prices(self, ticker: str, days: int = 30, interval: str = "1d"):
+        """Fetch historical OHLCV bars from Alpaca as backup to yfinance."""
         if not self._init_clients():
             if not self._has_keys():
                 print(f"[{self.name}] No API keys configured. Set ALPACA_API_KEY in .env")
@@ -95,10 +95,22 @@ class AlpacaConnector(BaseConnector):
 
             end = datetime.now()
             start = end - timedelta(days=days)
+            
+            # Map interval to Alpaca TimeFrame
+            if interval == "1m":
+                tf = TimeFrame.Minute
+            elif interval == "5m":
+                tf = TimeFrame(5, "Min")
+            elif interval == "15m":
+                tf = TimeFrame(15, "Min")
+            elif interval == "1h":
+                tf = TimeFrame.Hour
+            else:
+                tf = TimeFrame.Day
 
             request = StockBarsRequest(
                 symbol_or_symbols=ticker,
-                timeframe=TimeFrame.Day,
+                timeframe=tf,
                 start=start,
                 end=end,
             )
