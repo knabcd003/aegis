@@ -16,7 +16,7 @@ class FailingConnector(BaseConnector):
     @property
     def provides_news(self) -> bool: return True
     
-    def get_prices(self, ticker: str, days: int = 30):
+    def get_prices(self, ticker: str, days: int = 30, interval: str = "1d"):
         # Simulate network error or rate limit
         raise ConnectionError("API Rate Limit Exceeded")
         
@@ -38,7 +38,7 @@ class BackupConnector(BaseConnector):
     @property
     def provides_news(self) -> bool: return True
     
-    def get_prices(self, ticker: str, days: int = 30):
+    def get_prices(self, ticker: str, days: int = 30, interval: str = "1d"):
         return pd.DataFrame({
             "date": ["2026-01-01"], "open": [10.0], "high": [11.0], 
             "low": [9.0], "close": [10.5], "volume": [1000]

@@ -18,7 +18,14 @@ def test_local_worker_extraction():
     
     query = "What exactly does the company expect regarding their supply chain in Q3?"
     
-    output = worker.extract_information(document_text=mock_10k_section, query=query)
+    # Mock the LLM to prevent tests from failing when Ollama daemon is offline in CI/CD runners
+    from unittest.mock import MagicMock, patch
+    from langchain_core.messages import AIMessage
+    mock_response = MagicMock(spec=AIMessage)
+    mock_response.content = "We expect severe delays in Q3."
+    
+    with patch("engines.analyst.local_worker.ChatOllama.invoke", return_value=mock_response):
+        output = worker.extract_information(document_text=mock_10k_section, query=query)
     
     print(f"\n[DEBUG] Worker Output: {output}")
     

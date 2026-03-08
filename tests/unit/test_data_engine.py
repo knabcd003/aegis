@@ -25,7 +25,7 @@ class MockConnector(BaseConnector):
     def provides_news(self) -> bool:
         return True
 
-    def get_prices(self, ticker: str, days: int = 30) -> pd.DataFrame:
+    def get_prices(self, ticker: str, days: int = 30, interval: str = "1d") -> pd.DataFrame:
         if ticker == "FAIL":
             raise Exception("Mock price failure")
         return pd.DataFrame({
