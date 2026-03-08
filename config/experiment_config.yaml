@@ -1,0 +1,10 @@
+experiment_name: "Phase3_Base_Supervisor_Test"
+quant_engine:
+  vpin_threshold: 0.85
+  hmm_regimes: 3
+analyst_engine:
+  supervisor_llm: "claude-sonnet-4-6"
+  worker_llm: "qwen2.5"
+  active_nodes:
+    - "fundamentals_reader"
+    - "sentiment_analyzer"
