@@ -1,0 +1,67 @@
+name: Aegis AI Manual On-Demand Testing Suite
+
+# This workflow ONLY runs when manually triggered from the Actions tab.
+# We do this to prevent accidental and expensive API charges to Claude 4.6
+# from running on every single git push.
+on:
+  workflow_dispatch:
+    inputs:
+      run_full_llm_tests:
+        description: 'Run tests requiring Anthropic API? (Costs Money)'
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  lint-and-unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest flake8
+
+      - name: Lint with flake8
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      # These tests run the local components (Cache, DB) with mock data.
+      # They do ZERO external API calls to Claude or Qwen.
+      - name: Run Fast Unit Tests (No Cost)
+        run: |
+          pytest tests/unit/
+
+  llm-integration-tests:
+    needs: lint-and-unit-tests
+    # Only run if the user manually clicked the checkbox to allow LLM API costs
+    if: github.event.inputs.run_full_llm_tests == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Full LangGraph LLM Tests
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          # The orchestrator tests run actual inference against Claude.
+          python scripts/test_sandbox_orchestrator.py

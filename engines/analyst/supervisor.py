@@ -85,6 +85,10 @@ class AnalystSupervisor:
         # List of available tools
         workers_list = ", ".join(self.active_nodes) if self.active_nodes else "None configured"
 
+        # Prevent massive raw strings from bloating Claude's prompt (save $$$).
+        # We only pass these to the local Ollama agents.
+        clean_quant = {k: v for k, v in state['quant_data'].items() if not k.startswith("raw_")}
+
         prompt = f"""You are the Aegis AI Principal Analyst.
 Your job is to read Quantitative Engine data and sub-agent reports to make a final BUY/SELL/HOLD decision.
 
@@ -94,7 +98,7 @@ Regime: {regime}
 Sector: {sector}
 
 QUANTITATIVE DATA:
-{json.dumps(state['quant_data'], indent=2)}
+{json.dumps(clean_quant, indent=2)}
 
 SUB-AGENT REPORTS:
 {json.dumps(state['worker_outputs'], indent=2)}
