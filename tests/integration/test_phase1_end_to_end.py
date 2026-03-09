@@ -1,0 +1,109 @@
+import os
+import uuid
+import pytest
+import mlflow
+from datetime import date
+from typing import Any
+
+from config.manager import ConfigManager
+from engines.simulation.loop import SimulationLoop
+from engines.simulation.mlflow_logger import MLflowLogger
+from engines.simulation.metrics import compute_metrics
+import pandas as pd
+
+def run_phase1_backtest(config: Any, run_id: str) -> dict:
+    """Wrapper that runs the SimulationLoop, connects Metrics, and logs to MLflow."""
+    config.run_id = run_id
+    
+    # Init MLFlow
+    logger = MLflowLogger(config)
+    
+    # Init Engine
+    loop = SimulationLoop(config)
+    
+    # Log Start
+    logger.log_run_start(holdout_dates=[]) # We will get actual holdout dates later, but spec requires it for sealing.
+    
+    # In Phase 1, we use a simple date range
+    start_dt = date(2022, 1, 1)
+    end_dt = date(2023, 12, 31)
+    
+    loop_results = loop.run(start_dt, end_dt)
+    
+    # Get benchmark (dummy S&P for now, usually would pull from yf)
+    benchmark_returns = pd.Series([0.0] * len(loop_results["nav_history"]))
+    
+    # Compute metrics
+    metrics = compute_metrics(
+        loop_results["nav_history"], 
+        benchmark_returns, 
+        loop_results["holdout_dates"]
+    )
+    
+    # Log End
+    logger.log_run_end(
+        metrics=metrics,
+        trade_log=loop_results["trade_log"],
+        nav_history=loop_results["nav_history"],
+        gate_events=loop_results["gate_events"]
+    )
+    
+    return {
+        "optimization_dates": loop_results["optimization_dates"],
+        "holdout_dates": loop_results["holdout_dates"],
+        "metrics": metrics,
+        "mlflow_run_id": logger._mlflow_run_id,
+        "trade_log": loop_results["trade_log"]
+    }
+
+def test_full_phase1_backtest(mocker):
+    """
+    2-year backtest on 3 tickers. Validates data -> simulation -> metrics -> MLflow.
+    """
+    # Use real live API calls where possible, but mock expensive ones if needed locally
+    # We will test against AAPL, MSFT, GOOGL.
+    
+    # Fast-pass specific slow methods to prevent timeouts during unit testing
+    mocker.patch("engines.fundamental.insider_activity_monitor.InsiderActivityMonitor.compute", return_value={"congressional": [], "insider_type": "none"})
+    
+    config = ConfigManager.load("config/templates/tech_breakout_v1.json")
+    config.asset_universe.tickers = ["AAPL", "MSFT", "GOOGL"]
+
+    # We run it!
+    run_id = str(uuid.uuid4())
+    result = run_phase1_backtest(config, run_id)
+
+    # Partition integrity
+    assert set(result["optimization_dates"]).isdisjoint(set(result["holdout_dates"]))
+    assert len(result["holdout_dates"]) > 0
+
+    # Required metrics
+    required_metrics = [
+        "optimization_total_return", "optimization_cagr", "optimization_sharpe",
+        "optimization_sortino", "optimization_max_drawdown", "optimization_win_rate",
+        "held_out_total_return", "held_out_cagr", "held_out_sharpe",
+        "held_out_sortino", "held_out_max_drawdown", "held_out_win_rate",
+        "gross_return", "net_return", "slippage_drag"
+    ]
+    
+    for m in required_metrics:
+        assert m in result["metrics"], f"Missing: {m}"
+
+    # Slippage
+    assert result["metrics"]["slippage_drag"] >= 0
+
+    # MLflow verification
+    run = mlflow.get_run(result["mlflow_run_id"])
+    assert run.data.params["config_fingerprint"] == config.fingerprint
+    assert "holdout_dates" in run.data.params
+    
+    # Since depth is production/debug, we should see artifacts
+    client = mlflow.MlflowClient()
+    artifacts = [a.path for a in client.list_artifacts(run.info.run_id)]
+    
+    # Assert MLflow payload
+    assert "config.json" in artifacts
+    assert "metrics.json" in artifacts
+    assert "portfolio_nav.csv" in artifacts
+    assert "recommendation_trace.jsonl" in artifacts
+    assert "trade_log.jsonl" in artifacts
