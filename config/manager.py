@@ -1,33 +1,47 @@
+import hashlib
 import json
-import os
-from typing import Dict, Any
+from uuid import uuid4
+from pydantic import ValidationError
 
-CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "user_preferences.json")
+from config.schema import AegisConfig
+
+class ConfigValidationError(Exception):
+    """Raised when config JSON fails Pydantic validation."""
+    pass
+
 
 class ConfigManager:
+    """Manages parsing, validating, and fingerprinting JSON experiment configs."""
+    
     @staticmethod
-    def load_config() -> Dict[str, Any]:
-        """Loads the user preferences from the JSON config."""
-        if not os.path.exists(CONFIG_PATH):
-            return {
-                "philosophy": "value",
-                "max_pe_ratio": 15,
-                "sectors": ["tech", "healthcare"],
-                "risk_tolerance": "moderate",
-                "max_position_size_pct": 0.10,
-                "deployment_amount": 50000
-            }
-            
-        with open(CONFIG_PATH, "r") as f:
-            return json.load(f)
-            
-    @staticmethod
-    def save_config(new_config: Dict[str, Any]) -> bool:
-        """Saves updated user preferences to the JSON config."""
+    def _generate_fingerprint(data: dict) -> str:
+        """Deterministic SHA256 of the dictionary."""
+        # Sort keys to ensure determinism
+        json_str = json.dumps(data, sort_keys=True, separators=(',', ':'))
+        return hashlib.sha256(json_str.encode('utf-8')).hexdigest()
+
+    @classmethod
+    def load(cls, file_path: str) -> AegisConfig:
+        """Load from a JSON file, validate, and return the Config object."""
+        with open(file_path, "r") as f:
+            data = json.load(f)
+        return cls.load_dict(data)
+        
+    @classmethod
+    def load_dict(cls, data: dict) -> AegisConfig:
+        """Load from a dictionary, validate, and return the Config object."""
+        fingerprint = cls._generate_fingerprint(data)
         try:
-            with open(CONFIG_PATH, "w") as f:
-                json.dump(new_config, f, indent=2)
-            return True
-        except Exception as e:
-            print(f"Error saving config: {e}")
-            return False
+            config = AegisConfig(**data)
+            config.fingerprint = fingerprint
+            config.run_id = str(uuid4())
+            return config
+        except ValidationError as e:
+            # Flatten pydantic errors into a readable string showing the missing fields
+            errors = []
+            for err in e.errors():
+                loc = ".".join([str(loc) for loc in err["loc"]])
+                msg = err["msg"]
+                errors.append(f"{loc}: {msg}")
+            
+            raise ConfigValidationError(f"Invalid Config:\n" + "\n".join(errors))
