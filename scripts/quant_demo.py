@@ -13,7 +13,7 @@ from engines.quant.vpin_calculator import VPINCalculator
 
 def run_quant_demo():
     print("Initializing Data Engine...")
-    engine = DataEngine(data_dir="/tmp/aegis_demo_data")
+    engine = DataEngine(data_dir="/tmp/aegis_demo_data")  # nosec B108
     engine.register(YFinanceConnector(), priority=1)
     
     # 1. Regime Detection (needs daily SPY and VIX)

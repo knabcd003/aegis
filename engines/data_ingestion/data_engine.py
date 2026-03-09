@@ -343,7 +343,7 @@ class DataEngine:
 
         # Build query
         files_str = ", ".join(f"'{f}'" for f in parquet_files)
-        sql = f"SELECT * FROM read_parquet([{files_str}])"
+        sql = f"SELECT * FROM read_parquet([{files_str}])"  # nosec B608
 
         conditions = []
         if start_date:

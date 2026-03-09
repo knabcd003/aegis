@@ -1,43 +1,48 @@
 {
-    "config_id": "conservative_etf_v1",
-    "version": "1.0.0",
-    "asset_universe": {
-        "tickers": [
-            "SPY",
-            "TLT",
-            "GLD",
-            "IWM"
-        ],
-        "benchmark": "SPY"
+  "config_id": "conservative_etf_v1",
+  "version": "1.0.0",
+  "asset_universe": {
+    "tickers": [
+      "SPY",
+      "TLT",
+      "GLD",
+      "IWM"
+    ],
+    "benchmark": "SPY"
+  },
+  "signal_gate": {},
+  "fundamental_engine": {
+    "earnings_revision": {
+      "enabled": false,
+      "warn_threshold": 0.05
     },
-    "signal_gate": {},
-    "fundamental_engine": {
-        "earnings_revision": {
-            "enabled": false,
-            "warn_threshold": 0.05
-        },
-        "insider_monitor": {
-            "enabled": false,
-            "cluster_window_days": 45
-        }
-    },
-    "position_sizing": {
-        "capital": 500000,
-        "max_position_pct": 0.25,
-        "method": "equal_weight"
-    },
-    "sandbox": {
-        "slippage_bps": 5,
-        "min_hold_days": 60,
-        "promotion_criteria": {
-            "held_out_sharpe_min": 0.60,
-            "held_out_degradation_max": 0.25
-        }
-    },
-    "routing": {
-        "mode": "live",
-        "logging": {
-            "depth": "production"
-        }
+    "insider_monitor": {
+      "enabled": false,
+      "cluster_window_days": 45
     }
+  },
+  "position_sizing": {
+    "capital": 500000,
+    "max_position_pct": 0.25,
+    "method": "equal_weight"
+  },
+  "sandbox": {
+    "slippage_bps": 5,
+    "min_hold_days": 60,
+    "promotion_criteria": {
+      "held_out_sharpe_min": 0.6,
+      "held_out_degradation_max": 0.25
+    }
+  },
+  "routing": {
+    "mode": "live",
+    "logging": {
+      "depth": "production"
+    }
+  },
+  "agent": {
+    "enabled": true,
+    "provider": "ollama",
+    "model": "qwen2.5:3b"
+  }
 }

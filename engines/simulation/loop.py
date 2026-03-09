@@ -34,9 +34,10 @@ class SimulationLoop:
         self.trade_log: List[Dict[str, Any]] = []
         self.nav_history: List[Dict[str, Any]] = []
         self.gate_events: List[Dict[str, Any]] = []
+        self.trace_events: List[Dict[str, Any]] = []
         
         # Determine holdout dates immediately
-        seed_int = int(hashlib.md5(self.run_id.encode('utf-8')).hexdigest(), 16) % (2**32)
+        seed_int = int(hashlib.md5(self.run_id.encode('utf-8'), usedforsecurity=False).hexdigest(), 16) % (2**32)
         np.random.seed(seed_int)
         
     def _get_price(self, ticker: str, as_of: date) -> float:
@@ -102,7 +103,7 @@ class SimulationLoop:
         
         # Reset RNG state using the distinct configured run ID
         import hashlib
-        seed_int = int(hashlib.md5(self.run_id.encode('utf-8')).hexdigest(), 16) % (2**32)
+        seed_int = int(hashlib.md5(self.run_id.encode('utf-8'), usedforsecurity=False).hexdigest(), 16) % (2**32)
         np.random.seed(seed_int)
         
         # Randomly select 20% holdout dates uniformly
@@ -172,23 +173,50 @@ class SimulationLoop:
                 # Compile fundamental engine outputs
                 signals = self.compile_signals(ticker, current_date)
                 
-                # Check Gate
-                passed = SignalGate.evaluate(signals, self.config.signal_gate.model_dump(exclude_none=True))
+                # If agents disabled, fallback to legacy Signal Gate
+                if not self.config.agent.enabled:
+                    passed = SignalGate.evaluate(signals, self.config.signal_gate.model_dump(exclude_none=True))
+                    sell_signal = not passed
+                    conviction = 1.0 # default scalar for legacy
+                    
+                    self.gate_events.append({
+                        "date": current_date, "ticker": ticker, 
+                        "gate_result": passed, "margin_per_condition": signals.get("_gate_margin", {})
+                    })
+                else:
+                    # Agentic Mesh Routing
+                    if not hasattr(self, "supervisor"):
+                        from engines.analyst.supervisor import AgenticSupervisor
+                        print(f"[{self.run_id}] Initializing LangGraph Supervisor ({self.config.agent.provider}/{self.config.agent.model})...")
+                        self.supervisor = AgenticSupervisor(
+                            provider=self.config.agent.provider, 
+                            model=self.config.agent.model
+                        )
+                        
+                    agent_result = self.supervisor.run(ticker, current_date, signals)
+                    
+                    # Log trace for debugging
+                    self.trace_events.append({
+                        "date": str(current_date),
+                        "ticker": ticker,
+                        "action": agent_result["action"],
+                        "conviction": agent_result["conviction"],
+                        "reasoning_trace": agent_result["reasoning_trace"],
+                        "fundamental_signals": signals
+                    })
+                    
+                    action = agent_result["action"]
+                    conviction = agent_result["conviction"]
+                    
+                    passed = (action == "BUY" and conviction >= 0.3)
+                    sell_signal = (action == "SELL" and conviction >= 0.3)
                 
-                self.gate_events.append({
-                    "date": current_date,
-                    "ticker": ticker,
-                    "gate_result": passed,
-                    "margin_per_condition": signals.get("_gate_margin", {})
-                })
-                
-                # Generate Buy/Sell Signals based on Gate logic
-                # For Phase 1, passed stringently = BUY, fail when holding = SELL
+                # Generate Buy/Sell Signals
                 current_holdings = self.positions[ticker]
                 
                 if passed and current_holdings == 0:
-                    # Determine Position Size
-                    max_alloc = self.config.position_sizing.max_position_pct * self.capital
+                    # Determine Position Size based on conviction
+                    max_alloc = self.config.position_sizing.max_position_pct * self.capital * conviction
                     shares_to_buy = int(max_alloc / price)
                     
                     if shares_to_buy > 0:
@@ -199,7 +227,7 @@ class SimulationLoop:
                             "signal_date": current_date,
                             "signal_price": price
                         })
-                elif not passed and current_holdings > 0:
+                elif sell_signal and current_holdings > 0:
                     # Sell logic - normally check hold duration, but keep it deterministic here
                     held_days = 5 # Simplification, track actual hold days in prod
                     if held_days >= self.config.sandbox.min_hold_days:
@@ -211,10 +239,37 @@ class SimulationLoop:
                             "signal_price": price
                         })
 
-        return {
+        # Write local traces if agents were used
+        if self.config.agent.enabled and len(self.trace_events) > 0:
+            import os, json
+            os.makedirs("debug/traces", exist_ok=True)
+            trace_path = f"debug/traces/recommendation_trace_{self.run_id}.jsonl"
+            with open(trace_path, "w") as f:
+                for t in self.trace_events:
+                    f.write(json.dumps(t) + "\n")
+            print(f"[{self.run_id}] Wrote {len(self.trace_events)} LLM traces to {trace_path}")
+
+        # Return the structured loop results
+        loop_results = {
             "optimization_dates": [d.isoformat() for d in opt_dates],
             "holdout_dates": [d.isoformat() for d in holdout_dates],
             "trade_log": self.trade_log,
             "nav_history": self.nav_history,
-            "gate_events": self.gate_events
+            "gate_events": self.gate_events,
+            "trace_events": self.trace_events
         }
+        
+        # 3. Wire MLflow Persistence
+        try:
+            from engines.sandbox.mlflow_tracker import MLflowTracker
+            tracker = MLflowTracker()
+            config_dump = self.config.model_dump()
+            run_id = tracker.log_run(config_dump, loop_results)
+            print(f"[{self.run_id}] Logged simulation results to MLflow Run ID: {run_id}")
+            loop_results["mlflow_run_id"] = run_id
+        except ImportError:
+            print(f"[{self.run_id}] Skipping MLflow log - mlflow_tracker not installed.")
+        except Exception as e:
+            print(f"[{self.run_id}] Error logging to MLflow: {str(e)}")
+
+        return loop_results

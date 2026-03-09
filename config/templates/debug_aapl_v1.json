@@ -1,20 +1,14 @@
 {
-  "config_id": "tech_breakout_v1",
-  "version": "1.0.0",
+  "config_id": "debug_aapl_v1",
+  "version": "1.0",
   "asset_universe": {
     "tickers": [
-      "AAPL",
-      "MSFT",
-      "NVDA",
-      "GOOGL",
-      "META",
-      "TSLA",
-      "AMZN"
+      "AAPL"
     ],
     "benchmark": "SPY"
   },
   "signal_gate": {
-    "finbert_above": 0.5,
+    "finbert_above": 0.6,
     "earnings_revision_direction": "up"
   },
   "fundamental_engine": {
@@ -27,8 +21,13 @@
       "cluster_window_days": 45
     }
   },
+  "agent": {
+    "enabled": true,
+    "provider": "ollama",
+    "model": "qwen2.5:3b"
+  },
   "position_sizing": {
-    "capital": 100000,
+    "capital": 100000.0,
     "max_position_pct": 0.15,
     "method": "equal_weight"
   },
@@ -45,10 +44,5 @@
     "logging": {
       "depth": "production"
     }
-  },
-  "agent": {
-    "enabled": true,
-    "provider": "ollama",
-    "model": "qwen2.5:3b"
   }
 }

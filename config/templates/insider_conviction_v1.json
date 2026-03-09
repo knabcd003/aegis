@@ -1,45 +1,50 @@
 {
-    "config_id": "insider_conviction_v1",
-    "version": "1.0.0",
-    "asset_universe": {
-        "tickers": [
-            "PLTR",
-            "SNOW",
-            "CRWD",
-            "DDOG"
-        ],
-        "benchmark": "QQQ"
+  "config_id": "insider_conviction_v1",
+  "version": "1.0.0",
+  "asset_universe": {
+    "tickers": [
+      "PLTR",
+      "SNOW",
+      "CRWD",
+      "DDOG"
+    ],
+    "benchmark": "QQQ"
+  },
+  "signal_gate": {
+    "finbert_above": 0.3
+  },
+  "fundamental_engine": {
+    "earnings_revision": {
+      "enabled": false,
+      "warn_threshold": 0.05
     },
-    "signal_gate": {
-        "finbert_above": 0.3
-    },
-    "fundamental_engine": {
-        "earnings_revision": {
-            "enabled": false,
-            "warn_threshold": 0.05
-        },
-        "insider_monitor": {
-            "enabled": true,
-            "cluster_window_days": 30
-        }
-    },
-    "position_sizing": {
-        "capital": 250000,
-        "max_position_pct": 0.25,
-        "method": "conviction_weight"
-    },
-    "sandbox": {
-        "slippage_bps": 20,
-        "min_hold_days": 10,
-        "promotion_criteria": {
-            "held_out_sharpe_min": 0.80,
-            "held_out_degradation_max": 0.40
-        }
-    },
-    "routing": {
-        "mode": "eval",
-        "logging": {
-            "depth": "minimal"
-        }
+    "insider_monitor": {
+      "enabled": true,
+      "cluster_window_days": 30
     }
+  },
+  "position_sizing": {
+    "capital": 250000,
+    "max_position_pct": 0.25,
+    "method": "conviction_weight"
+  },
+  "sandbox": {
+    "slippage_bps": 20,
+    "min_hold_days": 10,
+    "promotion_criteria": {
+      "held_out_sharpe_min": 0.8,
+      "held_out_degradation_max": 0.4
+    }
+  },
+  "routing": {
+    "mode": "eval",
+    "logging": {
+      "depth": "minimal"
+    }
+  },
+  "agent": {
+    "enabled": true,
+    "provider": "ollama",
+    "model": "qwen2.5:3b"
+  }
 }

@@ -56,6 +56,11 @@ class RoutingConfig(BaseModel):
     logging: LoggingConfig
 
 
+class AgentConfig(BaseModel):
+    enabled: bool = False
+    provider: Literal["ollama", "openai", "anthropic"] = "ollama"
+    model: str = "qwen2.5:3b"
+
 # ---------------------------------------------------------
 # Main Schema
 # ---------------------------------------------------------
@@ -66,6 +71,7 @@ class AegisConfig(BaseModel):
     asset_universe: AssetUniverse
     signal_gate: SignalGateConfig
     fundamental_engine: FundamentalEngineConfig
+    agent: AgentConfig
     position_sizing: PositionSizingConfig
     sandbox: SandboxConfig
     routing: RoutingConfig
