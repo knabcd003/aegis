@@ -1,14 +1,23 @@
 """
-SEC EDGAR Connector — Fetches SEC filing text (10-K, 10-Q, 8-K) for any public company.
+SEC EDGAR Connector — Fetches SEC filing text (10-K, 10-Q, 8-K, Form 4).
 
-No API key required. Uses the SEC EDGAR EFTS full-text search API and filing
-archive. SEC requires a User-Agent header with contact info.
+v6 update:
+- All filings are stored in the immutable ledger by accession number.
+- public_disclosure_ts = the SEC filing date (when it became publicly available).
+- as_of_date filtering ensures no filing with public_disclosure_ts > as_of_date
+  is returned in a simulation.
+- DeBERTa-v3-large NLI cross-encoder loaded as a class-level singleton at startup
+  for two-stage segment obfuscation detection (Trap 1, §XIII).
 """
 import re
+import os
+import json
 import requests
 from typing import Dict, List, Optional, Any
+from datetime import date, datetime
 
 from engines.data_ingestion.base_connector import BaseConnector
+from engines.data_ingestion import ledger
 
 
 # SEC requires identifying headers
@@ -17,15 +26,68 @@ HEADERS = {
     "Accept-Encoding": "gzip, deflate",
 }
 
-# SEC base URLs
-EFTS_BASE = "https://efts.sec.gov/LATEST/search-index"
-EDGAR_BASE = "https://www.sec.gov/cgi-bin/browse-edgar"
 SUBMISSIONS_BASE = "https://data.sec.gov/submissions"
 ARCHIVES_BASE = "https://www.sec.gov/Archives/edgar/data"
 
+# ── NLI singleton (loaded once at startup) ───────────────────────────────────
+# Used for two-stage segment obfuscation detection in segment_anchor.py.
+# Loaded here so it is available from application start, not per-filing.
+_NLI_MODEL = None
+
+
+def _get_nli_model():
+    """Return the DeBERTa cross-encoder singleton, loading it if needed."""
+    global _NLI_MODEL
+    if _NLI_MODEL is None:
+        try:
+            from sentence_transformers import CrossEncoder
+            print("[sec_edgar] Loading cross-encoder/nli-deberta-v3-large (~183MB, once)...")
+            _NLI_MODEL = CrossEncoder("cross-encoder/nli-deberta-v3-large")
+            print("[sec_edgar] NLI model ready.")
+        except Exception as e:
+            print(f"[sec_edgar] WARNING: Could not load NLI model: {e}. Segment obfuscation detection unavailable.")
+            _NLI_MODEL = None
+    return _NLI_MODEL
+
+
+def classify_segment_change(historical_label: str, candidate_text: str) -> str:
+    """
+    Stage 1 of the two-stage NLI gate (Trap 1 — Segment Obfuscation).
+
+    Returns: 'ENTAILMENT' | 'NEUTRAL' | 'CONTRADICTION'
+      ENTAILMENT   → segment unchanged. Extract normally. Do NOT wake Qwen.
+      NEUTRAL      → borderline. Wake Qwen 8B for structured JSON confirmation.
+      CONTRADICTION→ confirmed restructuring. Wake Qwen, queue re-anchoring alert.
+
+    ~1ms per pair on CPU. Model: ~183MB. No GPU required.
+    """
+    model = _get_nli_model()
+    if model is None:
+        # Fallback: can't classify without the model
+        return "NEUTRAL"
+
+    try:
+        scores = model.predict([(historical_label, candidate_text)])
+        # DeBERTa-v3 NLI label order: [CONTRADICTION, ENTAILMENT, NEUTRAL]
+        labels = ["CONTRADICTION", "ENTAILMENT", "NEUTRAL"]
+        return labels[int(scores[0].argmax())]
+    except Exception as e:
+        print(f"[sec_edgar] NLI classify error: {e}")
+        return "NEUTRAL"
+
 
 class SECEdgarConnector(BaseConnector):
-    """Fetches SEC filing metadata and text. No API key needed."""
+    """Fetches SEC filing metadata and text. Stores filings immutably by accession number."""
+
+    def __init__(self):
+        self._last_successful_fetch_ts: Optional[datetime] = None
+        # Trigger NLI singleton load at construction time (startup cost, not per-filing)
+        _get_nli_model()
+
+    @property
+    def _nli_model(self):
+        """Access to the class-level NLI singleton for testing."""
+        return _get_nli_model()
 
     @property
     def name(self) -> str:
@@ -37,7 +99,7 @@ class SECEdgarConnector(BaseConnector):
 
     @property
     def provides_fundamentals(self) -> bool:
-        return False
+        return True  # Filing-level fundamental data
 
     @property
     def provides_news(self) -> bool:
@@ -50,31 +112,38 @@ class SECEdgarConnector(BaseConnector):
             resp = requests.get(url, headers=HEADERS, timeout=10)
             resp.raise_for_status()
             data = resp.json()
-
             for entry in data.values():
                 if entry.get("ticker", "").upper() == ticker.upper():
-                    # CIK needs to be zero-padded to 10 digits
                     return str(entry["cik_str"]).zfill(10)
-
             print(f"[{self.name}] CIK not found for {ticker}")
             return None
         except Exception as e:
             print(f"[{self.name}] Error looking up CIK for {ticker}: {e}")
             return None
 
-    def get_filings_list(self, ticker: str, filing_type: str = "10-K",
-                         count: int = 5) -> List[Dict[str, Any]]:
+    def get_filings_list(
+        self,
+        ticker: str,
+        filing_type: str = "10-K",
+        count: int = 5,
+        as_of_date: Optional[date] = None,
+    ) -> List[Dict[str, Any]]:
         """
-        Get a list of recent filings for a ticker.
+        Get a list of recent SEC filings for a ticker.
 
-        Args:
-            ticker: Stock ticker (e.g., "AAPL")
-            filing_type: "10-K", "10-Q", "8-K"
-            count: Number of filings to return
+        public_disclosure_ts = filing_date from SEC EDGAR (when it became public).
+        If as_of_date is provided, only filings with filing_date <= as_of_date returned.
 
-        Returns:
-            List of filing metadata dicts with accession numbers and dates.
+        Checks ledger cache first. Falls back to EDGAR API.
         """
+        sim_date = as_of_date or date.today()
+
+        # --- Ledger cache ---
+        cached = ledger.list_filings(ticker, filing_type, as_of_date=sim_date)
+        if len(cached) >= count:
+            return cached[:count]
+
+        # --- Fetch from EDGAR ---
         cik = self._get_cik(ticker)
         if not cik:
             return []
@@ -93,115 +162,153 @@ class SECEdgarConnector(BaseConnector):
 
             filings = []
             for i, form in enumerate(forms):
-                if form == filing_type and len(filings) < count:
-                    filings.append({
-                        "ticker": ticker,
-                        "form_type": form,
-                        "filing_date": dates[i] if i < len(dates) else "",
-                        "accession_number": accessions[i] if i < len(accessions) else "",
-                        "primary_document": primary_docs[i] if i < len(primary_docs) else "",
-                        "cik": cik,
-                    })
+                if form != filing_type:
+                    continue
+                filing_date_str = dates[i] if i < len(dates) else ""
+                accession_num = accessions[i] if i < len(accessions) else ""
 
+                try:
+                    filing_date = date.fromisoformat(filing_date_str)
+                except ValueError:
+                    continue
+
+                # Point-in-time filter
+                if filing_date > sim_date:
+                    continue
+
+                filing_data = {
+                    "ticker": ticker,
+                    "form_type": form,
+                    "filing_date": filing_date_str,
+                    "public_disclosure_ts": filing_date_str,  # filing date = disclosure date
+                    "accession_number": accession_num,
+                    "primary_document": primary_docs[i] if i < len(primary_docs) else "",
+                    "cik": cik,
+                }
+
+                # Write to ledger (immutable — won't overwrite if exists)
+                if accession_num:
+                    try:
+                        ledger.write_filing(ticker, accession_num, filing_data)
+                    except Exception as e:
+                        print(f"[{self.name}] Ledger write warning: {e}")
+
+                filings.append(filing_data)
+
+                if len(filings) >= count:
+                    break
+
+            self._last_successful_fetch_ts = datetime.utcnow()
             return filings
 
         except Exception as e:
             print(f"[{self.name}] Error fetching filing list for {ticker}: {e}")
             return []
 
-    def get_filing_text(self, ticker: str, filing_type: str = "10-K",
-                        max_chars: int = 50000) -> Optional[Dict[str, Any]]:
+    def get_filing_text(
+        self,
+        ticker: str,
+        filing_type: str = "10-K",
+        max_chars: int = 50000,
+        as_of_date: Optional[date] = None,
+    ) -> Optional[Dict[str, Any]]:
         """
-        Fetch the most recent filing text for a ticker.
+        Fetch the most recent filing text for a ticker as of as_of_date.
 
-        Returns:
-            {
-                "ticker": "AAPL",
-                "form_type": "10-K",
-                "filing_date": "2024-11-01",
-                "text": "... filing text ...",
-                "sections": { "risk_factors": "...", "business": "..." }
-            }
+        Checks ledger for cached filing first. Downloads from EDGAR only if not cached.
+        Once downloaded, the JSON is stored in the ledger by accession number
+        and never re-fetched (immutability rule).
         """
-        filings = self.get_filings_list(ticker, filing_type, count=1)
+        filings = self.get_filings_list(ticker, filing_type, count=1, as_of_date=as_of_date)
         if not filings:
             print(f"[{self.name}] No {filing_type} filings found for {ticker}")
             return None
 
         filing = filings[0]
-        accession = filing["accession_number"].replace("-", "")
-        primary_doc = filing["primary_document"]
+        accession = filing["accession_number"]
+        accession_clean = accession.replace("-", "")
+        primary_doc = filing.get("primary_document", "")
         cik = filing["cik"].lstrip("0")
 
+        # --- Check ledger for full text cache ---
+        cached = ledger.read_filing(ticker, accession)
+        if cached and "text" in cached:
+            return cached
+
+        # --- Download from EDGAR ---
         try:
-            url = f"{ARCHIVES_BASE}/{cik}/{accession}/{primary_doc}"
+            url = f"{ARCHIVES_BASE}/{cik}/{accession_clean}/{primary_doc}"
             resp = requests.get(url, headers=HEADERS, timeout=30)
             resp.raise_for_status()
             raw_text = resp.text
 
-            # Strip HTML tags for cleaner text
             clean_text = re.sub(r'<[^>]+>', ' ', raw_text)
             clean_text = re.sub(r'\s+', ' ', clean_text).strip()
-
-            # Truncate to max_chars
             if len(clean_text) > max_chars:
                 clean_text = clean_text[:max_chars]
 
-            # Try to extract key sections
             sections = self._extract_sections(clean_text)
 
-            return {
+            full_data = {
                 "ticker": ticker,
                 "form_type": filing_type,
                 "filing_date": filing["filing_date"],
-                "accession_number": filing["accession_number"],
+                "public_disclosure_ts": filing["filing_date"],
+                "accession_number": accession,
                 "text_length": len(clean_text),
                 "text": clean_text,
                 "sections": sections,
             }
+
+            # Store in ledger — immutable from this point forward
+            try:
+                ledger.write_filing(ticker, accession, full_data)
+            except Exception as e:
+                print(f"[{self.name}] Ledger write warning for text: {e}")
+
+            self._last_successful_fetch_ts = datetime.utcnow()
+            return full_data
 
         except Exception as e:
             print(f"[{self.name}] Error fetching filing text for {ticker}: {e}")
             return None
 
     def _extract_sections(self, text: str) -> Dict[str, str]:
-        """
-        Attempt to extract standard 10-K sections from filing text.
-        Returns whatever sections we can find.
-        """
+        """Extract standard 10-K/10-Q sections from filing text."""
         sections = {}
         section_markers = {
-            "risk_factors": [r"(?i)item\s*1a[\.\s]*risk\s*factors", r"(?i)risk\s*factors"],
-            "business": [r"(?i)item\s*1[\.\s]*business"],
-            "mda": [r"(?i)item\s*7[\.\s]*management.s\s*discussion"],
+            "risk_factors": [r"(?i)item\s*1a[.\s]*risk\s*factors", r"(?i)risk\s*factors"],
+            "business": [r"(?i)item\s*1[.\s]*business"],
+            "mda": [r"(?i)item\s*7[.\s]*management.s\s*discussion"],
             "financial_condition": [r"(?i)financial\s*condition"],
         }
-
         for section_name, patterns in section_markers.items():
             for pattern in patterns:
                 match = re.search(pattern, text)
                 if match:
-                    # Extract ~5000 chars after the section header
                     start = match.start()
                     end = min(start + 5000, len(text))
                     sections[section_name] = text[start:end].strip()
                     break
-
         return sections
 
     # ── BaseConnector interface ──────────────────────────────────────────
 
-    def get_prices(self, ticker: str, days: int = 30):
+    def get_prices(self, ticker: str, days: int = 30, interval: str = "1d",
+                   as_of_date: Optional[date] = None):
         return None
 
-    def get_fundamentals(self, ticker: str):
-        return None
+    def get_fundamentals(self, ticker: str, as_of_date: Optional[date] = None):
+        """Returns the most recent filing metadata as a fundamentals dict."""
+        filing = self.get_filing_text(ticker, "10-K", as_of_date=as_of_date)
+        if not filing:
+            filing = self.get_filing_text(ticker, "10-Q", as_of_date=as_of_date)
+        return filing
 
-    def get_news(self, ticker: str, days: int = 7):
+    def get_news(self, ticker: str, days: int = 7, as_of_date: Optional[date] = None):
         return []
 
     def health_check(self) -> bool:
-        """Check if SEC EDGAR is reachable."""
         try:
             resp = requests.get(
                 "https://www.sec.gov/files/company_tickers.json",

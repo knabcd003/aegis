@@ -1,43 +1,45 @@
 """
 FRED Connector — Federal Reserve Economic Data for macro indicators.
 
-Provides: Fed funds rate, CPI, GDP, unemployment, 10Y treasury yield,
-Treasury yield spread (10Y-2Y), VIX.
-
-Works in two modes:
-1. With FRED API key (fredapi) — full access to all FRED series
-2. Without key — uses yfinance to get VIX and treasury ETF proxies
+v6 update:
+- All returned records include public_disclosure_ts.
+- For FRED data, public_disclosure_ts = release_date from ALFRED vintage
+  (the date the data point was officially released/revised by the Fed).
+- as_of_date filtering: only data points with release_date <= as_of_date returned.
+- Audit snapshots written to ledger (not immutable — FRED revises data).
 """
 import os
 import yfinance as yf
 import pandas as pd
 from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 from engines.data_ingestion.base_connector import BaseConnector
+from engines.data_ingestion import ledger
 
 
-# Key FRED series IDs
 FRED_SERIES = {
-    "fed_funds_rate": "FEDFUNDS",        # Federal Funds Effective Rate
-    "cpi": "CPIAUCSL",                    # Consumer Price Index
-    "gdp": "GDP",                          # Gross Domestic Product
-    "unemployment": "UNRATE",              # Unemployment Rate
-    "treasury_10y": "DGS10",              # 10-Year Treasury Constant Maturity
-    "treasury_2y": "DGS2",                # 2-Year Treasury Constant Maturity
-    "treasury_spread": "T10Y2Y",          # 10Y-2Y Spread
-    "inflation_expectation": "T5YIE",      # 5-Year Breakeven Inflation
+    "fed_funds_rate": "FEDFUNDS",
+    "cpi": "CPIAUCSL",
+    "gdp": "GDP",
+    "unemployment": "UNRATE",
+    "treasury_10y": "DGS10",
+    "treasury_2y": "DGS2",
+    "treasury_spread": "T10Y2Y",
+    "inflation_expectation": "T5YIE",
 }
 
 
 class FREDConnector(BaseConnector):
     """
     Fetches macro indicators from FRED (with key) or yfinance fallback.
+    public_disclosure_ts = ALFRED release date (when the data point was published).
     """
 
     def __init__(self, api_key: Optional[str] = None):
         self._api_key = api_key or os.getenv("FRED_API_KEY")
         self._fred = None
+        self._last_successful_fetch_ts: Optional[datetime] = None
 
     @property
     def name(self) -> str:
@@ -56,26 +58,18 @@ class FREDConnector(BaseConnector):
         return False
 
     def _init_fred(self) -> bool:
-        """
-        Try to initialize fredapi. Returns True if successful.
-        Falls back to yfinance-based macro data if no key/package.
-        """
         if self._fred is not None:
             return True
-
         if not self._api_key:
             return False
-
         try:
             import ssl
-            # macOS SSL fix for urllib used by fredapi
             try:
                 _create_unverified_https_context = ssl._create_unverified_context
             except AttributeError:
                 pass
             else:
                 ssl._create_default_https_context = _create_unverified_https_context
-
             from fredapi import Fred
             self._fred = Fred(api_key=self._api_key)
             return True
@@ -86,150 +80,157 @@ class FREDConnector(BaseConnector):
             print(f"[{self.name}] Error initializing FRED: {e}")
             return False
 
-    def get_macro(self) -> Dict[str, Any]:
+    def get_macro(
+        self,
+        as_of_date: Optional[date] = None,
+    ) -> Dict[str, Any]:
         """
-        Fetch current macro indicators.
-        Uses FRED API if available, otherwise falls back to yfinance.
+        Fetch macro indicators. Each value includes release_ts (public_disclosure_ts).
+
+        Point-in-time: if as_of_date is provided, only observations where
+        release_date <= as_of_date are returned (using ALFRED vintage).
+        Fallback (yfinance): returns current values; point-in-time not guaranteed.
         """
+        sim_date = as_of_date or date.today()
+
         if self._init_fred():
-            return self._get_macro_from_fred()
+            return self._get_macro_from_fred(sim_date)
         else:
-            return self._get_macro_from_yfinance()
+            return self._get_macro_from_yfinance(sim_date)
 
-    def _get_macro_from_fred(self) -> Dict[str, Any]:
-        """Fetch macro data directly from FRED API."""
-        macro = {"source": "fred_api"}
+    def _get_macro_from_fred(self, as_of_date: date) -> Dict[str, Any]:
+        """Fetch macro data from FRED with ALFRED vintage filtering."""
+        macro: Dict[str, Any] = {
+            "source": "fred_api",
+            "public_disclosure_ts": as_of_date.isoformat(),
+        }
 
-        for name, series_id in FRED_SERIES.items():
+        for series_name, series_id in FRED_SERIES.items():
             try:
-                data = self._fred.get_series(series_id, observation_start="2020-01-01")
-                if data is not None and len(data) > 0:
-                    latest = data.dropna().iloc[-1]
-                    macro[name] = {
-                        "value": float(latest),
-                        "date": str(data.dropna().index[-1].date()),
+                # ALFRED: get the vintage as it was known on as_of_date
+                # fredapi: get_series_all_releases returns vintage data
+                try:
+                    # Try point-in-time vintage fetch
+                    data = self._fred.get_series_all_releases(series_id)
+                    data = data[data["realtime_start"] <= as_of_date.isoformat()]
+                    if data.empty:
+                        raise ValueError("No vintage data")
+                    latest = data.sort_values("date").iloc[-1]
+                    macro[series_name] = {
+                        "value": float(latest["value"]),
+                        "date": str(latest["date"])[:10],
+                        "public_disclosure_ts": str(latest["realtime_start"])[:10],
                     }
+                except Exception:
+                    # Fallback: standard series (not fully point-in-time but usable)
+                    data = self._fred.get_series(series_id, observation_start="2020-01-01")
+                    if data is not None and len(data) > 0:
+                        # Filter to releases available as of as_of_date
+                        data_filtered = data[data.index.date <= as_of_date]
+                        if not data_filtered.empty:
+                            latest_val = data_filtered.dropna().iloc[-1]
+                            latest_date = data_filtered.dropna().index[-1]
+                            macro[series_name] = {
+                                "value": float(latest_val),
+                                "date": str(latest_date.date()),
+                                "public_disclosure_ts": str(latest_date.date()),
+                            }
             except Exception as e:
-                print(f"[{self.name}] Error fetching {name}: {e}")
-                macro[name] = None
+                print(f"[{self.name}] Error fetching {series_name}: {e}")
+                macro[series_name] = None
 
+        # Audit snapshot
+        try:
+            snapshot_df = pd.DataFrame([
+                {"series": k, "value": v.get("value") if v else None,
+                 "release_date": v.get("public_disclosure_ts") if v else None}
+                for k, v in macro.items()
+                if k not in ("source", "public_disclosure_ts")
+            ])
+            ledger.write_macro_snapshot(f"bulk_{as_of_date.isoformat()}", snapshot_df)
+        except Exception:
+            pass
+
+        self._last_successful_fetch_ts = datetime.utcnow()
         return macro
 
-    def _get_macro_from_yfinance(self) -> Dict[str, Any]:
-        """
-        Fallback: get key macro proxies from yfinance.
-        Uses VIX index, treasury yield ETFs, and market indices.
-        """
-        macro = {"source": "yfinance_fallback"}
+    def _get_macro_from_yfinance(self, as_of_date: date) -> Dict[str, Any]:
+        """Fallback: get key macro proxies from yfinance. Not fully point-in-time."""
+        macro: Dict[str, Any] = {
+            "source": "yfinance_fallback",
+            "public_disclosure_ts": as_of_date.isoformat(),
+            "_note": "yfinance fallback — not fully point-in-time. Use fredapi for backtesting.",
+        }
 
-        # VIX (fear gauge)
-        try:
-            vix = yf.Ticker("^VIX")
-            hist = vix.history(period="5d")
-            if not hist.empty:
-                macro["vix"] = {
-                    "value": round(float(hist["Close"].iloc[-1]), 2),
-                    "date": str(hist.index[-1].date()),
-                }
-        except Exception as e:
-            print(f"[{self.name}] Error fetching VIX: {e}")
+        proxies = {
+            "vix": "^VIX",
+            "treasury_10y": "^TNX",
+            "sp500": "^GSPC",
+            "dollar_index": "DX-Y.NYB",
+        }
 
-        # 10-Year Treasury Yield (^TNX)
-        try:
-            tnx = yf.Ticker("^TNX")
-            hist = tnx.history(period="5d")
-            if not hist.empty:
-                macro["treasury_10y"] = {
-                    "value": round(float(hist["Close"].iloc[-1]), 3),
-                    "date": str(hist.index[-1].date()),
-                }
-        except Exception as e:
-            print(f"[{self.name}] Error fetching 10Y yield: {e}")
+        end = datetime.combine(as_of_date, datetime.min.time()) + timedelta(days=1)
+        start = end - timedelta(days=10)
 
-        # 2-Year Treasury Yield (^IRX is 13-week, use 2Y via TWO)
-        try:
-            two = yf.Ticker("^TWO")
-            hist = two.history(period="5d")
-            if not hist.empty:
-                macro["treasury_2y"] = {
-                    "value": round(float(hist["Close"].iloc[-1]), 3),
-                    "date": str(hist.index[-1].date()),
-                }
-        except Exception as e:
-            print(f"[{self.name}] Error fetching 2Y yield: {e}")
+        for name, symbol in proxies.items():
+            try:
+                ticker_obj = yf.Ticker(symbol)
+                hist = ticker_obj.history(
+                    start=start.strftime("%Y-%m-%d"),
+                    end=end.strftime("%Y-%m-%d"),
+                )
+                if not hist.empty:
+                    last_row = hist.iloc[-1]
+                    last_date = hist.index[-1].date()
+                    macro[name] = {
+                        "value": round(float(last_row["Close"]), 3),
+                        "date": last_date.isoformat(),
+                        "public_disclosure_ts": last_date.isoformat(),
+                    }
+            except Exception as e:
+                print(f"[{self.name}] Error fetching {name} ({symbol}): {e}")
 
-        # Compute yield spread if we have both
+        # Yield spread from components
+        if "treasury_10y" in macro and "treasury_2y" not in macro:
+            try:
+                two = yf.Ticker("^IRX")  # 13-week Treasury proxy
+                hist = two.history(start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"))
+                if not hist.empty:
+                    val_2y = round(float(hist["Close"].iloc[-1]) / 100, 4)  # IRX is in percent
+                    last_date = hist.index[-1].date()
+                    macro["treasury_2y"] = {
+                        "value": val_2y,
+                        "date": last_date.isoformat(),
+                        "public_disclosure_ts": last_date.isoformat(),
+                    }
+            except Exception:
+                pass
+
         if "treasury_10y" in macro and "treasury_2y" in macro:
             spread = macro["treasury_10y"]["value"] - macro["treasury_2y"]["value"]
             macro["treasury_spread"] = {
                 "value": round(spread, 3),
                 "date": macro["treasury_10y"]["date"],
-                "note": "10Y - 2Y yield (negative = inverted curve)"
+                "public_disclosure_ts": macro["treasury_10y"]["public_disclosure_ts"],
+                "note": "10Y - 2Y (negative = inverted curve)",
             }
 
-        # S&P 500 (market baseline)
-        try:
-            spy = yf.Ticker("^GSPC")
-            hist = spy.history(period="5d")
-            if not hist.empty:
-                macro["sp500"] = {
-                    "value": round(float(hist["Close"].iloc[-1]), 2),
-                    "date": str(hist.index[-1].date()),
-                }
-        except Exception as e:
-            print(f"[{self.name}] Error fetching S&P 500: {e}")
-
-        # Dollar Index (DXY)
-        try:
-            dxy = yf.Ticker("DX-Y.NYB")
-            hist = dxy.history(period="5d")
-            if not hist.empty:
-                macro["dollar_index"] = {
-                    "value": round(float(hist["Close"].iloc[-1]), 2),
-                    "date": str(hist.index[-1].date()),
-                }
-        except Exception as e:
-            print(f"[{self.name}] Error fetching DXY: {e}")
-
+        self._last_successful_fetch_ts = datetime.utcnow()
         return macro
-
-    def get_vix_history(self, days: int = 90) -> Optional[pd.DataFrame]:
-        """
-        Get VIX time-series for regime detection models.
-        Always uses yfinance regardless of FRED key.
-        """
-        try:
-            vix = yf.Ticker("^VIX")
-            end = datetime.now()
-            start = end - timedelta(days=days)
-            df = vix.history(start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"))
-
-            if df.empty:
-                return None
-
-            df = df.reset_index()
-            df = df.rename(columns={"Date": "date", "Close": "close", "Volume": "volume"})
-            df = df[["date", "close"]].copy()
-            df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
-            return df
-
-        except Exception as e:
-            print(f"[{self.name}] Error fetching VIX history: {e}")
-            return None
 
     # ── BaseConnector interface ──────────────────────────────────────────
 
-    def get_prices(self, ticker: str, days: int = 30):
+    def get_prices(self, ticker: str, days: int = 30, interval: str = "1d",
+                   as_of_date: Optional[date] = None):
         return None
 
-    def get_fundamentals(self, ticker: str):
+    def get_fundamentals(self, ticker: str, as_of_date: Optional[date] = None):
         return None
 
-    def get_news(self, ticker: str, days: int = 7):
+    def get_news(self, ticker: str, days: int = 7, as_of_date: Optional[date] = None):
         return []
 
     def health_check(self) -> bool:
-        """Check if macro data is retrievable."""
         try:
             macro = self.get_macro()
             return "vix" in macro or "fed_funds_rate" in macro
