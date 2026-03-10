@@ -204,6 +204,7 @@ class SimulationLoop:
                         "action": agent_result["action"],
                         "conviction": agent_result["conviction"],
                         "reasoning_trace": agent_result["reasoning_trace"],
+                        "directional_mismatch": agent_result.get("directional_mismatch", False),
                         "fundamental_signals": signals
                     })
                     

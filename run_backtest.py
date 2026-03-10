@@ -30,11 +30,21 @@ def main():
     end_dt = date.fromisoformat(args.end)
     
     logger = MLflowLogger(config)
-    loop = SimulationLoop(config)
     
+    # Pre-calculate deterministic holdout partition for MLflow transparency
+    all_dates = pd.date_range(start_dt, end_dt, freq='B').date.tolist()
+    num_holdout = int(len(all_dates) * 0.2)
+    import hashlib
+    import numpy as np
+    seed_int = int(hashlib.md5(config.run_id.encode('utf-8'), usedforsecurity=False).hexdigest(), 16) % (2**32)
+    np.random.seed(seed_int)
+    holdout_dates = sorted(np.random.choice(all_dates, num_holdout, replace=False))
+    holdout_str = [d.isoformat() for d in holdout_dates]
+
     print("Sealing partition and logging start...")
-    logger.log_run_start(holdout_dates=[]) 
+    logger.log_run_start(holdout_dates=holdout_str) 
     
+    loop = SimulationLoop(config)
     loop_results = loop.run(start_dt, end_dt)
     
     print(f"\nSimulation complete. Executed {len(loop_results['trade_log'])} trades.")

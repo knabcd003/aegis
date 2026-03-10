@@ -24,7 +24,13 @@ class AgenticSupervisor:
                  provider: str = "ollama"):
         
         if provider == "ollama":
-            self.llm = ChatOllama(model=model, temperature=0.1)
+            # Optimized for qwen3:8b (R1) to balance reasoning quality and latency
+            self.llm = ChatOllama(
+                model=model,
+                temperature=0.01,
+                num_predict=400, # Large enough to allow some thought but cap the total cost
+                format="json"
+            )
         else:
             raise ValueError(f"Unsupported provider: {provider}")
             
@@ -76,10 +82,39 @@ class AgenticSupervisor:
         
         # 1. Add Nodes
         nodes = {}
+        from engines.system.telemetry import monitor
+        import time
+
+        def wrap_node(name, node_func):
+            def wrapped(state: AgentState):
+                start = time.time()
+                try:
+                    result = node_func(state)
+                    duration = time.time() - start
+                    monitor.log_node_execution(
+                        ticker=state.get("ticker", "UNK"),
+                        date=state.get("date", "UNK"),
+                        node_name=name,
+                        duration_sec=duration,
+                        outcome=result
+                    )
+                    return result
+                except Exception as e:
+                    duration = time.time() - start
+                    monitor.log_node_execution(
+                        ticker=state.get("ticker", "UNK"),
+                        date=state.get("date", "UNK"),
+                        node_name=name,
+                        duration_sec=duration,
+                        outcome={"error": str(e)}
+                    )
+                    raise e
+            return wrapped
+
         for name in self.pipeline:
              node_class = NODE_MAP[name]
              node_instance = node_class(self.llm)
-             builder.add_node(name, node_instance)
+             builder.add_node(name, wrap_node(name, node_instance))
              nodes[name] = node_instance
              
         # 2. Add Edges
@@ -135,6 +170,7 @@ class AgenticSupervisor:
             "analyst_proposal": {},
             "risk_veto": False,
             "compliance_veto": False,
+            "directional_mismatch": False,
             "final_decision": {}
         }
         
@@ -144,5 +180,6 @@ class AgenticSupervisor:
         return {
             "action": final_state["final_decision"].get("action", "HOLD"),
             "conviction": final_state["final_decision"].get("conviction", 0.0),
-            "reasoning_trace": final_state.get("reasoning_trace", [])
+            "reasoning_trace": final_state.get("reasoning_trace", []),
+            "directional_mismatch": final_state.get("directional_mismatch", False)
         }
