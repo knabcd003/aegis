@@ -18,8 +18,8 @@ def mock_config():
         fundamental_engine={"earnings_revision": {"enabled": False}, "insider_monitor": {"enabled": False}, "macro_overlay": {"enabled": False}},
         signal_gate={"vpin_below": 1.0, "finbert_above": 0.0},
         position_sizing={"method": "equal_weight", "max_position_pct": 0.1, "capital": 100000},
-        routing={"default_provider": "ollama", "default_model": "qwen2.5:3b", "complexity_threshold": 0.8, "logging": {"enabled": True}},
-        agent={"enabled": False, "provider": "ollama", "model": "qwen2.5:3b"},
+        routing={"default_provider": "ollama", "default_model": "qwen3:4b", "complexity_threshold": 0.8, "logging": {"enabled": True}},
+        agent={"enabled": False, "provider": "ollama", "model": "qwen3:4b"},
         sandbox={"slippage_bps": 10, "min_hold_days": 1, "promotion_criteria": {"sharpe_min": 1.0, "alpha_min_pct": 0.0, "max_drawdown_pct": 20.0, "backtest_months": 3}}
     )
 

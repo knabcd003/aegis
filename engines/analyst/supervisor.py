@@ -1,4 +1,4 @@
-from typing import Dict, Any, Literal
+from typing import Dict, Any, List, Optional, Type
 from langgraph.graph import StateGraph, START, END
 from langchain_ollama import ChatOllama
 
@@ -6,37 +6,94 @@ from engines.analyst.state import AgentState
 from engines.analyst.analyst import AnalystNode
 from engines.analyst.risk_manager import RiskManagerNode
 
+# Node Registry: Mapping strings in config to Class Implementations
+NODE_MAP: Dict[str, Type] = {
+    "analyst": AnalystNode,
+    "risk_manager": RiskManagerNode,
+}
+
 class AgenticSupervisor:
     """
-    The LangGraph routing mechanism for Aegis Phase 2.
+    Manifest-Based Orchestrator for Aegis Agents.
+    Dynamically builds a LangGraph DAG based on configuration.
     """
-    def __init__(self, provider: str = "ollama", model: str = "qwen2.5:3b"):
+    def __init__(self, 
+                 model: str, 
+                 pipeline: List[str], 
+                 edges: Optional[Dict[str, Dict[str, str]]] = None,
+                 provider: str = "ollama"):
+        
         if provider == "ollama":
             self.llm = ChatOllama(model=model, temperature=0.1)
         else:
             raise ValueError(f"Unsupported provider: {provider}")
             
-        self.analyst_node = AnalystNode(self.llm)
-        self.risk_node = RiskManagerNode(self.llm)
+        self.pipeline = pipeline
+        self.edge_config = edges or {}
+        
+        # Verify agents exist in registry
+        for agent_name in self.pipeline:
+            if agent_name not in NODE_MAP:
+                available = list(NODE_MAP.keys())
+                raise ValueError(f"Unknown agent '{agent_name}' in pipeline. Available: {available}")
+        
         self.graph = self._build_graph()
         
     def _build_graph(self):
         builder = StateGraph(AgentState)
         
-        # Add Nodes
-        builder.add_node("analyst", self.analyst_node)
-        builder.add_node("risk_manager", self.risk_node)
+        # 1. Add Nodes
+        nodes = {}
+        for name in self.pipeline:
+             node_class = NODE_MAP[name]
+             node_instance = node_class(self.llm)
+             builder.add_node(name, node_instance)
+             nodes[name] = node_instance
+             
+        # 2. Add Edges
+        if not self.pipeline:
+            raise ValueError("Pipeline cannot be empty.")
+            
+        # Start at the first node
+        builder.add_edge(START, self.pipeline[0])
         
-        # Edges
-        builder.add_edge(START, "analyst")
-        builder.add_edge("analyst", "risk_manager")
-        builder.add_edge("risk_manager", END)
+        # Build connections
+        for i, name in enumerate(self.pipeline):
+            # Check for explicit edge overrides
+            if name in self.edge_config:
+                overrides = self.edge_config[name]
+                
+                # If the node supports conditional routing (like RiskManager)
+                # We expect it to return specific keys in the state or we use a router function
+                # For Phase 1-2, we'll implement explicit mapping for known conditional nodes
+                if name == "risk_manager":
+                    def risk_router(state: AgentState):
+                        if state.get("risk_veto", False):
+                            return "veto"
+                        return "approve"
+                    
+                    routing_map = {
+                        "veto": END if overrides.get("veto") == "END" else overrides.get("veto"),
+                        "approve": END if overrides.get("approve") == "END" else overrides.get("approve")
+                    }
+                    builder.add_conditional_edges(name, risk_router, routing_map)
+                else:
+                    # Default linear behavior if override is present but not conditional logic implemented yet
+                    next_node = overrides.get("next")
+                    if next_node:
+                        builder.add_edge(name, END if next_node == "END" else next_node)
+            else:
+                # Default linear connection
+                if i < len(self.pipeline) - 1:
+                    builder.add_edge(name, self.pipeline[i+1])
+                else:
+                    builder.add_edge(name, END)
         
         return builder.compile()
 
     def run(self, ticker: str, date: str, fundamental_context: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Executes the LangGraph for a given ticker and point-in-time date.
+        Executes the dynamic LangGraph for a given ticker and point-in-time date.
         """
         initial_state = {
             "ticker": ticker,

@@ -20,7 +20,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 class LocalWorker:
-    def __init__(self, model_name: str = "qwen2.5", temperature: float = 0.0, use_cache: bool = True):
+    def __init__(self, model_name: str, temperature: float = 0.0, use_cache: bool = True):
         """
         Initializes the local worker agent using Ollama.
         """

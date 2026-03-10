@@ -1,5 +1,5 @@
 {
-    "config_id": "opt_loop_20260309_134559_iter1",
+    "config_id": "opt_loop_20260309_142212_iter1",
     "version": "1.0",
     "asset_universe": {
         "tickers": [
@@ -24,7 +24,7 @@
     "agent": {
         "enabled": true,
         "provider": "ollama",
-        "model": "qwen2.5:3b"
+        "model": "qwen3:8b"
     },
     "position_sizing": {
         "capital": 100000.0,

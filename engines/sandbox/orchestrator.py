@@ -31,12 +31,17 @@ class SandboxOrchestrator:
 
             print(f"[{config.run_id}] Orchestrator spawning subprocess: {' '.join(cmd)}")
             
+            # Ensure the subprocess can locate the project's root modules (like config)
+            env = os.environ.copy()
+            env["PYTHONPATH"] = os.getcwd() + ":" + env.get("PYTHONPATH", "")
+
             result = subprocess.run(
                 cmd, 
                 stdout=subprocess.PIPE, 
                 stderr=subprocess.PIPE, 
                 text=True, 
-                check=True
+                check=True,
+                env=env
             )
             
             output = result.stdout

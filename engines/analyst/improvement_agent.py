@@ -24,7 +24,7 @@ class ImprovementAgent:
     Analyzes MLflow run artifacts and proposes exactly ONE parameter mutation
     to improve trading performance based on trace failures.
     """
-    def __init__(self, provider: str = "ollama", model: str = "qwen2.5:3b"):
+    def __init__(self, model: str, provider: str = "ollama"):
         self.provider = provider
         self.model = model
         

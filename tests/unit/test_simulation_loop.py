@@ -30,8 +30,14 @@ def test_holdout_sealed_and_disjoint(base_config, mocker):
     # 260 business days approx in a year, holdout should be ~20%
     assert len(hold) > 40
 
-def test_holdout_reproducible():
+def test_holdout_reproducible(mocker):
     """T4.2 — Same run_id produces same partition every time"""
+    # Mock network calls to prevent hanging tests
+    mocker.patch("engines.simulation.loop.YFinanceConnector")
+    mocker.patch("engines.simulation.loop.EarningsRevisionTracker")
+    mocker.patch("engines.simulation.loop.InsiderActivityMonitor")
+    mocker.patch("engines.simulation.loop.MacroOverlay")
+    
     c1 = ConfigManager.load("config/templates/tech_breakout_v1.json")
     c1.run_id = "12345678-1234-5678-1234-567812345678"
     c2 = ConfigManager.load("config/templates/tech_breakout_v1.json")

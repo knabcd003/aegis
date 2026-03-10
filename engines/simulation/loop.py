@@ -190,7 +190,9 @@ class SimulationLoop:
                         print(f"[{self.run_id}] Initializing LangGraph Supervisor ({self.config.agent.provider}/{self.config.agent.model})...")
                         self.supervisor = AgenticSupervisor(
                             provider=self.config.agent.provider, 
-                            model=self.config.agent.model
+                            model=self.config.agent.model,
+                            pipeline=self.config.agent.pipeline,
+                            edges=self.config.agent.edges
                         )
                         
                     agent_result = self.supervisor.run(ticker, current_date, signals)

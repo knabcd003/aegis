@@ -59,7 +59,9 @@ class RoutingConfig(BaseModel):
 class AgentConfig(BaseModel):
     enabled: bool = False
     provider: Literal["ollama", "openai", "anthropic"] = "ollama"
-    model: str = "qwen2.5:3b"
+    model: str = "qwen3:8b"
+    pipeline: List[str] = Field(default_factory=lambda: ["analyst", "risk_manager"])
+    edges: Optional[Dict[str, Dict[str, str]]] = None
 
 # ---------------------------------------------------------
 # Main Schema

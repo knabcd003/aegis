@@ -3,13 +3,13 @@ import json
 from engines.analyst.supervisor import AgenticSupervisor
 
 # IMPORTANT: This test requires a running LLM. 
-# It runs against the local Ollama qwen2.5:3b node to prevent prompt regression.
+# It runs against the local Ollama qwen3:4b node to prevent prompt regression.
 # If the format or rationale quality degrades, this test will fail.
 
 @pytest.fixture(scope="module")
 def supervisor():
     # Only load the small 3B model for fast CI testing
-    return AgenticSupervisor(provider="ollama", model="qwen2.5:3b")
+    return AgenticSupervisor(model="qwen3:4b", provider="ollama")
 
 
 def test_strong_buy_golden_file(supervisor):

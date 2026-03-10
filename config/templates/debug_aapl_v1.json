@@ -24,7 +24,7 @@
   "agent": {
     "enabled": true,
     "provider": "ollama",
-    "model": "qwen2.5:3b"
+    "model": "qwen3:8b"
   },
   "position_sizing": {
     "capital": 100000.0,

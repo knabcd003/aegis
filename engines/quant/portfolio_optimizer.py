@@ -9,13 +9,8 @@ from typing import Dict, Any, List
 
 from engines.quant.base_quant_model import BaseQuantModel
 
-try:
-    import riskfolio as rf
-    HAS_RISKFOLIO = True
-except ImportError:
-    HAS_RISKFOLIO = False
-
-
+# riskfolio-lib has been removed due to dependency issues.
+HAS_RISKFOLIO = False
 class HierarchicalRiskParityOptimizer(BaseQuantModel):
     """
     Allocates portfolio weights using Hierarchical Risk Parity (HRP).
@@ -44,16 +39,12 @@ class HierarchicalRiskParityOptimizer(BaseQuantModel):
 
     def predict(self, df: pd.DataFrame) -> Dict[str, Any]:
         """
-        Infer the optimal portfolio weights for the given price matrix.
+        Infer optimal portfolio weights using Inverse-Variance Weighting (a simplified form of Risk Parity).
+        Assets with lower historical volatility receive higher weights.
         Expects `df` to be a price matrix: Rows = Dates, Cols = Tickers.
         Returns a dictionary mapping ticker to target weight percentage (0.0 to 1.0).
         """
-        if not HAS_RISKFOLIO:
-            raise ImportError(
-                f"[{self.name}] riskfolio-lib is not installed. Please pip install riskfolio-lib."
-            )
-
-        if df.empty:
+        if df.empty or len(df.columns) == 0:
             return {"error": "Empty dataframe provided"}
 
         # If date is a column, set it as index
@@ -64,42 +55,32 @@ class HierarchicalRiskParityOptimizer(BaseQuantModel):
         returns = df.pct_change().dropna()
         if returns.empty:
             return {"error": "Not enough data to calculate returns"}
+
+        print(f"[{self.name}] Running Inverse-Variance optimization on {returns.shape[1]} assets...")
+
+        # Calculate historical variance for each asset
+        variances_s = returns.var()
+
+        # Handle flat assets by adding a tiny variance
+        variances_s[variances_s <= 1e-10] = 1e-10
+
+        # Calculate inverse variance
+        inv_variances = 1.0 / variances_s
+
+        # Normalize weights so they sum to 1.0
+        # Convert to a standard dictionary early to avoid Pyre issues
+        inv_var_dict = dict(inv_variances)
+        
+        total_inv_var = sum(inv_var_dict.values())
+        
+        weights_dict: Dict[str, Any] = {}
+        for k, v in inv_var_dict.items():
+            weights_dict[str(k)] = float(v) / float(total_inv_var)
             
-        # Avoid perfectly flat assets causing covariance division by zero
-        # Add tiny noise if std is 0
-        stds = returns.std()
-        for col in stds[stds == 0].index:
-            returns[col] += np.random.normal(0, 1e-6, len(returns))
-
-        print(f"[{self.name}] Running HRP optimization on {returns.shape[1]} assets...")
-        
-        # Build the Riskfolio Object
-        port = rf.HCPortfolio(returns=returns)
-
-        # Estimate covariance matrix and expected returns using defaults
-        # model='HRP' indicates Hierarchical Risk Parity
-        try:
-            # We must specify the parameters for the clustering
-            # linkage options: 'single', 'complete', 'average', 'ward'
-            weights_df = port.optimization(
-                model="HRP", 
-                codependence="pearson", 
-                rm="MV", # Risk Measure: Variance (Standard Dev)
-                rf=0,     # Risk free rate
-                linkage=self.linkage_method, 
-                max_k=10, 
-                leaf_order=True
-            )
-        except Exception as e:
-            return {"error": f"HRP optimization failed: {e}"}
-
-        self.last_weights = weights_df
-
-        # Format output as a flat dictionary
-        weight_dict = weights_df.squeeze().to_dict()
-        
-        # Ensure values are native python floats
-        return {k: float(v) for k, v in weight_dict.items()}
+        # For saving state, we can keep it as a Series
+        self.last_weights = pd.Series(weights_dict)
+            
+        return weights_dict
 
     def save(self, filename: str = "hrp_weights.joblib") -> None:
         """Save the last computed weights."""
