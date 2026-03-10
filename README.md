@@ -30,14 +30,14 @@ The system is designed with a **human-in-the-loop** approval step: the AI agents
 
 ### Key Features
 
-- **Multi-Agent Pipeline** — Researcher → Quant → Analyst, orchestrated via LangGraph
+- **Multi-Agent Pipeline** — Researcher → Quant → Analyst, orchestrated via a **Manifest-Based DAG**
+- **Pre-Flight Health Audit** — High-fidelity resource and latency check (Memory + inference readiness)
 - **Fractional Kelly Criterion** — Pure mathematical position sizing (no LLM hallucinations for risk math)
-- **LLM-Powered Thesis Generation** — Claude 3.5 Sonnet writes structured investment theses with built-in constraint enforcement (P/E caps, philosophical alignment)
-- **Sentinel Monitor** — Passive agent that watches open positions and auto-exits on broken theses or ATR stop-losses
+- **LLM-Powered Thesis Generation** — Claude 3.5 Sonnet / Qwen 3 (Ollama) thesis generation with built-in constraint enforcement
+- **Sentinel Monitor** — Passive agent that watches open positions and auto-exits on broken theses
 - **Dual Memory** — SQLite for trade execution logs + ChromaDB for semantic investment thesis retrieval
-- **Natural Language Configuration** — Describe your strategy in plain English; the AI parses it into strict systemic constraints
+- **Dynamic Mesh Configuration** — Define agent sequences and routing directly in strategy JSON manifests
 - **Real-Time Dashboard** — React + TypeScript frontend with WebSocket-powered live agent telemetry
-- **Actionable Alerts** — AI-generated BUY/SELL signals surfaced directly in the dashboard
 
 ---
 
@@ -47,7 +47,7 @@ The system is designed with a **human-in-the-loop** approval step: the AI agents
 ┌─────────────────────────────────────────────────────────┐
 │                    React Dashboard (Vite)                │
 │  TopBar │ Dashboard │ Strategy Config │ Asset Terminal   │
-│         │ + Alerts  │ (Manual / NLP)  │ (Approve/Exec)  │
+│         │ + Alerts  │ (JSON Manifest) │ (Approve/Exec)  │
 └────────────────────────┬────────────────────────────────┘
                          │ REST + WebSocket
                          ▼
@@ -61,13 +61,13 @@ The system is designed with a **human-in-the-loop** approval step: the AI agents
           ▼              ▼              ▼
    ┌────────────┐ ┌───────────┐ ┌────────────┐
    │ Researcher │→│   Quant   │→│  Analyst   │
-   │  (Data)    │ │  (Math)   │ │  (LLM)     │
+   │  (Data)    │ │  (Math)   │ │  (Mesh)     │
    └────────────┘ └───────────┘ └────────────┘
           │              │              │
           ▼              ▼              ▼
    ┌──────────┐   ┌───────────┐  ┌──────────┐
-   │ Alpaca   │   │  Kelly    │  │ Claude   │
-   │ FMP APIs │   │  Criterion│  │ 3.5      │
+   │ Alpaca   │   │  Kelly    │  │ Ollama   │
+   │ FMP APIs │   │  Criterion│  │ Qwen 3   │
    └──────────┘   └───────────┘  └──────────┘
                                        │
                          ┌─────────────┼──────────┐
@@ -76,12 +76,6 @@ The system is designed with a **human-in-the-loop** approval step: the AI agents
                    │ ChromaDB │ │  SQLite  │ │ Alpaca │
                    │ (Theses) │ │ (Trades) │ │ (Exec) │
                    └──────────┘ └──────────┘ └────────┘
-
-   ┌─────────────────────────────────────────────┐
-   │          Sentinel Agent (Cron)               │
-   │  Monitors positions → LLM thesis validation │
-   │  ATR-based stops → Auto-exits if broken     │
-   └─────────────────────────────────────────────┘
 ```
 
 ---
@@ -90,10 +84,10 @@ The system is designed with a **human-in-the-loop** approval step: the AI agents
 
 | Agent | Role | LLM? | Description |
 |-------|------|------|-------------|
-| **Researcher** | Data Collection | No | Pulls 30-day price history from Alpaca, fundamental metrics (P/E, market cap) and earnings transcripts from FMP, and calculates SMA(50). |
-| **Quant** | Position Sizing | No | Pure math engine. Calculates fractional Kelly Criterion allocation, clamps to user-defined max position size. Zero LLM dependency. |
-| **Analyst** | Thesis & Execution | Yes | Claude 3.5 Sonnet ingests technicals + fundamentals, writes a 2-paragraph investment thesis, enforces philosophical constraints (e.g. value investing, P/E caps), stores thesis in ChromaDB, and triggers paper trades via Alpaca. |
-| **Sentinel** | Portfolio Monitor | Yes | Runs on a cron schedule. Reviews open positions against original theses using LLM semantic evaluation. Executes SELL orders on ATR stop-loss hits or broken fundamental narratives. |
+| **Researcher** | Data Collection | No | Pulls 30-day price history from Alpaca/YFinance and fundamental metrics. |
+| **Quant** | Position Sizing | No | Pure math engine. Calculates fractional Kelly Criterion allocation. |
+| **Analyst** | Mesh Orchestrator | Yes | LangGraph-powered mesh that runs the full agent pipeline (Analyst -> Risk Manager) based on JSON manifests. |
+| **Risk Manager** | Guardrail | Yes | Evaluates proposals against macro/portfolio constraints. Can veto trades. |
 
 ---
 

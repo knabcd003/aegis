@@ -55,14 +55,22 @@ def route_supervisor(u_score: float, config: dict, budget_tracker) -> str:
 
 ### Step 11 — LangGraph Integration (Analyst Engine)
 **Files:**
-- `engines/analyst/agents/research_agent.py` — ChromaDB query + 10-Q synthesis
-- `engines/analyst/agents/sentiment_agent.py` — FinBERT scores + news narrative
-- `engines/analyst/agents/risk_agent.py` — position constraints, drawdown budget, macro check. **Veto is hard — overrides all other agents.**
-- `engines/analyst/agents/context_ceiling_node.py` — **no LLM** — runs before Supervisor, counts tokens, truncates if > 3,500 using `trim_messages(strategy="last")`
-- `engines/analyst/supervisor.py` — routes to Claude or Qwen per routing decision. Produces BUY/CLOSE + position spec + reasoning chain.
-- `engines/analyst/episodic_memory.py` — rolling record of past signals and outcomes for Supervisor self-calibration
+- `engines/analyst/analyst.py` — Analysis agent implementation
+- `engines/analyst/risk_manager.py` — Risk guardrail agent implementation
+- `engines/analyst/supervisor.py` — **Mesh Orchestrator**. Dynamically builds the LangGraph DAG from configuration manifests.
+- **Node Registry**: Centralized `NODE_MAP` in `supervisor.py` for mapping strings to agent classes.
+- **Dangling Node Detection**: Post-compilation DFS check ensures all nodes have a valid path to `END`.
 
-**Simulation loop change:** Phase 1 loop extended — on gate-passing events, invoke Analyst Engine instead of logging gate pass only.
+**Simulation loop change:** Phase 1 loop extended — on gate-passing events, invoke the dynamic Agentic Supervisor instead of logging gate pass only.
+
+---
+
+### Step 12 — Pre-Flight Safety Audit (Infrastructure Health)
+**Files:**
+- `engines/system/health.py` — Multi-stage probe (Env, Memory, Local LLM Readiness)
+- `scripts/check_health.py` — CLI entrypoint for manual verification
+- **Memory Sentinel**: Warns if available memory < 4GB.
+- **Latency Calibration**: Runs 2-stage (Cold/Warm) dry run to verify model response speed.
 
 All sub-agents use local model only (`qwen2.5:8b`). Only the Supervisor uses the routing decision.
 

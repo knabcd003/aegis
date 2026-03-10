@@ -1,42 +1,43 @@
 # Aegis AI — Current Phase Tracker
 
-> **Phase 2: Quant Engine**
-> **Progress:** 0% [⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜]
+> **Phase 2: Intelligence Layer & Orchestration**
+> **Progress:** 60% [██████░░░░]
 
 ---
 
 ## 🎯 Current Objectives
-Build the mathematical core of the system. The Quant Engine takes raw market data and computes regime probabilities, portfolio weights, and order flow toxicity.
+Building the reasoning and safety layers. The Intelligence Layer orchestrates specialized agents through a dynamic mesh to produce high-fidelity investment theses.
 
 ## 📋 Tasks
 
-### 1. HMM Regime Detection (`hmmlearn`)
-- [ ] Implement `hmm_model.py`
-- [ ] Train GaussianHMM on VIX & SPY returns
-- [ ] Output current market state (Bull, Bear, Chop)
-- [ ] Cache state outputs
+### 1. Analyst Mesh (Dynamic LangGraph) ✅
+- [x] Implement `AgenticSupervisor` with manifest-based DAG
+- [x] Create Node Registry for flexible agent plug-and-play
+- [x] Implement DFS Connectivity guardrails
+- [x] Support explicit edge routing in strategy JSONs
 
-### 2. Portfolio Optimization (`riskfolio-lib`)
-- [ ] Implement `portfolio_optimizer.py`
-- [ ] Pull historical price data via DataEngine
-- [ ] Calculate Hierarchical Risk Parity (HRP) weights
-- [ ] Calculate Conditional Drawdown at Risk (CDaR) constraints
-- [ ] Output target portfolio allocations
+### 2. High-Fidelity Health Audit ✅
+- [x] Implement `health.py` for pre-flight probes
+- [x] Integrated `psutil` for unified memory monitoring
+- [x] Calibrated cold/warm start latency targets
+- [x] Verified qwen3:8b readiness
 
-### 3. VPIN Order Flow (`flowrisk`)
-- [ ] Implement `vpin_calculator.py`
-- [ ] Compute Volume-Synchronized Probability of Informed Trading
-- [ ] Flag high-toxicity (dumping) conditions
+### 3. Improvement Analyzer Layer 🔨
+- [ ] Implement post-run failure analysis
+- [ ] Generate Exactly-One parameter mutations
+- [ ] Connect traces to configuration improvement loops
 
 ## 📁 File Structure Focus
 ```text
 engines/
-├── data_ingestion/       ✅ (Completed)
-└── quant/                🔨 (Current Focus)
-    ├── __init__.py
-    ├── hmm_model.py
-    ├── portfolio_optimizer.py
-    └── vpin_calculator.py
+├── analyst/              ✅ (Completed)
+│   ├── supervisor.py     (Orchestrator)
+│   ├── analyst.py        (Persona)
+│   └── risk_manager.py   (Guardrail)
+├── system/               ✅ (Completed)
+│   └── health.py         (Pre-flight)
+└── improvement/          🔨 (Current Focus)
+    └── analyzer.py
 ```
 
 ## 🧠 Key Decisions
