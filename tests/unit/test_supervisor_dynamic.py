@@ -54,6 +54,18 @@ def test_supervisor_unknown_agent_error():
         AgenticSupervisor(model="qwen3:8b", pipeline=pipeline)
     assert "Unknown agent 'bogus_agent'" in str(excinfo.value)
 
+def test_supervisor_dangling_node_error():
+    """Verify that a node without a path to END raises an error."""
+    pipeline = ["analyst", "risk_manager"]
+    # Force a manual edge that only connects START->analyst but risk_manager is dangling
+    edges_config = {
+        "analyst": {"next": "END"} # Bypasses risk_manager
+    }
+    # Although analyst reaches END, risk_manager is in pipeline but has no path to END
+    with pytest.raises(ValueError) as excinfo:
+         AgenticSupervisor(model="qwen3:8b", pipeline=pipeline, edges=edges_config)
+    assert "Dangling node detected: 'risk_manager'" in str(excinfo.value)
+
 def test_supervisor_empty_pipeline_error():
     """Verify that an empty pipeline raises an error."""
     with pytest.raises(ValueError):

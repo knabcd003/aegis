@@ -38,7 +38,39 @@ class AgenticSupervisor:
                 raise ValueError(f"Unknown agent '{agent_name}' in pipeline. Available: {available}")
         
         self.graph = self._build_graph()
+        self._verify_connectivity()
         
+    def _verify_connectivity(self):
+        """
+        Ensures that every node in the pipeline has a valid path to the END state.
+        This prevents runtime hangs from 'dangling' nodes.
+        """
+        graph = self.graph.get_graph()
+        nodes = [n.id for n in graph.nodes.values()]
+        # Skip internal nodes like __start__ and __end__ for our core check
+        core_nodes = [n for n in nodes if n not in ("__start__", "__end__", "START", "END")]
+        
+        # Build adjacency list
+        adj = {n: [] for n in nodes}
+        for edge in graph.edges:
+            adj[edge.source].append(edge.target)
+            
+        def can_reach_end(start_node):
+            visited = set()
+            stack = [start_node]
+            while stack:
+                curr = stack.pop()
+                if curr == "__end__":
+                    return True
+                if curr not in visited:
+                    visited.add(curr)
+                    stack.extend(adj.get(curr, []))
+            return False
+
+        for node in core_nodes:
+            if not can_reach_end(node):
+                raise ValueError(f"Dangling node detected: '{node}' has no path to END.")
+
     def _build_graph(self):
         builder = StateGraph(AgentState)
         
