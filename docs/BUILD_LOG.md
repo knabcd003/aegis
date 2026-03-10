@@ -47,23 +47,41 @@ Built a basic LangGraph trading system with 4 agents (Researcher, Quant, Analyst
 
 ## Future Phases (Planned)
 
-## Phase 2: Quant Engine (In Progress)
-**Date:** Mar 3, 2026
+---
+
+## Phase 2: Intelligence Layer & Orchestration (Completed)
+**Date:** Mar 10, 2026
+**Status:** ✅ Complete
+
+### Completed
+- **`health.py`** — High-fidelity infrastructure audit (Memory + 2-stage inference latency).
+- **`AgenticSupervisor` (Dynamic Mesh)** — Decoupled orchestrator that builds LangGraph DAGs from JSON strategy manifests.
+- **Node Registry** — Flexible mapping of strings to agent classes.
+- **Connectivity Check** — Post-compilation DFS verification to prevent dangling nodes and runtime hangs.
+- **`qwen3:8b` Support** — Validated local LLM inference via Ollama.
+
+### Key Decisions
+- **Manifest-Based DAG vs Hardcoded Graph** — Decoupling logic from code allows users to reconfigure agent sequences (e.g., adding/removing a Risk Manager) without a single line of Python change.
+- **Pre-Flight Health Audit** — Catching memory/latency issues *before* backtests start prevents hours of wasted compute on a failing system.
+- **DFS Connectivity Verification** — Essential for a dynamic DAG where a user-defined JSON could easily result in infinite loops or dangling states.
+
+---
+
+## Phase 3: Improvement Analyzer (In Progress)
+**Date:** Mar 10, 2026
 **Status:** 🔨 Building
 
-HMM regime detection, Riskfolio-Lib portfolio optimization, VPIN order flow toxicity.
+Next focus is on the self-correcting loop: analyze MLflow traces and generate one-parameter mutations to optimize strategy performance.
 
-### Phase 3: Analyst Engine
-FinBERT-scored signals → Claude thesis generation → ChromaDB storage.
+---
+
+## Future Phases (Planned)
 
 ### Phase 4: Sentinel Engine
 Real-time monitoring: price + VPIN + news-driven exits.
 
-### Phase 5: MLflow + Backtesting
-Experiment tracking, model comparison, backtest runner.
-
-### Phase 6: API Layer
+### Phase 5: API Layer
 FastAPI endpoints for each engine.
 
-### Phase 7: Frontend v2
+### Phase 6: Frontend v2
 New component architecture built around actual engine outputs.
