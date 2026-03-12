@@ -1,0 +1,32 @@
+{
+  "debug_aapl_v1": [
+    {
+      "version": "1.0",
+      "parent_version": null,
+      "timestamp": "2026-03-11T23:46:02.182031",
+      "mutation_summary": "Initial creation from template.",
+      "promoted_to_sentinel": false
+    },
+    {
+      "version": "1.1",
+      "parent_version": "1.0",
+      "timestamp": "2026-03-12T00:07:32.806713",
+      "mutation_summary": "Agent Mutation: finbert_above changed from 0.6 to 0.5. Rationale: The empty agent traces indicate no BUY signals reached the risk manager. With the current finbert_above threshold of 0.6, the signal gate is likely blocking all buy signals. Lowering this threshold to 0.5 would allow more signals to pass through, enabling trades to be executed.",
+      "promoted_to_sentinel": false
+    },
+    {
+      "version": "1.2",
+      "parent_version": "1.1",
+      "timestamp": "2026-03-12T00:32:46.400335",
+      "mutation_summary": "Agent Mutation: finbert_above changed from 0.6 to 0.5. Rationale: The empty agent traces indicate no BUY signals were generated. Lowering the finbert_above threshold from 0.6 to 0.5 would allow more signals to pass the signal_gate, enabling the Analyst to produce actionable trades.",
+      "promoted_to_sentinel": false
+    },
+    {
+      "version": "2.0",
+      "parent_version": "1.2",
+      "timestamp": "2026-03-12T00:36:48.933475",
+      "mutation_summary": "Human rollback to v1.0.",
+      "promoted_to_sentinel": false
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 {
-    "config_id": "opt_loop_20260309_142212_iter1",
+    "config_id": "opt_loop_20260310_114127_iter1",
     "version": "1.0",
     "asset_universe": {
         "tickers": [
@@ -24,7 +24,12 @@
     "agent": {
         "enabled": true,
         "provider": "ollama",
-        "model": "qwen3:8b"
+        "model": "qwen3:8b",
+        "pipeline": [
+            "analyst",
+            "risk_manager"
+        ],
+        "edges": null
     },
     "position_sizing": {
         "capital": 100000.0,

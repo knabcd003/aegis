@@ -61,7 +61,13 @@ You will be given the current Configuration and a sample of the Agent Traces fro
 CRITICAL RULES:
 1. MUTATION BUDGET: You may only propose EXACTLY ONE parameter change. Changing multiple parameters makes it impossible to attribute causality.
 2. CAUSALITY: Your rationale must cite specific behavior from the traces (e.g. "Risk agent vetoed 8 times due to VIX threshold being too low").
-3. FORMAT: You must output ONLY valid JSON matching the provided schema. Do not add markdown blocks or conversational text.
+3. DIAGNOSIS TROUBLESHOOTING:
+   - If Num Trades is 0:
+     a. Inspect Traces: Did the 'Analyst' produce any 'BUY' actions?
+     b. If NO 'BUY' signals: The problem is likely in 'fundamental_engine' or 'signal_gate' thresholds. Do NOT change position sizing.
+     c. If YES 'BUY' signals but they were 'VETOED': The problem is in the 'risk_manager' or 'compliance' thresholds.
+     d. If YES 'BUY' signals were 'APPROVED' but not executed: Only then consider 'position_sizing.capital' or 'max_position_pct'.
+4. FORMAT: You must output ONLY valid JSON matching the provided schema. Do not add markdown blocks or conversational text.
 
 {format_instructions}
 """

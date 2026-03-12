@@ -7,11 +7,12 @@ from datetime import datetime
 from config.manager import ConfigManager
 from engines.sandbox.orchestrator import SandboxOrchestrator
 from engines.analyst.improvement_agent import ImprovementAgent
+import scripts.manage_config as manage_config
 
 def run_loop(base_config_path: str, iterations: int):
     # Initialize components
     orchestrator = SandboxOrchestrator(script_path="scripts/run_subprocess_backtest.py")
-    agent = ImprovementAgent(provider="ollama", model="qwen2.5:3b")
+    agent = ImprovementAgent(provider="ollama", model="qwen3:8b")
     
     # Load base config
     from config.schema import AegisConfig
@@ -32,9 +33,9 @@ def run_loop(base_config_path: str, iterations: int):
         unique_run_id = f"opt_loop_{datetime.now().strftime('%Y%m%d_%H%M%S')}_iter{i}"
         
         # We need to construct a fresh config object since Pydantic models are mostly immutable
-        # or we just re-instantiate from the dict
         run_config_dict = current_config.model_dump()
-        run_config_dict["config_id"] = unique_run_id
+        # Keep the semantic version, but set a unique run_id for MLflow tracking
+        run_config_dict["run_id"] = unique_run_id
         current_config = AegisConfig(**run_config_dict)
         
         # 2. Run Sandbox (Subprocess)
@@ -87,7 +88,39 @@ def run_loop(base_config_path: str, iterations: int):
             # 5. Apply Mutation
             new_config_dict = agent.apply_mutation(current_config.model_dump(), proposal)
             
-            # Re-validate with Pydantic
+            # Save the new version using manage_config
+            strategy_name = current_config.config_id
+            current_version = current_config.version
+            summary = f"Agent Mutation: {mut.target_parameter} changed from {mut.current_value} to {mut.proposed_value}. Rationale: {mut.rationale}"
+            
+            # Ensure strategy exists in lineage, if not, init it
+            try:
+                lineage = manage_config._get_lineage()
+                if strategy_name not in lineage:
+                    # Init it first with the original current_config as v1.0
+                    manage_config._save_json(manage_config._get_config_path(strategy_name, "1.0"), current_config.model_dump())
+                    lineage[strategy_name] = [{
+                        "version": "1.0",
+                        "parent_version": None,
+                        "timestamp": datetime.now().isoformat(),
+                        "mutation_summary": "Auto-initialized by Optimization Loop prior to first mutation.",
+                        "promoted_to_sentinel": False
+                    }]
+                    manage_config._save_lineage(lineage)
+                    current_version = "1.0"
+            except Exception as e:
+                print(f"Warning: Could not auto-init lineage: {e}")
+
+            new_path = manage_config.save_new_version(
+                strategy_name=strategy_name,
+                current_version=current_version,
+                new_config=new_config_dict,
+                mutation_summary=summary
+            )
+            print(f"   💾 Saved new version to: {new_path}")
+            
+            # Re-validate with Pydantic for the next iteration
+            new_config_dict["run_id"] = None # clear run_id for next iter
             current_config = AegisConfig(**new_config_dict)
             
         except Exception as e:
@@ -98,13 +131,7 @@ def run_loop(base_config_path: str, iterations: int):
     print("\n" + "="*80)
     print("🏁 OPTIMIZATION LOOP COMPLETE")
     print(f"Best Sharpe achieved (Train): {best_sharpe:.2f}")
-    
-    # Save the best config
-    output_path = "config/templates/optimized_best.json"
-    with open(output_path, "w") as f:
-        json.dump(best_config, f, indent=4)
-        
-    print(f"Saved optimized template to: {output_path}")
+    print(f"Final active version is v{current_config.version} at config/saved_strategies/{current_config.config_id}/v{current_config.version}.json")
     print("="*80 + "\n")
 
 if __name__ == "__main__":

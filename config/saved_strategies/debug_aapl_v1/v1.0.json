@@ -1,0 +1,48 @@
+{
+  "config_id": "debug_aapl_v1",
+  "version": "1.0",
+  "asset_universe": {
+    "tickers": [
+      "AAPL"
+    ],
+    "benchmark": "SPY"
+  },
+  "signal_gate": {
+    "finbert_above": 0.6,
+    "earnings_revision_direction": "up"
+  },
+  "fundamental_engine": {
+    "earnings_revision": {
+      "enabled": true,
+      "warn_threshold": 0.02
+    },
+    "insider_monitor": {
+      "enabled": true,
+      "cluster_window_days": 45
+    }
+  },
+  "agent": {
+    "enabled": true,
+    "provider": "ollama",
+    "model": "qwen3:8b"
+  },
+  "position_sizing": {
+    "capital": 100000.0,
+    "max_position_pct": 0.15,
+    "method": "equal_weight"
+  },
+  "sandbox": {
+    "slippage_bps": 15,
+    "min_hold_days": 5,
+    "promotion_criteria": {
+      "held_out_sharpe_min": 0.85,
+      "held_out_degradation_max": 0.35
+    }
+  },
+  "routing": {
+    "mode": "build",
+    "logging": {
+      "depth": "production"
+    }
+  }
+}

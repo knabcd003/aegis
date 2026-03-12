@@ -35,6 +35,7 @@ class SimulationLoop:
         self.nav_history: List[Dict[str, Any]] = []
         self.gate_events: List[Dict[str, Any]] = []
         self.trace_events: List[Dict[str, Any]] = []
+        self.node_latencies_log: List[Dict[str, Any]] = [] # [{ticker, date, node, latency}]
         
         # Determine holdout dates immediately
         seed_int = int(hashlib.md5(self.run_id.encode('utf-8'), usedforsecurity=False).hexdigest(), 16) % (2**32)
@@ -208,6 +209,15 @@ class SimulationLoop:
                         "fundamental_signals": signals
                     })
                     
+                    # Log raw latencies for distribution analysis
+                    for node_name, lat in agent_result.get("node_latencies", {}).items():
+                        self.node_latencies_log.append({
+                            "ticker": ticker,
+                            "date": str(current_date),
+                            "node": node_name,
+                            "latency": lat
+                        })
+                    
                     action = agent_result["action"]
                     conviction = agent_result["conviction"]
                     
@@ -259,7 +269,8 @@ class SimulationLoop:
             "trade_log": self.trade_log,
             "nav_history": self.nav_history,
             "gate_events": self.gate_events,
-            "trace_events": self.trace_events
+            "trace_events": self.trace_events,
+            "node_latencies_log": self.node_latencies_log
         }
         
         # 3. Wire MLflow Persistence

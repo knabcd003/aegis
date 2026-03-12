@@ -16,4 +16,5 @@ class AgentState(TypedDict):
     compliance_veto: bool
     
     directional_mismatch: bool
+    node_latencies: Dict[str, float]
     final_decision: Dict[str, Any] # Same schema as analyst_proposal, updated if vetoed

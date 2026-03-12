@@ -91,6 +91,11 @@ class AgenticSupervisor:
                 try:
                     result = node_func(state)
                     duration = time.time() - start
+                    # Track latencies in state for aggregation
+                    if "node_latencies" not in state:
+                        state["node_latencies"] = {}
+                    state["node_latencies"][name] = duration
+                    
                     monitor.log_node_execution(
                         ticker=state.get("ticker", "UNK"),
                         date=state.get("date", "UNK"),
@@ -171,6 +176,7 @@ class AgenticSupervisor:
             "risk_veto": False,
             "compliance_veto": False,
             "directional_mismatch": False,
+            "node_latencies": {},
             "final_decision": {}
         }
         
@@ -181,5 +187,6 @@ class AgenticSupervisor:
             "action": final_state["final_decision"].get("action", "HOLD"),
             "conviction": final_state["final_decision"].get("conviction", 0.0),
             "reasoning_trace": final_state.get("reasoning_trace", []),
-            "directional_mismatch": final_state.get("directional_mismatch", False)
+            "directional_mismatch": final_state.get("directional_mismatch", False),
+            "node_latencies": final_state.get("node_latencies", {})
         }

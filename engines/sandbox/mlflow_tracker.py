@@ -69,7 +69,26 @@ class MLflowTracker:
                 mlflow.log_metric("holdout_sharpe", holdout_metrics["sharpe"])
                 mlflow.log_metric("holdout_num_trades", holdout_metrics["trades"])
 
-            # 3. Log Artifacts
+            # 3. Log Latency Distributions
+            node_latencies_log = results.get("node_latencies_log", [])
+            if node_latencies_log:
+                df_lat = pd.DataFrame(node_latencies_log)
+                
+                # Log summary stats for each node
+                for node_name in df_lat["node"].unique():
+                    node_df = df_lat[df_lat["node"] == node_name]
+                    mlflow.log_metric(f"{node_name}_latency_avg", float(node_df["latency"].mean()))
+                    mlflow.log_metric(f"{node_name}_latency_max", float(node_df["latency"].max()))
+                    mlflow.log_metric(f"{node_name}_latency_min", float(node_df["latency"].min()))
+                    mlflow.log_metric(f"{node_name}_latency_std", float(node_df["latency"].std()) if len(node_df) > 1 else 0.0)
+
+                # Save raw CSV artifact
+                os.makedirs("debug/telemetry", exist_ok=True)
+                lat_path = f"debug/telemetry/node_latencies_{run_name}.csv"
+                df_lat.to_csv(lat_path, index=False)
+                mlflow.log_artifact(lat_path, "telemetry")
+
+            # 4. Log Artifacts
             trace_events = results.get("trace_events", [])
             if trace_events:
                 os.makedirs("debug/traces", exist_ok=True)
