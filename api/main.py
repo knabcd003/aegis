@@ -65,7 +65,7 @@ async def health_check() -> Dict[str, Any]:
         }
     }
 
-from api.routers import quant, analyst, mlops, stream, systems
+from api.routers import quant, analyst, mlops, stream, systems, audit, health
 
 # ============================================================
 # API Routers (to be included in subsequent steps)
@@ -75,3 +75,5 @@ app.include_router(analyst.router, prefix="/api/analyst", tags=["Analyst"])
 app.include_router(stream.router, prefix="/api/ws", tags=["Streaming"])
 app.include_router(mlops.router, prefix="/api/mlops", tags=["MLOps"])
 app.include_router(systems.router, prefix="/api/systems", tags=["Systems"])
+app.include_router(audit.router, prefix="/api/audit", tags=["Audit"])
+app.include_router(health.router, prefix="/api/system-health", tags=["Health"])
