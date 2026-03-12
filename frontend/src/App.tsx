@@ -8,6 +8,7 @@ import { SystemHealth } from '@/components/SystemHealth';
 import { EngineLibrary } from '@/components/EngineLibrary';
 import { AuditPage } from '@/components/AuditPage';
 import { VersionControl } from '@/components/VersionControl';
+import { PortfolioTracker } from '@/components/PortfolioTracker';
 
 function App() {
     return (
@@ -17,6 +18,7 @@ function App() {
                     <Route path="/" element={<Navigate to="/command" replace />} />
                     {/* Observe */}
                     <Route path="/command" element={<CommandCenter />} />
+                    <Route path="/portfolio" element={<PortfolioTracker />} />
                     <Route path="/health" element={<SystemHealth />} />
                     {/* Build */}
                     <Route path="/create" element={<CreateWizard />} />

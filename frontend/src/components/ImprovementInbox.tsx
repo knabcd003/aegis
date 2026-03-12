@@ -33,61 +33,62 @@ export function ImprovementInbox({ proposals, onApprove, onReject, onModify }: I
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-3">
             {proposals.map((prop) => (
-                <div key={prop.proposal_id} className="border border-purple-500/30 bg-[#16161f] rounded-lg p-4 font-mono">
-                    <div className="flex items-center justify-between mb-3 border-b border-border/50 pb-2">
-                        <h4 className="text-purple-400 font-bold flex items-center gap-2">
-                            <ArrowRight className="w-4 h-4" />
+                <div key={prop.proposal_id} className="border border-violet-500/20 bg-card rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3 border-b border-border pb-2">
+                        <h4 className="text-violet-400 font-semibold text-sm flex items-center gap-2">
+                            <ArrowRight className="w-3.5 h-3.5" />
                             Optimization Proposal
                         </h4>
-                        <span className="text-xs text-muted-foreground">{prop.proposal_id}</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">{prop.proposal_id}</span>
                     </div>
 
-                    <div className="flex items-center gap-3 mb-4 bg-background/50 p-2 rounded border border-border/50 text-sm">
-                        <span className="text-gray-400">{prop.target_param}:</span>
+                    <div className="flex items-center gap-2 mb-3 bg-muted/40 p-2 rounded-lg border border-border text-xs font-mono">
+                        <span className="text-muted-foreground">{prop.target_param}:</span>
                         <span className="line-through text-red-400">{JSON.stringify(prop.current_value)}</span>
-                        <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-green-400 font-bold">{JSON.stringify(prop.proposed_value)}</span>
+                        <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                        <span className="text-emerald-500 font-semibold">{JSON.stringify(prop.proposed_value)}</span>
                     </div>
 
-                    <div className="text-sm text-gray-300 mb-4 leading-relaxed font-sans">
-                        <strong className="text-white">Rationale:</strong> {prop.rationale}
+                    <div className="text-[13px] text-foreground mb-3 leading-relaxed">
+                        <strong className="text-foreground">Rationale:</strong>{" "}
+                        <span className="text-muted-foreground">{prop.rationale}</span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mb-4 text-xs bg-background/30 p-3 rounded">
+                    <div className="grid grid-cols-2 gap-3 mb-3 text-xs bg-muted/30 p-3 rounded-lg">
                         <div>
-                            <div className="text-gray-500 uppercase tracking-wider mb-1 mt-0">Expected Delta</div>
-                            <ul className="text-cyan-400 space-y-1">
+                            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Expected Delta</div>
+                            <ul className="text-accent space-y-0.5">
                                 <li>Sharpe: {prop.expected_delta.sharpe}</li>
                                 <li>Alpha: {prop.expected_delta.alpha_pct}</li>
                                 <li>Trades: +{prop.expected_delta.additional_trades}</li>
                             </ul>
                         </div>
                         <div>
-                            <div className="text-gray-500 uppercase tracking-wider mb-1 mt-0">Risk of Change</div>
-                            <div className="text-orange-300 leading-snug">{prop.risk_of_change}</div>
+                            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Risk of Change</div>
+                            <div className="text-amber-500 leading-snug">{prop.risk_of_change}</div>
                         </div>
                     </div>
 
-                    <div className="flex gap-2 pt-2 border-t border-border/40">
+                    <div className="flex gap-2 pt-2 border-t border-border">
                         <button
                             onClick={() => onApprove(prop.proposal_id)}
-                            className="flex-1 flex items-center justify-center gap-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 py-1.5 rounded text-sm transition-colors border border-green-500/20"
+                            className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 py-1.5 rounded-lg text-xs font-medium transition-colors border border-emerald-500/20"
                         >
-                            <Check className="w-4 h-4" /> Approve
+                            <Check className="w-3.5 h-3.5" /> Approve
                         </button>
                         <button
                             onClick={() => onModify(prop.proposal_id)}
-                            className="flex-1 flex items-center justify-center gap-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 py-1.5 rounded text-sm transition-colors border border-blue-500/20"
+                            className="flex-1 flex items-center justify-center gap-1.5 bg-accent/10 hover:bg-accent/20 text-accent py-1.5 rounded-lg text-xs font-medium transition-colors border border-accent/20"
                         >
-                            <Edit className="w-4 h-4" /> Modify
+                            <Edit className="w-3.5 h-3.5" /> Modify
                         </button>
                         <button
                             onClick={() => onReject(prop.proposal_id)}
-                            className="flex-1 flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 py-1.5 rounded text-sm transition-colors border border-red-500/20"
+                            className="flex-1 flex items-center justify-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 py-1.5 rounded-lg text-xs font-medium transition-colors border border-red-500/20"
                         >
-                            <X className="w-4 h-4" /> Reject
+                            <X className="w-3.5 h-3.5" /> Reject
                         </button>
                     </div>
                 </div>

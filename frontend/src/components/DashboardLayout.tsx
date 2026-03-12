@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import {
     Activity, Beaker, LineChart, PlusCircle, Settings,
     BarChart3, HeartPulse, Library, GitBranch, MessageSquare,
-    Blocks, ChevronDown
+    Blocks, ChevronDown, DollarSign
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -22,6 +22,7 @@ const sections: NavSection[] = [
         label: "Observe",
         items: [
             { name: "Command Center", path: "/command", icon: Activity },
+            { name: "Portfolio Tracker", path: "/portfolio", icon: DollarSign },
             { name: "System Health", path: "/health", icon: HeartPulse },
         ],
     },
