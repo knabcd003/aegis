@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import { Activity, Play, Square, Settings2, RefreshCw, Loader2, Wifi, AlertTriangle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-
 
 const API_BASE = "http://localhost:8000";
 
@@ -104,33 +102,23 @@ export function CommandCenter() {
             setSystems(systemsData);
             setConnectors(connectorData);
             setError(null);
-            
-            // Fetch quant data for each active system's ticker
+
             setQuantLoading(true);
             const tickers = new Set<string>();
             systemsData.forEach(sys => {
-                if (sys.active_position?.ticker) {
-                    tickers.add(sys.active_position.ticker);
-                }
+                if (sys.active_position?.ticker) tickers.add(sys.active_position.ticker);
             });
-            
+
             const snapshots: Record<string, QuantSnapshot> = {};
             await Promise.all(
                 Array.from(tickers).map(async (ticker) => {
-                    const [regime, vpin] = await Promise.all([
-                        fetchRegime(ticker),
-                        fetchVpin(ticker)
-                    ]);
-                    snapshots[ticker] = {
-                        regime: regime?.regime,
-                        vpin_score: vpin?.vpin_score,
-                        is_toxic: vpin?.is_toxic
-                    };
+                    const [regime, vpin] = await Promise.all([fetchRegime(ticker), fetchVpin(ticker)]);
+                    snapshots[ticker] = { regime: regime?.regime, vpin_score: vpin?.vpin_score, is_toxic: vpin?.is_toxic };
                 })
             );
             setQuantData(snapshots);
             setQuantLoading(false);
-        } catch (e) {
+        } catch {
             setError("Could not connect to Aegis API. Is the FastAPI server running?");
         } finally {
             setLoading(false);
@@ -140,37 +128,14 @@ export function CommandCenter() {
 
     useEffect(() => {
         load();
-        const interval = setInterval(load, 30_000); // Poll every 30s
+        const interval = setInterval(load, 30_000);
         return () => clearInterval(interval);
     }, []);
-
-    const handleHalt = async (id: string) => {
-        await haltSystem(id);
-        await load();
-    };
-
-    const handleDeploy = async (id: string) => {
-        await deploySystem(id);
-        await load();
-    };
-
-    const formatPosition = (pos: ActivePosition | null) => {
-        if (!pos) return "FLAT";
-        return `${pos.direction} ${pos.ticker} (${pos.shares} shares @ $${pos.entry_price})`;
-    };
-
-    const formatPnl = (usd: number, pct: number) => {
-        const sign = usd >= 0 ? "+" : "";
-        return `${sign}$${Math.abs(usd).toLocaleString()} (${sign}${pct.toFixed(1)}%)`;
-    };
 
     if (loading) {
         return (
             <div className="flex h-full items-center justify-center">
-                <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Connecting to Aegis backend…
-                </div>
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
             </div>
         );
     }
@@ -178,7 +143,7 @@ export function CommandCenter() {
     if (error) {
         return (
             <div className="flex h-full items-center justify-center">
-                <div className="border border-red-500/30 bg-red-500/10 text-red-400 rounded-lg p-6 max-w-md text-sm font-mono">
+                <div className="rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 p-6 max-w-md text-sm">
                     {error}
                 </div>
             </div>
@@ -186,155 +151,133 @@ export function CommandCenter() {
     }
 
     return (
-        <div className="flex flex-col h-full w-full bg-background p-6 overflow-auto">
-            <div className="flex items-center justify-between mb-6 border-b border-border pb-4">
+        <div className="max-w-5xl mx-auto p-8">
+            <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                        <Activity className="h-6 w-6 text-blue-500" />
+                    <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2.5">
+                        <Activity className="w-6 h-6 text-accent" />
                         Command Center
                     </h1>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                        {systems.length} system(s) deployed • Auto-refreshes every 30s
+                    <p className="text-sm text-muted-foreground mt-1">
+                        {systems.length} system(s) deployed · Auto-refreshes every 30s
                     </p>
                 </div>
-                <button
-                    onClick={load}
-                    disabled={refreshing}
-                    className="flex items-center gap-2 px-4 py-2 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-secondary/50 text-sm transition-colors"
-                >
-                    <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+                <button onClick={load} disabled={refreshing}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors">
+                    <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
                     Refresh
                 </button>
             </div>
 
-            {/* Connector Health Bar */}
+            {/* Connector Banner */}
             {connectors.length > 0 && (
-                <div className="flex items-center gap-3 mb-6 bg-card/50 border border-border rounded-lg p-3">
-                    <Wifi className="w-4 h-4 text-gray-500" />
-                    <span className="text-xs text-gray-500 uppercase tracking-wider font-bold">Connectors:</span>
+                <div className="flex items-center gap-3 mb-6 rounded-lg border border-border bg-card p-3">
+                    <Wifi className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Connectors</span>
                     {connectors.map((c, i) => (
-                        <div key={i} className="flex items-center gap-1.5">
-                            <span className={`w-2 h-2 rounded-full ${
-                                c.status === "MONITORING" ? "bg-green-500" : 
-                                c.status === "DEGRADED" ? "bg-yellow-500" : "bg-red-500"
+                        <div key={i} className="flex items-center gap-1.5 ml-2">
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                                c.status === "MONITORING" ? "bg-emerald-500" : c.status === "DEGRADED" ? "bg-amber-500" : "bg-red-500"
                             }`} />
                             <span className={`text-xs font-mono ${
-                                c.status === "MONITORING" ? "text-green-400" : 
-                                c.status === "DEGRADED" ? "text-yellow-400" : "text-red-400"
+                                c.status === "MONITORING" ? "text-emerald-500" : c.status === "DEGRADED" ? "text-amber-500" : "text-red-400"
                             }`}>{c.name}</span>
                         </div>
                     ))}
                 </div>
             )}
 
-            <div className="grid grid-cols-1 gap-4">
+            {/* System Cards */}
+            <div className="space-y-4">
                 {systems.map((sys) => {
                     const ticker = sys.active_position?.ticker;
                     const quant = ticker ? quantData[ticker] : undefined;
-                    
+
                     return (
-                        <div
-                            key={sys.id}
-                            className="border border-border rounded-lg bg-card/50 p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:bg-card transition-colors"
-                        >
-                            <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <h3 className="font-semibold text-lg text-primary">{sys.name}</h3>
-                                    <Badge
-                                        variant={sys.status === "ACTIVE" ? "default" : "secondary"}
-                                        className={sys.status === "ACTIVE" ? "bg-green-500/10 text-green-400 border-green-500/20" : ""}
-                                    >
-                                        {sys.status}
-                                    </Badge>
+                        <div key={sys.id} className="rounded-lg border border-border bg-card p-5 hover:bg-muted/30 transition-colors">
+                            <div className="flex items-start justify-between mb-4">
+                                <div>
+                                    <div className="flex items-center gap-2.5 mb-1.5">
+                                        <h3 className="text-base font-semibold">{sys.name}</h3>
+                                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                                            sys.status === "ACTIVE" ? "bg-emerald-500/10 text-emerald-500" :
+                                            sys.status === "PAUSED" ? "bg-muted text-muted-foreground" :
+                                            "bg-amber-500/10 text-amber-500"
+                                        }`}>{sys.status}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        {Object.values(sys.components).map((comp, idx) => (
+                                            <span key={idx} className="text-[11px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded">{comp}</span>
+                                        ))}
+                                    </div>
                                 </div>
-
-                                {/* Component Stack */}
-                                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground font-mono mb-3">
-                                    {Object.values(sys.components).map((comp, idx) => (
-                                        <span key={idx} className="bg-secondary px-2 py-1 rounded-md">{comp}</span>
-                                    ))}
-                                </div>
-
-                                {/* Live Stats */}
-                                <div className="grid grid-cols-5 gap-4 text-sm mt-4">
-                                    <div>
-                                        <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-1">Live PnL</span>
-                                        <span className={`font-mono font-semibold ${sys.pnl_usd >= 0 ? "text-green-400" : "text-red-400"}`}>
-                                            {formatPnl(sys.pnl_usd, sys.pnl_pct)}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-1">Active Position</span>
-                                        <span className="font-semibold text-sm">{formatPosition(sys.active_position)}</span>
-                                    </div>
-                                    {/* Real Quant Data */}
-                                    <div>
-                                        <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-1">HMM Regime</span>
-                                        {quantLoading ? (
-                                            <Loader2 className="w-3 h-3 animate-spin text-gray-500" />
-                                        ) : (
-                                            <span className={`font-mono font-bold text-xs px-2 py-0.5 rounded ${
-                                                quant?.regime === "Bullish" ? "bg-green-500/20 text-green-400" :
-                                                quant?.regime === "Bearish" ? "bg-red-500/20 text-red-400" :
-                                                quant?.regime ? "bg-yellow-500/20 text-yellow-400" : "text-gray-500"
-                                            }`}>
-                                                {quant?.regime || (ticker ? "Loading…" : "—")}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-1">VPIN Toxicity</span>
-                                        {quantLoading ? (
-                                            <Loader2 className="w-3 h-3 animate-spin text-gray-500" />
-                                        ) : quant?.vpin_score != null ? (
-                                            <span className={`font-mono font-bold text-sm ${quant.is_toxic ? "text-red-400" : "text-green-400"}`}>
-                                                {quant.vpin_score.toFixed(3)} {quant.is_toxic && <AlertTriangle className="w-3 h-3 inline text-red-400" />}
-                                            </span>
-                                        ) : (
-                                            <span className="text-gray-500 text-xs">{ticker ? "No data" : "—"}</span>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-1">Last Action</span>
-                                        <span className="italic text-gray-400 truncate">
-                                            {sys.activity[0]
-                                                ? `[${sys.activity[0].event}]`
-                                                : "No activity yet"}
-                                        </span>
-                                    </div>
+                                <div className="flex gap-2">
+                                    <button className="text-xs px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors flex items-center gap-1.5">
+                                        <Settings2 className="w-3.5 h-3.5" />
+                                        Inspect
+                                    </button>
+                                    {sys.status === "ACTIVE" ? (
+                                        <button onClick={() => haltSystem(sys.id).then(load)}
+                                            className="text-xs px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors flex items-center gap-1.5">
+                                            <Square className="w-3.5 h-3.5" />
+                                            Halt
+                                        </button>
+                                    ) : (
+                                        <button onClick={() => deploySystem(sys.id).then(load)}
+                                            className="text-xs px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition-colors flex items-center gap-1.5">
+                                            <Play className="w-3.5 h-3.5" />
+                                            Deploy
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Action Buttons */}
-                            <div className="flex flex-col gap-2 min-w-[150px]">
-                                <button className="flex items-center justify-center gap-2 w-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 px-4 py-2 rounded-md text-sm font-medium transition-colors">
-                                    <Settings2 className="w-4 h-4" />
-                                    Inspect Glass Box
-                                </button>
-                                {sys.status === "ACTIVE" ? (
-                                    <button
-                                        onClick={() => handleHalt(sys.id)}
-                                        className="flex items-center justify-center gap-2 w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-4 py-2 rounded-md text-sm font-medium transition-colors"
-                                    >
-                                        <Square className="w-4 h-4" />
-                                        Halt System
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={() => handleDeploy(sys.id)}
-                                        className="flex items-center justify-center gap-2 w-full bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 px-4 py-2 rounded-md text-sm font-medium transition-colors"
-                                    >
-                                        <Play className="w-4 h-4" />
-                                        Deploy System
-                                    </button>
-                                )}
+                            <div className="grid grid-cols-5 gap-6 pt-4 border-t border-border">
+                                <div>
+                                    <span className="text-[11px] text-muted-foreground uppercase tracking-wider block mb-1">PnL</span>
+                                    <span className={`text-sm font-mono font-semibold ${sys.pnl_usd >= 0 ? "text-emerald-500" : "text-red-400"}`}>
+                                        {sys.pnl_usd >= 0 ? "+" : ""}${Math.abs(sys.pnl_usd).toLocaleString()} ({sys.pnl_usd >= 0 ? "+" : ""}{sys.pnl_pct.toFixed(1)}%)
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="text-[11px] text-muted-foreground uppercase tracking-wider block mb-1">Position</span>
+                                    <span className="text-sm">
+                                        {sys.active_position
+                                            ? `${sys.active_position.direction} ${sys.active_position.ticker} (${sys.active_position.shares})`
+                                            : "Flat"}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="text-[11px] text-muted-foreground uppercase tracking-wider block mb-1">HMM Regime</span>
+                                    {quantLoading ? <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" /> : (
+                                        <span className={`text-xs font-mono font-medium px-2 py-0.5 rounded ${
+                                            quant?.regime === "Bullish" ? "bg-emerald-500/10 text-emerald-500" :
+                                            quant?.regime === "Bearish" ? "bg-red-500/10 text-red-400" :
+                                            quant?.regime ? "bg-amber-500/10 text-amber-500" : "text-muted-foreground"
+                                        }`}>{quant?.regime || (ticker ? "…" : "—")}</span>
+                                    )}
+                                </div>
+                                <div>
+                                    <span className="text-[11px] text-muted-foreground uppercase tracking-wider block mb-1">VPIN</span>
+                                    {quantLoading ? <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" /> : (
+                                        quant?.vpin_score != null ? (
+                                            <span className={`text-sm font-mono font-semibold ${quant.is_toxic ? "text-red-400" : "text-emerald-500"}`}>
+                                                {quant.vpin_score.toFixed(3)} {quant.is_toxic && <AlertTriangle className="w-3 h-3 inline" />}
+                                            </span>
+                                        ) : <span className="text-muted-foreground text-xs">{ticker ? "…" : "—"}</span>
+                                    )}
+                                </div>
+                                <div>
+                                    <span className="text-[11px] text-muted-foreground uppercase tracking-wider block mb-1">Last Action</span>
+                                    <span className="text-xs text-muted-foreground">{sys.activity[0]?.event || "None"}</span>
+                                </div>
                             </div>
                         </div>
                     );
                 })}
 
                 {systems.length === 0 && (
-                    <div className="text-center py-16 text-muted-foreground text-sm">
+                    <div className="text-center py-16 text-muted-foreground text-sm rounded-lg border border-border bg-card">
                         No systems deployed. Use the Strategy Wizard to create one.
                     </div>
                 )}
