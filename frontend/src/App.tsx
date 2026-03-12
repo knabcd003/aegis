@@ -3,6 +3,7 @@ import { DashboardLayout } from '@/components/DashboardLayout';
 import { CommandCenter } from '@/components/CommandCenter';
 import { SandboxCanvas } from '@/components/SandboxCanvas';
 import { MLOpsArena } from '@/components/MLOpsArena';
+import { CreateWizard } from '@/components/CreateWizard';
 
 function App() {
     return (
@@ -13,6 +14,7 @@ function App() {
                     <Route path="/command" element={<CommandCenter />} />
                     <Route path="/lab" element={<SandboxCanvas />} />
                     <Route path="/arena" element={<MLOpsArena />} />
+                    <Route path="/create" element={<CreateWizard />} />
                 </Routes>
             </DashboardLayout>
         </Router>

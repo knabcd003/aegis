@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LineChart, Beaker, Cpu, Activity } from "lucide-react";
+import { LineChart, Beaker, Cpu, Activity, PlusCircle, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DashboardLayoutProps {
@@ -14,6 +14,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         { name: "Command Center", path: "/command", icon: Activity },
         { name: "The Lab (Builder)", path: "/lab", icon: Beaker },
         { name: "MLOps Arena", path: "/arena", icon: LineChart },
+        { name: "Deploy Sentinel", path: "/create", icon: PlusCircle },
+        { name: "Settings", path: "/settings", icon: Settings },
     ];
 
     return (

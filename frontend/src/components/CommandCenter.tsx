@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Activity, Play, Square, Settings2, RefreshCw } from "lucide-react";
+import { Activity, Play, Square, Settings2, RefreshCw, Layers } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { SignalCard, type SignalCardData } from "./SignalCard";
 
 const API_BASE = "http://localhost:8000";
 
@@ -18,10 +19,19 @@ interface ActivityEvent {
     rationale: string;
 }
 
+interface GapAnalysis {
+    actual_nav: number;
+    mirror_nav: number;
+    absolute_gap: number;
+    actual_return_pct: number;
+    mirror_return_pct: number;
+    human_outperformance: boolean;
+}
+
 interface TradingSystem {
     id: string;
     name: string;
-    status: "ACTIVE" | "PAUSED" | "BACKTESTING";
+    status: "ACTIVE" | "PAUSED" | "BACKTESTING" | "DEGRADED" | "OFFLINE";
     components: {
         data_engine: string;
         quant_engine: string;
@@ -31,6 +41,8 @@ interface TradingSystem {
     pnl_pct: number;
     active_position: ActivePosition | null;
     activity: ActivityEvent[];
+    pending_signals: SignalCardData[];
+    gap_analysis: GapAnalysis;
 }
 
 async function fetchSystems(): Promise<TradingSystem[]> {
@@ -81,6 +93,16 @@ export function CommandCenter() {
 
     const handleDeploy = async (id: string) => {
         await deploySystem(id);
+        await load();
+    };
+
+    const handleAcceptSignal = async (systemId: string, cardId: string) => {
+        await fetch(`${API_BASE}/api/systems/${systemId}/signals/${cardId}/accept`, { method: "POST" });
+        await load();
+    };
+
+    const handleDeclineSignal = async (systemId: string, cardId: string) => {
+        await fetch(`${API_BASE}/api/systems/${systemId}/signals/${cardId}/decline`, { method: "POST" });
         await load();
     };
 
@@ -159,11 +181,17 @@ export function CommandCenter() {
                             </div>
 
                             {/* Live Stats */}
-                            <div className="grid grid-cols-3 gap-4 text-sm mt-4">
+                            <div className="grid grid-cols-4 gap-4 text-sm mt-4">
                                 <div>
                                     <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-1">Live PnL</span>
                                     <span className={`font-mono font-semibold ${sys.pnl_usd >= 0 ? "text-green-400" : "text-red-400"}`}>
                                         {formatPnl(sys.pnl_usd, sys.pnl_pct)}
+                                    </span>
+                                </div>
+                                <div className="border border-border/50 rounded-md p-2 bg-[#0d0d12]">
+                                    <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-1">Human Gap</span>
+                                    <span className={`font-mono font-semibold text-xs ${sys.gap_analysis?.absolute_gap >= 0 ? "text-green-400" : "text-red-400"}`}>
+                                        {sys.gap_analysis ? formatPnl(sys.gap_analysis.absolute_gap, sys.gap_analysis.actual_return_pct - sys.gap_analysis.mirror_return_pct) : '$0 (0%)'}
                                     </span>
                                 </div>
                                 <div>
@@ -172,9 +200,9 @@ export function CommandCenter() {
                                 </div>
                                 <div>
                                     <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-1">Last Action</span>
-                                    <span className="italic text-gray-400">
+                                    <span className="italic text-gray-400 truncate">
                                         {sys.activity[0]
-                                            ? `[${sys.activity[0].event}] ${sys.activity[0].rationale.slice(0, 60)}${sys.activity[0].rationale.length > 60 ? "…" : ""}`
+                                            ? `[${sys.activity[0].event}]`
                                             : "No activity yet"}
                                     </span>
                                 </div>
@@ -208,6 +236,28 @@ export function CommandCenter() {
                     </div>
                 ))}
             </div>
+
+            {/* Pending Signal Cards */}
+            {systems.some(s => s.pending_signals?.length > 0) && (
+                <div className="mt-8 border-t border-border pt-6">
+                    <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2 mb-4">
+                        <Layers className="h-5 w-5 text-purple-400" />
+                        Pending Signals Queue
+                    </h2>
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 overflow-y-auto max-h-[500px] pr-2 scrollbar-thin scrollbar-thumb-gray-700">
+                        {systems.flatMap(sys => 
+                            (sys.pending_signals || []).map(sig => (
+                                <SignalCard 
+                                    key={sig.card_id} 
+                                    signal={sig} 
+                                    onAccept={(id) => handleAcceptSignal(sys.id, id)} 
+                                    onDecline={(id) => handleDeclineSignal(sys.id, id)} 
+                                />
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
