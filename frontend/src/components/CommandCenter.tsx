@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Activity, Play, Square, Settings2, RefreshCw, Loader2, Wifi, AlertTriangle } from "lucide-react";
 
 const API_BASE = "http://localhost:8000";
@@ -84,6 +85,7 @@ async function deploySystem(id: string): Promise<void> {
 }
 
 export function CommandCenter() {
+    const navigate = useNavigate();
     const [systems, setSystems] = useState<TradingSystem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -212,7 +214,8 @@ export function CommandCenter() {
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <button className="text-xs px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors flex items-center gap-1.5">
+                                    <button onClick={() => navigate(`/sentinel/${sys.id}`)}
+                                        className="text-xs px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors flex items-center gap-1.5">
                                         <Settings2 className="w-3.5 h-3.5" />
                                         Inspect
                                     </button>

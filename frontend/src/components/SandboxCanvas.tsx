@@ -1,9 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Play, FastForward, Activity, Terminal, Wifi, WifiOff, Loader2 } from "lucide-react";
+import { Play, FastForward, Activity, Terminal, Wifi, WifiOff, Loader2, ChevronDown } from "lucide-react";
 import { ImprovementInbox } from "./ImprovementInbox";
+import type { Proposal } from "./ImprovementInbox";
 
 const API_BASE = "http://localhost:8000";
 const WS_BASE = "ws://localhost:8000";
+
+interface DeployedSystem {
+    id: string;
+    name: string;
+    status: string;
+    config?: Record<string, any>;
+}
 
 export function SandboxCanvas() {
     const [logs, setLogs] = useState<string[]>([]);
@@ -13,9 +21,64 @@ export function SandboxCanvas() {
     const scrollRef = useRef<HTMLDivElement>(null);
     const wsRef = useRef<WebSocket | null>(null);
 
-    const [tickers, setTickers] = useState("AAPL, MSFT, NVDA");
+    // System-aware state
+    const [systems, setSystems] = useState<DeployedSystem[]>([]);
+    const [selectedSystemId, setSelectedSystemId] = useState<string>("");
+    const [tickers, setTickers] = useState("");
     const [nTrials, setNTrials] = useState(5);
     const [model, setModel] = useState("qwen3:8b");
+
+    // Real improvement proposals
+    const [proposals, setProposals] = useState<Proposal[]>([]);
+
+    // Fetch deployed systems on mount
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await fetch(`${API_BASE}/api/systems`);
+                if (res.ok) {
+                    const data: DeployedSystem[] = await res.json();
+                    setSystems(data);
+                    if (data.length > 0) {
+                        const first = data[0];
+                        setSelectedSystemId(first.id);
+                        const sysTickers = first.config?.asset_universe?.tickers || [];
+                        setTickers(sysTickers.join(", "));
+                        if (first.config?.analyst_engine?.model) {
+                            setModel(first.config.analyst_engine.model);
+                        }
+                    }
+                }
+            } catch (e) {
+                addLog("[SYSTEM] Could not fetch deployed systems.");
+            }
+        })();
+    }, []);
+
+    // When selected system changes, update tickers
+    useEffect(() => {
+        if (!selectedSystemId) return;
+        const sys = systems.find(s => s.id === selectedSystemId);
+        if (sys?.config?.asset_universe?.tickers) {
+            setTickers(sys.config.asset_universe.tickers.join(", "));
+        }
+        if (sys?.config?.analyst_engine?.model) {
+            setModel(sys.config.analyst_engine.model);
+        }
+    }, [selectedSystemId, systems]);
+
+    // Fetch real improvement proposals
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await fetch(`${API_BASE}/api/improvements/pending`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setProposals(data.proposals || []);
+                }
+            } catch {}
+        })();
+    }, []);
 
     const connectWs = useCallback(() => {
         if (wsRef.current?.readyState === WebSocket.OPEN) return;
@@ -43,6 +106,30 @@ export function SandboxCanvas() {
     useEffect(() => {
         if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }, [logs]);
+
+    const handleApprove = async (id: string) => {
+        try {
+            await fetch(`${API_BASE}/api/improvements/action`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ proposal_id: id, action: "approve" })
+            });
+            addLog(`[HITL] Approved ${id}`);
+            setProposals(prev => prev.filter(p => p.proposal_id !== id));
+        } catch { addLog(`[ERROR] Failed to approve ${id}`); }
+    };
+
+    const handleReject = async (id: string) => {
+        try {
+            await fetch(`${API_BASE}/api/improvements/action`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ proposal_id: id, action: "reject" })
+            });
+            addLog(`[HITL] Rejected ${id}`);
+            setProposals(prev => prev.filter(p => p.proposal_id !== id));
+        } catch { addLog(`[ERROR] Failed to reject ${id}`); }
+    };
 
     const launchSweep = async (type: "quick" | "full") => {
         setIsRunning(true);
@@ -77,6 +164,22 @@ export function SandboxCanvas() {
                     </h2>
 
                     <div className="space-y-3">
+                        {/* System selector */}
+                        {systems.length > 0 && (
+                            <div>
+                                <label className="text-[11px] text-muted-foreground uppercase tracking-wider block mb-1.5">System</label>
+                                <div className="relative">
+                                    <select value={selectedSystemId} onChange={e => setSelectedSystemId(e.target.value)}
+                                        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-accent/50 appearance-none">
+                                        {systems.map(s => (
+                                            <option key={s.id} value={s.id}>{s.name} ({s.status})</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                </div>
+                            </div>
+                        )}
+
                         <div>
                             <label className="text-[11px] text-muted-foreground uppercase tracking-wider block mb-1.5">Tickers</label>
                             <input type="text" value={tickers} onChange={e => setTickers(e.target.value)}
@@ -125,9 +228,9 @@ export function SandboxCanvas() {
                         Improvement Inbox
                     </h3>
                     <ImprovementInbox
-                        proposals={[]}
-                        onApprove={(id) => addLog(`[HITL] Approved ${id}`)}
-                        onReject={(id) => addLog(`[HITL] Rejected ${id}`)}
+                        proposals={proposals}
+                        onApprove={handleApprove}
+                        onReject={handleReject}
                         onModify={(id) => addLog(`[HITL] Modify ${id}`)}
                     />
                 </div>

@@ -26,6 +26,7 @@ class GenerateSystemRequest(BaseModel):
     trading_style: str  # e.g., "swing", "intraday", "position"
     risk_tolerance: str # e.g., "conservative", "moderate", "aggressive"
     diversification: str # e.g., "concentrated", "broad"
+    capital: int = 100000  # Starting capital in USD
 
 
 class GenerateSystemResponse(BaseModel):
@@ -47,6 +48,18 @@ _SEED_SYSTEMS: Dict[str, Dict[str, Any]] = {
             "data_engine": "YFinance + FRED",
             "quant_engine": "HMM-3State + VPIN",
             "analyst_engine": "14b Qwen Supervisor"
+        },
+        "config": {
+            "trading_style": "swing",
+            "asset_universe": {"tickers": ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA"], "benchmark": "SPY"},
+            "data_engine": {"connectors": ["yfinance", "fred"], "lookback_days": 252},
+            "quant_engine": {
+                "hmm": {"enabled": True, "n_components": 3},
+                "vpin": {"enabled": True, "toxicity_threshold": 0.8},
+                "position_sizing": {"method": "equal_weight", "max_position_pct": 0.10}
+            },
+            "analyst_engine": {"model": "qwen2.5:14b", "pipeline": ["analyst", "risk_manager"]},
+            "sandbox": {"capital": 100000, "slippage_bps": 10}
         },
         "pnl_usd": 4520.0,
         "pnl_pct": 2.4,
@@ -74,6 +87,18 @@ _SEED_SYSTEMS: Dict[str, Dict[str, Any]] = {
             "quant_engine": "VPIN-only",
             "analyst_engine": "DeepSeek Llama"
         },
+        "config": {
+            "trading_style": "intraday",
+            "asset_universe": {"tickers": ["NVDA", "TSLA", "AMD"], "benchmark": "QQQ"},
+            "data_engine": {"connectors": ["finnhub"], "lookback_days": 30, "finbert": {"enabled": True}},
+            "quant_engine": {
+                "hmm": {"enabled": False},
+                "vpin": {"enabled": True, "toxicity_threshold": 0.9},
+                "position_sizing": {"method": "equal_weight", "max_position_pct": 0.25}
+            },
+            "analyst_engine": {"model": "llama3.1:8b", "pipeline": ["analyst"]},
+            "sandbox": {"capital": 50000, "slippage_bps": 15}
+        },
         "pnl_usd": -120.0,
         "pnl_pct": -0.1,
         "active_position": None,
@@ -92,6 +117,7 @@ _SEED_SYSTEMS: Dict[str, Dict[str, Any]] = {
 def _sentinel_to_system_dict(sentinel) -> Dict[str, Any]:
     """Convert a real Sentinel object to the frontend system dict format."""
     config = sentinel.config
+    capital = config.get("sandbox", {}).get("capital", 100000)
     return {
         "id": sentinel.sentinel_id,
         "name": config.get("name", sentinel.sentinel_id),
@@ -101,9 +127,10 @@ def _sentinel_to_system_dict(sentinel) -> Dict[str, Any]:
             "quant_engine": "HMM + VPIN" if config.get("quant_engine", {}).get("hmm", {}).get("enabled") else "VPIN-only",
             "analyst_engine": config.get("analyst_engine", {}).get("model", "unknown")
         },
-        "pnl_usd": getattr(sentinel.portfolio, "nav", 100000) - config.get("sandbox", {}).get("capital", 100000),
-        "pnl_pct": ((getattr(sentinel.portfolio, "nav", 100000) - config.get("sandbox", {}).get("capital", 100000)) / config.get("sandbox", {}).get("capital", 100000)) * 100,
-        "active_position": None,  # Would be populated by live execution data
+        "config": config,
+        "pnl_usd": getattr(sentinel.portfolio, "nav", capital) - capital,
+        "pnl_pct": ((getattr(sentinel.portfolio, "nav", capital) - capital) / capital) * 100,
+        "active_position": None,
         "activity": [],
         "pending_cards": len(sentinel.pending_cards),
     }
@@ -269,7 +296,7 @@ async def generate_system(request: GenerateSystemRequest) -> Dict[str, Any]:
             "pipeline": ["analyst", "risk_manager"]
         },
         "sandbox": {
-            "capital": 100000,
+            "capital": request.capital,
             "slippage_bps": 10,
             "promotion_criteria": {
                 "sharpe_min": 1.0,

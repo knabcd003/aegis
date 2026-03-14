@@ -9,6 +9,7 @@ import { EngineLibrary } from '@/components/EngineLibrary';
 import { AuditPage } from '@/components/AuditPage';
 import { VersionControl } from '@/components/VersionControl';
 import { PortfolioTracker } from '@/components/PortfolioTracker';
+import { SentinelDetail } from '@/components/SentinelDetail';
 
 function App() {
     return (
@@ -19,6 +20,7 @@ function App() {
                     {/* Observe */}
                     <Route path="/command" element={<CommandCenter />} />
                     <Route path="/portfolio" element={<PortfolioTracker />} />
+                    <Route path="/sentinel/:id" element={<SentinelDetail />} />
                     <Route path="/health" element={<SystemHealth />} />
                     {/* Build */}
                     <Route path="/create" element={<CreateWizard />} />
