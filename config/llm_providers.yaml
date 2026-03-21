@@ -1,167 +1,180 @@
 providers:
-  - id: "local/qwen3:8b"
-    display_name: "Qwen3 8B (Local)"
-    tier: 0
-    type: "ollama"
-    model: "qwen3:8b"
-    limits:
-      rpd: null          # unlimited
-      rpm: null
-      tpd: null
-    cost_per_1k_tokens: 0.0
-    critical_fallback_depth: 3   # how far down = severely_degraded
-    exclude: false
-
-  - id: "groq/llama-4-scout"
-    display_name: "Llama 4 Scout (Groq)"
-    tier: 1
-    type: "openai_compatible"
-    base_url: "https://api.groq.com/openai/v1"
-    model: "llama-4-scout"
-    api_key_env: "GROQ_API_KEY"
-    limits:
-      rpd: 1000
-      rpm: 60
-      tpd: 500000
-    cost_per_1k_tokens: 0.0
-    exclude: false
-
-  - id: "groq/qwen3-32b"
-    display_name: "Qwen3 32B (Groq)"
-    tier: 2
-    type: "openai_compatible"
-    base_url: "https://api.groq.com/openai/v1"
-    model: "qwen/qwen3-32b"
-    api_key_env: "GROQ_API_KEY"
-    limits:
-      rpd: 1000
-      rpm: 60
-      tpd: 500000
-    cost_per_1k_tokens: 0.0
-    exclude: false
-
-  - id: "groq/kimi-k2"
-    display_name: "Kimi K2 (Groq)"
-    tier: 3
-    type: "openai_compatible"
-    base_url: "https://api.groq.com/openai/v1"
-    model: "moonshot-v1-8k"
-    api_key_env: "GROQ_API_KEY"
-    limits:
-      rpd: 1000
-      rpm: 60
-      tpd: 500000
-    cost_per_1k_tokens: 0.0
-    exclude: false
-
-  - id: "groq/gpt-oss-120b"
-    display_name: "GPT-OSS 120B (Groq)"
-    tier: 4
-    type: "openai_compatible"
-    base_url: "https://api.groq.com/openai/v1"
-    model: "gpt-oss-120b"
-    api_key_env: "GROQ_API_KEY"
-    limits:
-      rpd: 1000
-      rpm: 60
-      tpd: 500000
-    cost_per_1k_tokens: 0.0
-    exclude: false
-
-  - id: "gemini-2.5-flash"
-    display_name: "Gemini 2.5 Flash"
-    tier: 5
-    type: "google"
-    model: "gemini-2.5-flash"
-    api_key_env: "GEMINI_API_KEY"
-    limits:
-      rpd: 500
-      rpm: null
-      tpd: null
-    cost_per_1k_tokens: 0.0
-    exclude: false
-
-  - id: "openrouter/:free"
-    display_name: "OpenRouter Free Pool"
-    tier: 6
-    type: "openai_compatible"
-    base_url: "https://openrouter.ai/api/v1"
-    model: "openrouter/:free"
-    api_key_env: "OPENROUTER_API_KEY"
-    limits:
-      rpd: 200
-      rpm: null
-      tpd: null
-    cost_per_1k_tokens: 0.0
-    exclude: false
-
-  - id: "claude-sonnet-4-6"
-    display_name: "Claude Sonnet 4.6"
-    tier: 7
-    type: "anthropic"
-    model: "claude-sonnet-4-6"
-    api_key_env: "ANTHROPIC_API_KEY"
-    limits:
-      rpd: null          # budget-controlled, not RPD-controlled
-      rpm: null
-      tpd: null
-    budget_total_usd: 20.0
-    cost_per_1k_tokens: 0.021
-    exclude: false
-
+- id: local/qwen3:8b
+  display_name: Qwen3 8B (Local)
+  tier: 0
+  type: ollama
+  model: qwen3:8b
+  limits:
+    rpd: null
+    rpm: null
+    tpd: null
+  cost_per_1k_tokens: 0.0
+  critical_fallback_depth: 3
+  exclude: false
+  litellm_model_string: ollama/qwen3:8b
+- id: groq/llama-4-scout
+  display_name: Llama 4 Scout (Groq)
+  tier: 1
+  type: openai_compatible
+  base_url: https://api.groq.com/openai/v1
+  model: llama-4-scout
+  api_key_env: GROQ_API_KEY
+  limits:
+    rpd: 1000
+    rpm: 60
+    tpd: 500000
+  cost_per_1k_tokens: 0.0
+  exclude: false
+  litellm_model_string: groq/llama-4-scout
+- id: groq/qwen3-32b
+  display_name: Qwen3 32B (Groq)
+  tier: 2
+  type: openai_compatible
+  base_url: https://api.groq.com/openai/v1
+  model: qwen/qwen3-32b
+  api_key_env: GROQ_API_KEY
+  limits:
+    rpd: 1000
+    rpm: 60
+    tpd: 500000
+  cost_per_1k_tokens: 0.0
+  exclude: false
+  litellm_model_string: groq/qwen/qwen3-32b
+- id: groq/kimi-k2
+  display_name: Kimi K2 (Groq)
+  tier: 3
+  type: openai_compatible
+  base_url: https://api.groq.com/openai/v1
+  model: moonshot-v1-8k
+  api_key_env: GROQ_API_KEY
+  limits:
+    rpd: 1000
+    rpm: 60
+    tpd: 500000
+  cost_per_1k_tokens: 0.0
+  exclude: false
+  litellm_model_string: groq/moonshot-v1-8k
+- id: groq/gpt-oss-120b
+  display_name: GPT-OSS 120B (Groq)
+  tier: 4
+  type: openai_compatible
+  base_url: https://api.groq.com/openai/v1
+  model: gpt-oss-120b
+  api_key_env: GROQ_API_KEY
+  limits:
+    rpd: 1000
+    rpm: 60
+    tpd: 500000
+  cost_per_1k_tokens: 0.0
+  exclude: false
+  litellm_model_string: groq/gpt-oss-120b
+- id: gemini-2.5-flash
+  display_name: Gemini 2.5 Flash
+  tier: 5
+  type: google
+  model: gemini-2.5-flash
+  api_key_env: GEMINI_API_KEY
+  limits:
+    rpd: 500
+    rpm: null
+    tpd: null
+  cost_per_1k_tokens: 0.0
+  exclude: false
+  litellm_model_string: gemini/gemini-2.5-flash
+- id: openrouter/:free
+  display_name: OpenRouter Free Pool
+  tier: 6
+  type: openai_compatible
+  base_url: https://openrouter.ai/api/v1
+  model: openrouter/:free
+  api_key_env: OPENROUTER_API_KEY
+  limits:
+    rpd: 200
+    rpm: null
+    tpd: null
+  cost_per_1k_tokens: 0.0
+  exclude: false
+  litellm_model_string: openrouter/:free
+- id: claude-sonnet-4-6
+  display_name: Claude Sonnet 4.6
+  tier: 7
+  type: anthropic
+  model: claude-sonnet-4-6
+  api_key_env: ANTHROPIC_API_KEY
+  limits:
+    rpd: null
+    rpm: null
+    tpd: null
+  budget_total_usd: 20.0
+  cost_per_1k_tokens: 0.021
+  exclude: false
+  litellm_model_string: anthropic/claude-sonnet-4-6
 role_assignments:
   strategy_generation:
-    primary: "claude-sonnet-4-6"
-    fallback_chain: ["gemini-2.5-flash", "groq/gpt-oss-120b", "groq/kimi-k2", "groq/qwen3-32b", "groq/llama-4-scout", "openrouter/:free", "local/qwen3:8b"]
+    primary: claude-sonnet-4-6
+    fallback_chain:
+    - gemini-2.5-flash
+    - groq/gpt-oss-120b
+    - groq/kimi-k2
+    - groq/qwen3-32b
+    - groq/llama-4-scout
+    - openrouter/:free
+    - local/qwen3:8b
     is_critical: true
-
   debate_moderator:
-    primary: "claude-sonnet-4-6"
-    fallback_chain: ["gemini-2.5-flash", "groq/gpt-oss-120b", "openrouter/:free", "local/qwen3:8b"]
+    primary: claude-sonnet-4-6
+    fallback_chain:
+    - gemini-2.5-flash
+    - groq/gpt-oss-120b
+    - openrouter/:free
+    - local/qwen3:8b
     is_critical: true
-
   final_audit_score:
-    primary: "claude-sonnet-4-6"
-    fallback_chain: ["gemini-2.5-flash", "groq/gpt-oss-120b", "local/qwen3:8b"]
+    primary: claude-sonnet-4-6
+    fallback_chain:
+    - gemini-2.5-flash
+    - groq/gpt-oss-120b
+    - local/qwen3:8b
     is_critical: true
-
   improvement_analyzer:
-    primary: "claude-sonnet-4-6"
-    fallback_chain: ["gemini-2.5-flash", "groq/gpt-oss-120b", "local/qwen3:8b"]
+    primary: claude-sonnet-4-6
+    fallback_chain:
+    - gemini-2.5-flash
+    - groq/gpt-oss-120b
+    - local/qwen3:8b
     is_critical: true
-
   debate_bull:
-    primary: "groq/gpt-oss-120b"
-    fallback_chain: ["groq/qwen3-32b", "local/qwen3:8b"]
+    primary: groq/gpt-oss-120b
+    fallback_chain:
+    - groq/qwen3-32b
+    - local/qwen3:8b
     is_critical: false
-
   debate_bear:
-    primary: "groq/qwen3-32b"
-    fallback_chain: ["local/qwen3:8b"]
+    primary: groq/qwen3-32b
+    fallback_chain:
+    - local/qwen3:8b
     is_critical: false
-
   fast_eval:
-    primary: "groq/llama-4-scout"
-    fallback_chain: ["local/qwen3:8b"]
+    primary: groq/llama-4-scout
+    fallback_chain:
+    - local/qwen3:8b
     is_critical: false
-
   debate_compression:
-    primary: "groq/llama-4-scout"
-    fallback_chain: ["local/qwen3:8b"]
+    primary: groq/llama-4-scout
+    fallback_chain:
+    - local/qwen3:8b
     is_critical: false
-
   schema_routing:
-    primary: "local/qwen3:8b"
+    primary: local/qwen3:8b
     fallback_chain: []
     is_critical: false
-
   nli_prefilter:
-    primary: "local/qwen3:8b"
+    primary: local/qwen3:8b
     fallback_chain: []
     is_critical: false
-
 settings:
   context_size_threshold_tokens: 50000
-  context_override_provider: "gemini-2.5-flash"
-  exclude_providers: ["deepseek/*"]
-  severely_degraded_fallback_depth: 2   # config-driven threshold
+  context_override_provider: gemini-2.5-flash
+  exclude_providers:
+  - deepseek/*
+  severely_degraded_fallback_depth: 2

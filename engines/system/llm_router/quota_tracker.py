@@ -73,9 +73,22 @@ class QuotaTracker:
         return self._usage.get(model, 0) >= limit
 
     def increment(self, model: str, amount: int = 1) -> None:
-        if model not in self.providers:
-            return  # Safety
         self._check_and_reset_midnight()
         self._usage[model] = self._usage.get(model, 0) + amount
         self._save()
 
+    def mark_exhausted(self, model: str) -> None:
+        """Force a provider to skip iteration fallback by saturating its limit."""
+        self._check_and_reset_midnight()
+        limit = self.get_limit(model)
+        if limit is not None:
+            self._usage[model] = limit
+            self._save()
+
+    def can_accommodate(self, model: str, amount: int = 1) -> bool:
+        """Check if quota remains before initiating a physical HTTP dispatch."""
+        self._check_and_reset_midnight()
+        limit = self.get_limit(model)
+        if limit is None:
+            return True
+        return (self._usage.get(model, 0) + amount) <= limit

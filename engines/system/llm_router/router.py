@@ -22,6 +22,8 @@ class RoutingDecision:
     fallback_reason: str
     session_quality: str      # "nominal", "degraded", "severely_degraded"
     quota_state: Dict[str, Any]
+    litellm_model_string: str = ""
+    litellm_kwargs: Dict[str, Any] = None
 
 
 class ProviderRouter:
@@ -106,19 +108,20 @@ class ProviderRouter:
             return "google", full_id
         return "unknown", full_id
 
-    def get_provider_for_role(self, role: str, estimated_tokens: int = 0) -> RoutingDecision:
+    def get_provider_for_role(self, role: str, estimated_tokens: int = 0, exclude: Optional[set] = None) -> RoutingDecision:
+        """
+        Main entry point. Returns the best available provider for a given role,
+        accounting for rate limits, context window overrides, and exclusion sets.
+        """
+        exclude_set = exclude or set()
         quota_state = { "usage": dict(self.quota._usage) }
-        
-        # 1. Context Size Override
+
+        # 1. Context length check
         if estimated_tokens > self.context_threshold:
-            if not self._is_excluded(self.context_override) and not self.quota.is_exhausted(self.context_override):
+            # Force override to gemini
+            if not self._is_excluded(self.context_override) and not self.quota.is_exhausted(self.context_override) and self.context_override not in exclude_set:
                 p, m = self._split_provider_model(self.context_override)
-                return RoutingDecision(
-                    provider_id=p, model_id=m, was_primary=False,
-                    fallback_reason="context_size_override",
-                    session_quality=self._evaluate_quality(role, self.context_override, 1),
-                    quota_state=quota_state
-                )
+                return self._build_decision(self.context_override, was_primary=False, fallback_reason="context_length_override", session_quality="nominal", quota_state=quota_state)
 
         # 2. Lookup role
         assignment = self.roles.get(role)
@@ -129,21 +132,23 @@ class ProviderRouter:
         target = assignment["primary"]
         fallback_chain = assignment.get("fallback_chain", [])
 
-        # 3. Check Quota & Walk Chain
+        # 3. Check Quota, Exclusions & Walk Chain
         was_primary = True
         fallback_reason = "none"
         chosen_model = target
         depth_walked = 0
 
         # Primary check
-        if self._is_excluded(target) or self.quota.is_exhausted(target):
+        if self._is_excluded(target) or self.quota.is_exhausted(target) or target in exclude_set:
             was_primary = False
             fallback_reason = "quota_exhausted" if not self._is_excluded(target) else "provider_excluded"
+            if target in exclude_set:
+                fallback_reason = "explicitly_excluded_by_caller"
             chosen_model = None
 
             # Walk fallbacks
             for i, fallback_id in enumerate(fallback_chain):
-                if not self._is_excluded(fallback_id) and not self.quota.is_exhausted(fallback_id):
+                if not self._is_excluded(fallback_id) and not self.quota.is_exhausted(fallback_id) and fallback_id not in exclude_set:
                     chosen_model = fallback_id
                     depth_walked = i + 1
                     break
@@ -155,27 +160,39 @@ class ProviderRouter:
         # 4. Evaluate Session Quality
         quality = self._evaluate_quality(role, chosen_model, depth_walked)
 
-        # Build response
+        return self._build_decision(chosen_model, was_primary, fallback_reason, quality, quota_state)
+
+    def _build_decision(self, chosen_model: str, was_primary: bool, fallback_reason: str, session_quality: str, quota_state: Dict[str, Any]) -> RoutingDecision:
         p, m = self._split_provider_model(chosen_model)
+        provider_config = self.providers.get(chosen_model, {})
+        
+        litellm_model_string = provider_config.get("litellm_model_string", chosen_model)
+        litellm_kwargs = {}
+        
+        if "base_url" in provider_config:
+            litellm_kwargs["api_base"] = provider_config["base_url"]
+            
+        if "api_key_env" in provider_config:
+            import os
+            api_key = os.getenv(provider_config["api_key_env"])
+            if api_key:
+                litellm_kwargs["api_key"] = api_key
+
         return RoutingDecision(
             provider_id=p, model_id=m,
             was_primary=was_primary,
             fallback_reason=fallback_reason,
-            session_quality=quality,
+            session_quality=session_quality,
             quota_state=quota_state,
+            litellm_model_string=litellm_model_string,
+            litellm_kwargs=litellm_kwargs
         )
 
     def _build_terminal_fallback(self, role: str, quota_state: Dict[str, Any]) -> RoutingDecision:
         """When everything fails or config is missing, return safe default."""
         fallback = "local/qwen3:8b"
-        p, m = self._split_provider_model(fallback)
-        return RoutingDecision(
-            provider_id=p, model_id=m,
-            was_primary=False,
-            fallback_reason="terminal_fallback",
-            session_quality="severely_degraded" if self.roles.get(role, {}).get("is_critical", False) else "nominal",
-            quota_state=quota_state
-        )
+        quality = "severely_degraded" if self.roles.get(role, {}).get("is_critical", False) else "nominal"
+        return self._build_decision(fallback, was_primary=False, fallback_reason="terminal_fallback", session_quality=quality, quota_state=quota_state)
 
     def _evaluate_quality(self, role: str, chosen_model: str, depth_walked: int) -> str:
         """
