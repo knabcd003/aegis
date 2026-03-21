@@ -1,37 +1,22 @@
-"""
-Quota Tracker for the LLM Router.
-
-Persists to JSON with a `utc_date` field. On load or increment, if the 
-current UTC date does not match the stored `utc_date`, it zeros out usage 
-and updates the date. This ensures pristine tracking across process restarts 
-or machine reboots.
-"""
 import os
 import json
 import logging
 from datetime import datetime
-from typing import Dict
+from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
-# Hardcoded daily limits from the blueprint
-DEFAULT_LIMITS = {
-    "local/qwen3:8b": float('inf'),        # unlimited
-    "groq/llama-4-scout": 1000,
-    "groq/qwen3-32b": 1000,
-    "groq/kimi-k2": 1000,
-    "groq/gpt-oss-120b": 1000,
-    "gemini-2.5-flash": 500,
-    "openrouter/:free": 200,               # shared limit pool
-    "claude-sonnet-4-6": 200,              # using $20 proxy limit for calls
-}
-
 
 class QuotaTracker:
-    def __init__(self, persist_path: str = "data/llm_quota.json"):
+    def __init__(self, providers: Dict[str, Any], persist_path: str = "data/llm_quota.json"):
+        """
+        providers: Dict of provider_id -> complete provider config dict
+        (from the yaml file).
+        """
         self.persist_path = persist_path
         self._usage: Dict[str, int] = {}
         self._utc_date: str = ""
+        self.providers = providers
         self._load()
 
     def _get_current_utc_date(self) -> str:
@@ -42,7 +27,7 @@ class QuotaTracker:
         current_date = self._get_current_utc_date()
         if self._utc_date != current_date:
             logger.info(f"Midnight UTC reset triggered. Rolling over to {current_date}.")
-            self._usage = {model: 0 for model in DEFAULT_LIMITS}
+            self._usage = {p_id: 0 for p_id in self.providers}
             self._utc_date = current_date
             self._save()
 
@@ -74,12 +59,23 @@ class QuotaTracker:
         self._check_and_reset_midnight()
         return self._usage.get(model, 0)
 
+    def get_limit(self, model: str) -> Optional[int]:
+        if model not in self.providers:
+            return 0
+        limits = self.providers[model].get("limits", {})
+        return limits.get("rpd")
+
     def is_exhausted(self, model: str) -> bool:
         self._check_and_reset_midnight()
-        limit = DEFAULT_LIMITS.get(model, 0)
+        limit = self.get_limit(model)
+        if limit is None:
+            return False  # Unlimited
         return self._usage.get(model, 0) >= limit
 
     def increment(self, model: str, amount: int = 1) -> None:
+        if model not in self.providers:
+            return  # Safety
         self._check_and_reset_midnight()
         self._usage[model] = self._usage.get(model, 0) + amount
         self._save()
+
