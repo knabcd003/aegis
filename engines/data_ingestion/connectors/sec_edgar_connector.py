@@ -29,51 +29,12 @@ HEADERS = {
 SUBMISSIONS_BASE = "https://data.sec.gov/submissions"
 ARCHIVES_BASE = "https://www.sec.gov/Archives/edgar/data"
 
-# ── NLI singleton (loaded once at startup) ───────────────────────────────────
-# Used for two-stage segment obfuscation detection in segment_anchor.py.
-# Loaded here so it is available from application start, not per-filing.
-_NLI_MODEL = None
-
-
-def _get_nli_model():
-    """Return the DeBERTa cross-encoder singleton, loading it if needed."""
-    global _NLI_MODEL
-    if _NLI_MODEL is None:
-        try:
-            from sentence_transformers import CrossEncoder
-            print("[sec_edgar] Loading cross-encoder/nli-deberta-v3-large (~183MB, once)...")
-            _NLI_MODEL = CrossEncoder("cross-encoder/nli-deberta-v3-large")
-            print("[sec_edgar] NLI model ready.")
-        except Exception as e:
-            print(f"[sec_edgar] WARNING: Could not load NLI model: {e}. Segment obfuscation detection unavailable.")
-            _NLI_MODEL = None
-    return _NLI_MODEL
-
-
-def classify_segment_change(historical_label: str, candidate_text: str) -> str:
-    """
-    Stage 1 of the two-stage NLI gate (Trap 1 — Segment Obfuscation).
-
-    Returns: 'ENTAILMENT' | 'NEUTRAL' | 'CONTRADICTION'
-      ENTAILMENT   → segment unchanged. Extract normally. Do NOT wake Qwen.
-      NEUTRAL      → borderline. Wake Qwen 8B for structured JSON confirmation.
-      CONTRADICTION→ confirmed restructuring. Wake Qwen, queue re-anchoring alert.
-
-    ~1ms per pair on CPU. Model: ~183MB. No GPU required.
-    """
-    model = _get_nli_model()
-    if model is None:
-        # Fallback: can't classify without the model
-        return "NEUTRAL"
-
-    try:
-        scores = model.predict([(historical_label, candidate_text)])
-        # DeBERTa-v3 NLI label order: [CONTRADICTION, ENTAILMENT, NEUTRAL]
-        labels = ["CONTRADICTION", "ENTAILMENT", "NEUTRAL"]
-        return labels[int(scores[0].argmax())]
-    except Exception as e:
-        print(f"[sec_edgar] NLI classify error: {e}")
-        return "NEUTRAL"
+# ── NLI singleton (now in engines/nli/segment_classifier.py) ──────────────────
+# Backward-compatible imports for code that references these directly.
+from engines.nli.segment_classifier import (
+    classify_segment_change,
+    get_nli_model as _get_nli_model,
+)
 
 
 class SECEdgarConnector(BaseConnector):
