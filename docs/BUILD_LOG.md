@@ -67,21 +67,47 @@ Built a basic LangGraph trading system with 4 agents (Researcher, Quant, Analyst
 
 ---
 
-## Phase 3: Improvement Analyzer (In Progress)
-**Date:** Mar 10, 2026
-**Status:** 🔨 Building
+## Phase 3: Improvement Analyzer (Completed)
+**Status:** ✅ Complete
 
-Next focus is on the self-correcting loop: analyze MLflow traces and generate one-parameter mutations to optimize strategy performance.
+### Completed
+- **`glass_box.py` & `improvement_agent.py`** — Analyzes MLflow traces and generates targeted one-parameter scalar mutations (e.g. SL from 0.05 -> 0.02) to optimize strategy performance.
+- Evaluates `held_out_degradation` vs in-sample Sharpe ratio to prevent structural overfitting.
+- Backtracks when degrading boundaries are crossed.
 
 ---
 
-## Future Phases (Planned)
+## Phase 4: Sentinel Engine & VCL Wrappers (Completed)
+**Status:** ✅ Complete
 
-### Phase 4: Sentinel Engine
-Real-time monitoring: price + VPIN + news-driven exits.
+### Completed
+- **Core Sentinel Components**: `CloseSignalGenerator`, `PromotionGate`, `MirrorPortfolio` (Counterfactual Tracker), `SentinelStateManager`.
+- **Pre-Flight Health Checks**: `ConnectorHealthMonitor`, `SegmentClassifier`.
+- **VCL Wrapper Implementation**: All 6 Phase 4 evaluation actors wrapped using the Vectorized Component Library (VCL) SDK, strictly exposing `input_schema` and `output_schema` Pydantic contracts.
 
-### Phase 5: API Layer
-FastAPI endpoints for each engine.
+---
 
-### Phase 6: Frontend v2
-New component architecture built around actual engine outputs.
+## Phase 5: Production Architecture (In Progress)
+**Status:** 🔨 Building
+
+### Phase 5.1: Intake System (Complete)
+- **`MandateProfile` & `UserIntent`** — Risk/Stop-Loss tier constraints properly validated & coerced.
+- **Contradiction Detection** — Explicit rules block unaligned requests.
+- **`StrategyArchetypePool`** — Persisted JSON diversity tracker measuring cosine-similarity distance against active strategies. Injected into Supervisor to force diverse strategy generation.
+
+### Phase 5.2: Multi-Provider Router (Complete)
+- **`ProviderRouter` & `QuotaTracker`** — YAML-defined model fallbacks separating semantic generation, compression, and mathematical roles to exact LLMs (`claude`, `qwen3:8b`, `qwen3-32b`, `gpt-oss-120b`, `llama-4-scout`). Guaranteed unlimited local fallback terminals.
+
+### Phase 5.3: VCL Registry & Pydantic Payloads (Complete)
+- Built the `VCLRegistry` to automatically compile `model_json_schema()`. 
+- Implemented payload instantiation (`_generate_minimal_valid_dict`) generating schema-native objects (like strictly bounded floats and lists) to automatically run Contract AND Canary component tests without failure. Fixed `test_components.py` dependencies. Supported Fingerprint verification over JSON serialization.
+
+### Phase 5.4: Token Messenger Pattern (Complete)
+- **Ephemeral State**: `WorkflowToken` is a cryptographically secured (SHA256 config hashing), 1-hour TTL, single-use `consumed` credential.
+- **Cryptographic Sequencing**: `BACKTEST -> AUDIT -> PROMOTION -> DEPLOYMENT` enforces strict state progression. Impossible to skip stages, replay old tokens, or drift configurations across boundaries (`SequenceViolationError`).
+
+### Phase 5.5: FinDebate Protocol (Complete)
+- **Evidentiary Rubric**: `DebateArgumentScore` automatically enforces fixed weights (e.g., `BACKTEST_DATA = 1.0`, `ASSERTION_ONLY = 0.0`) globally on the server side via `@model_validator(mode="after")`.
+- **Token Compression**: `compress_to_schema()` strips massive semantic agent responses down into strict `schema` dictionaries (budgeted < 3K tokens) routed explicitly via `groq/llama-4-scout`.
+- **Anti-Rubber-Stamp**: `ModeratorAgent` prompt flag (`COMPROMISED`) integrated. `FinDebateOrchestrator` consumes `BACKTEST` and issues `AUDIT` safely.
+- **Glass Box Win Rate**: Rolling 30-day `BearWinRateMonitor` implemented to scan `mlflow.search_runs()` triggering alerts over 75%.
