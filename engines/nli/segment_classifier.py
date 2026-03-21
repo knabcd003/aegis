@@ -13,6 +13,9 @@ This module replaces the inline NLI code that was embedded in sec_edgar_connecto
 import logging
 from typing import Optional, Dict, Any, List, Tuple
 from enum import Enum
+from pydantic import BaseModel, Field
+
+from engines.vcl.component import VCLComponent, HealthStatus, HealthResult, ComponentRole
 
 logger = logging.getLogger(__name__)
 
@@ -23,14 +26,31 @@ class NLIResult(str, Enum):
     CONTRADICTION = "CONTRADICTION"
 
 
-class SegmentClassifier:
+class SegmentClassificationInput(BaseModel):
+    historical_label: str = Field(min_length=1)
+    candidate_text: str = Field(min_length=1)
+
+
+class SegmentClassificationOutput(BaseModel):
+    result: NLIResult
+    should_wake_qwen: bool
+
+
+class SegmentClassifier(VCLComponent):
     """
     Singleton DeBERTa-v3-large NLI classifier for segment change detection.
-
+    
     Usage:
         classifier = SegmentClassifier.get_instance()
-        result = classifier.classify("Software Services", "Cloud Computing Platform")
+        result = classifier.execute(SegmentClassificationInput(...))
     """
+    
+    component_id = "aegis.nli.segment_classifier"
+    version = "1.0.0"
+    role = ComponentRole.SIGNAL_GENERATOR
+    input_schema = SegmentClassificationInput
+    output_schema = SegmentClassificationOutput
+
     _instance: Optional["SegmentClassifier"] = None
     _model = None
     _model_loaded = False
@@ -130,6 +150,18 @@ class SegmentClassifier:
         Qwen is only called for NEUTRAL or CONTRADICTION — never for ENTAILMENT.
         """
         return result in (NLIResult.NEUTRAL, NLIResult.CONTRADICTION)
+
+    def execute(self, input_data: SegmentClassificationInput) -> SegmentClassificationOutput:
+        result = self.classify(input_data.historical_label, input_data.candidate_text)
+        return SegmentClassificationOutput(
+            result=result,
+            should_wake_qwen=self.should_wake_qwen(result)
+        )
+
+    def health(self) -> HealthResult:
+        if not self.is_available:
+            return HealthResult(status=HealthStatus.DEGRADED, reason="NLI model failed to load, using conservative fallback")
+        return HealthResult(status=HealthStatus.HEALTHY)
 
 
 # Module-level convenience functions (backward compatible with sec_edgar_connector)

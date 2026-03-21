@@ -18,10 +18,12 @@ import os
 from datetime import datetime
 from enum import Enum
 from typing import Dict, Any, Tuple, List, Optional
+from pydantic import BaseModel, Field
 
 import mlflow
 
 from engines.monitoring.connector_health import ConnectorHealthMonitor
+from engines.vcl.component import VCLComponent, HealthStatus, HealthResult, ComponentRole
 
 logger = logging.getLogger(__name__)
 
@@ -33,35 +35,43 @@ class GateStage(str, Enum):
     LIVE_FULL = "live_full"
 
 
-class GateResult:
+class GateResult(BaseModel):
     """Structured result from a gate evaluation."""
-    def __init__(self, passed: bool, stage: GateStage, reason: str,
-                 failures: List[str] = None, metrics_snapshot: Dict[str, Any] = None):
-        self.passed = passed
-        self.stage = stage
-        self.reason = reason
-        self.failures = failures or []
-        self.metrics_snapshot = metrics_snapshot or {}
-        self.evaluated_at = datetime.utcnow()
+    passed: bool
+    stage: GateStage
+    reason: str
+    failures: List[str] = Field(default_factory=list)
+    metrics_snapshot: Dict[str, Any] = Field(default_factory=dict)
+    evaluated_at: datetime = Field(default_factory=datetime.utcnow)
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "passed": self.passed,
-            "stage": self.stage.value,
-            "reason": self.reason,
-            "failures": self.failures,
-            "metrics_snapshot": self.metrics_snapshot,
-            "evaluated_at": self.evaluated_at.isoformat(),
-        }
+        return self.model_dump()
 
 
-class PromotionGate:
+class PromotionGateInput(BaseModel):
+    run_id: str = Field(min_length=1)
+    session_quality: str = "nominal"
+    scenario_pass_rate: Optional[float] = None
+    debate_confidence: Optional[int] = None
+
+
+class PromotionGateOutput(BaseModel):
+    gate_result: GateResult
+
+
+class PromotionGate(VCLComponent):
     """
     Three-stage gatekeeper for strategy promotion.
 
     All thresholds are hardcoded constants. No configuration overrides.
     No agent modifies these values. Ever.
     """
+    component_id = "aegis.simulation.promotion_gate"
+    version = "1.0.0"
+    role = ComponentRole.GATE_CONDITION
+    input_schema = PromotionGateInput
+    output_schema = PromotionGateOutput
+
 
     # ========================
     # Stage 1: Backtest → Proving Ground
@@ -108,6 +118,23 @@ class PromotionGate:
     def __init__(self, health_monitor: ConnectorHealthMonitor):
         self.health_monitor = health_monitor
         self._evaluated_runs: Dict[str, GateResult] = {}
+
+    def execute(self, input_data: PromotionGateInput) -> PromotionGateOutput:
+        """VCL standard execute hook for stage 1 evaluation."""
+        result = self.evaluate_backtest(
+            run_id=input_data.run_id,
+            session_quality=input_data.session_quality,
+            scenario_pass_rate=input_data.scenario_pass_rate,
+            debate_confidence=input_data.debate_confidence
+        )
+        return PromotionGateOutput(gate_result=result)
+
+    def health(self) -> HealthResult:
+        """Uses the dependent health monitor to assess overall readiness."""
+        if self.health_monitor.is_any_connector_offline():
+            return HealthResult(status=HealthStatus.DEGRADED, reason="Underlying connectors offline")
+        return HealthResult(status=HealthStatus.HEALTHY)
+
 
     # ========================
     # Stage 1 Evaluation

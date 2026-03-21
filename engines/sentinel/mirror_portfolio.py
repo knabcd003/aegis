@@ -6,6 +6,9 @@ of all generated Signal Cards. Used for gap analysis to quantify human override 
 from typing import Dict, Any, List
 from datetime import datetime
 import pandas as pd
+from pydantic import BaseModel, Field
+
+from engines.vcl.component import VCLComponent, HealthStatus, HealthResult, ComponentRole
 
 class MirrorPosition:
     def __init__(self, ticker: str, entry_price: float, quantity: int, decision: str):
@@ -41,10 +44,30 @@ class MirrorPortfolio:
             "nav": self.nav
         })
 
-class CounterfactualTracker:
+
+class MirrorPortfolioInput(BaseModel):
+    ticker: str = Field(min_length=1)
+    decision: str
+    action: str
+    execution_price: float
+    quantity: int
+    current_date: datetime
+
+
+class MirrorPortfolioOutput(BaseModel):
+    gap_analysis: Dict[str, Any]
+
+
+class CounterfactualTracker(VCLComponent):
     """
     Maintains the Mirror Portfolio and calculates the Human Override Gap.
     """
+    component_id = "aegis.sentinel.mirror_portfolio"
+    version = "1.0.0"
+    role = ComponentRole.AUDITOR
+    input_schema = MirrorPortfolioInput
+    output_schema = MirrorPortfolioOutput
+
     def __init__(self, sentinel_id: str, initial_cash: float = 100000.0):
         self.sentinel_id = sentinel_id
         # The AI's pure vision
@@ -53,6 +76,22 @@ class CounterfactualTracker:
         # We also need a reference to the actual human-modified nav for gap analysis
         self._actual_nav = initial_cash
         self._actual_nav_history: List[Dict[str, Any]] = []
+
+    def execute(self, input_data: MirrorPortfolioInput) -> MirrorPortfolioOutput:
+        """VCL standard execution hook."""
+        self.handle_signal_resolution(
+            ticker=input_data.ticker,
+            decision=input_data.decision,
+            action=input_data.action,
+            execution_price=input_data.execution_price,
+            quantity=input_data.quantity,
+            current_date=input_data.current_date
+        )
+        return MirrorPortfolioOutput(gap_analysis=self.get_gap_analysis())
+
+    def health(self) -> HealthResult:
+        """Mirror portfolio memory tracker is stateless (to connectors), always healthy."""
+        return HealthResult(status=HealthStatus.HEALTHY)
 
     def handle_signal_resolution(self, ticker: str, decision: str, action: str, 
                                  execution_price: float, quantity: int, current_date: datetime):

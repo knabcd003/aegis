@@ -7,12 +7,24 @@ from typing import Dict, Any, List
 from datetime import datetime, timedelta
 import asyncio
 import logging
+from pydantic import BaseModel, Field
 
 from engines.data_ingestion.data_engine import DataEngine
+from engines.vcl.component import VCLComponent, HealthStatus, HealthResult, ComponentRole
 
 logger = logging.getLogger(__name__)
 
-class ConnectorHealthMonitor:
+class ConnectorHealthInput(BaseModel):
+    # Empty input, it just triggers the check based on its internal state
+    trigger: bool = True
+
+class ConnectorHealthOutput(BaseModel):
+    states: Dict[str, str] = Field(description="Map of connector name to health state")
+    any_offline: bool
+    any_degraded: bool
+    can_generate_signals: bool
+
+class ConnectorHealthMonitor(VCLComponent):
     """
     Monitors connector health.
     States:
@@ -25,6 +37,12 @@ class ConnectorHealthMonitor:
     STATE_DEGRADED = "DEGRADED"
     STATE_OFFLINE = "OFFLINE"
 
+    component_id = "aegis.system.connector_health_monitor"
+    version = "1.0.0"
+    role = ComponentRole.GATE_CONDITION
+    input_schema = ConnectorHealthInput
+    output_schema = ConnectorHealthOutput
+
     def __init__(self, data_engine: DataEngine, stale_threshold_hours: int = 24):
         self.data_engine = data_engine
         self.stale_threshold_hours = stale_threshold_hours
@@ -35,6 +53,22 @@ class ConnectorHealthMonitor:
         for connector_name in self.data_engine.list_connectors():
             self._status_cache[connector_name] = self.STATE_DEGRADED
             self._last_check_ts[connector_name] = datetime.min
+
+    def execute(self, input_data: ConnectorHealthInput) -> ConnectorHealthOutput:
+        """VCL standard execution hook."""
+        states = self.run_health_checks()
+        return ConnectorHealthOutput(
+            states=states,
+            any_offline=self.is_any_connector_offline(),
+            any_degraded=self.is_any_connector_degraded(),
+            can_generate_signals=self.can_generate_signals()
+        )
+
+    def health(self) -> HealthResult:
+        """VCL standard health hook."""
+        # The monitor itself is always healthy if it can execute
+        return HealthResult(status=HealthStatus.HEALTHY)
+
             
     def get_connector_state(self, connector_name: str) -> str:
         """Get the current state of a connector."""

@@ -18,6 +18,9 @@ from datetime import datetime, date
 from typing import Dict, Any, List, Optional
 from enum import Enum
 
+from pydantic import BaseModel, Field
+from engines.vcl.component import VCLComponent, HealthStatus, HealthResult, ComponentRole
+
 from engines.monitoring.connector_health import ConnectorHealthMonitor
 from engines.data_ingestion.data_engine import DataEngine
 from engines.sentinel.close_signal_generator import (
@@ -264,16 +267,50 @@ class Sentinel:
         return self.config.get("asset_universe", {}).get("tickers", [])
 
 
-class SentinelStateManager:
+class SentinelStateInput(BaseModel):
+    sentinel_id: str = Field(min_length=1)
+    current_prices: Dict[str, float] = Field(default_factory=dict)
+    current_date: datetime = Field(default_factory=datetime.utcnow)
+    current_fundamentals: Dict[str, Dict[str, float]] = Field(default_factory=dict)
+
+
+class SentinelStateOutput(BaseModel):
+    close_signals: List[CloseSignal] = Field(default_factory=list)
+
+
+class SentinelStateManager(VCLComponent):
     """
     Manages all live Sentinels and orchestrates the signal and close pipeline.
     """
     KNOWN_UNIVERSE_DIR = "data/known_universe"
+    component_id = "aegis.system.sentinel_state_manager"
+    version = "1.0.0"
+    role = ComponentRole.EXECUTOR
+    input_schema = SentinelStateInput
+    output_schema = SentinelStateOutput
 
     def __init__(self, data_engine: DataEngine, health_monitor: ConnectorHealthMonitor):
         self.data_engine = data_engine
         self.health_monitor = health_monitor
         self.sentinels: Dict[str, Sentinel] = {}
+
+    def execute(self, input_data: SentinelStateInput) -> SentinelStateOutput:
+        """VCL standard execute hook."""
+        signals = self.evaluate_close_signals(
+            sentinel_id=input_data.sentinel_id,
+            current_prices=input_data.current_prices,
+            current_date=input_data.current_date,
+            current_fundamentals=input_data.current_fundamentals
+        )
+        return SentinelStateOutput(close_signals=signals)
+
+    def health(self) -> HealthResult:
+        """Sentinel State Manager health depends on connector health monitor."""
+        if self.health_monitor.is_any_connector_offline():
+            return HealthResult(status=HealthStatus.DEGRADED, reason="Underlying connectors offline")
+        return HealthResult(status=HealthStatus.HEALTHY)
+
+
 
     def deploy_sentinel(
         self,

@@ -16,6 +16,10 @@ import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime, date
 from enum import Enum
+from pydantic import BaseModel, Field
+
+from engines.models.core import PriceBar
+from engines.vcl.component import VCLComponent, HealthStatus, HealthResult, ComponentRole
 
 logger = logging.getLogger(__name__)
 
@@ -28,86 +32,61 @@ class ExitType(str, Enum):
     RISK_BUDGET_VIOLATION = "Risk Budget Violation"
 
 
-class EntryStateSnapshot:
+class EntryStateSnapshot(BaseModel):
     """
     Captures the fundamental and technical rationale at the exact moment a trade is entered.
     Used to detect Fundamental Shift exits by comparing entry-time vs current fundamentals.
     """
-    def __init__(
-        self,
-        ticker: str,
-        entry_price: float,
-        entry_date: datetime,
-        fundamental_metrics: Dict[str, float],
-        thesis_summary: str,
-        target_price: Optional[float] = None,
-        stop_loss_price: Optional[float] = None,
-        max_hold_days: Optional[int] = None,
-    ):
-        self.snapshot_id = str(uuid.uuid4())
-        self.ticker = ticker
-        self.entry_price = entry_price
-        self.entry_date = entry_date
-        self.fundamental_metrics = fundamental_metrics
-        self.thesis_summary = thesis_summary
-        self.target_price = target_price
-        self.stop_loss_price = stop_loss_price
-        self.max_hold_days = max_hold_days
+    snapshot_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    ticker: str
+    entry_price: float
+    entry_date: datetime
+    fundamental_metrics: Dict[str, float]
+    thesis_summary: str
+    target_price: Optional[float] = None
+    stop_loss_price: Optional[float] = None
+    max_hold_days: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "snapshot_id": self.snapshot_id,
-            "ticker": self.ticker,
-            "entry_price": self.entry_price,
-            "entry_date": self.entry_date.isoformat() if isinstance(self.entry_date, (datetime, date)) else str(self.entry_date),
-            "fundamental_metrics": self.fundamental_metrics,
-            "thesis_summary": self.thesis_summary,
-            "target_price": self.target_price,
-            "stop_loss_price": self.stop_loss_price,
-            "max_hold_days": self.max_hold_days,
-        }
+        d = self.model_dump()
+        d["entry_date"] = self.entry_date.isoformat()
+        return d
 
 
-class CloseSignal:
+class CloseSignal(BaseModel):
     """Structured output from close signal evaluation."""
-    def __init__(
-        self,
-        ticker: str,
-        exit_type: ExitType,
-        reason: str,
-        urgency: str,
-        current_price: float,
-        entry_price: float,
-        unrealized_pnl_pct: float,
-        supporting_data: Dict[str, Any],
-    ):
-        self.signal_id = str(uuid.uuid4())
-        self.ticker = ticker
-        self.exit_type = exit_type
-        self.reason = reason
-        self.urgency = urgency  # "immediate" | "end_of_day" | "review"
-        self.current_price = current_price
-        self.entry_price = entry_price
-        self.unrealized_pnl_pct = unrealized_pnl_pct
-        self.supporting_data = supporting_data
-        self.generated_at = datetime.utcnow()
+    signal_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    ticker: str
+    exit_type: ExitType
+    reason: str
+    urgency: str
+    current_price: float
+    entry_price: float
+    unrealized_pnl_pct: float
+    supporting_data: Dict[str, Any]
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "signal_id": self.signal_id,
-            "ticker": self.ticker,
-            "exit_type": self.exit_type.value,
-            "reason": self.reason,
-            "urgency": self.urgency,
-            "current_price": self.current_price,
-            "entry_price": self.entry_price,
-            "unrealized_pnl_pct": self.unrealized_pnl_pct,
-            "supporting_data": self.supporting_data,
-            "generated_at": self.generated_at.isoformat(),
-        }
+        d = self.model_dump()
+        d["exit_type"] = self.exit_type.value
+        d["generated_at"] = self.generated_at.isoformat()
+        return d
 
 
-class CloseSignalGenerator:
+
+class CloseSignalInput(BaseModel):
+    price_history: List[PriceBar] = Field(min_length=1)
+    current_fundamentals: Dict[str, float] = Field(default_factory=dict)
+    portfolio_nav: float
+    portfolio_high_water_mark: float
+    snapshot: EntryStateSnapshot
+
+
+class CloseSignalOutput(BaseModel):
+    signal: Optional[CloseSignal] = None
+
+
+class CloseSignalGenerator(VCLComponent):
     """
     Evaluates the 5 exit rules against open positions.
 
@@ -115,6 +94,12 @@ class CloseSignalGenerator:
     The Fundamental Shift check compares multiple metrics from EntryStateSnapshot,
     not just EPS.
     """
+    component_id = "aegis.sentinel.close_signal_generator"
+    version = "1.0.0"
+    role = ComponentRole.SIGNAL_GENERATOR
+    input_schema = CloseSignalInput
+    output_schema = CloseSignalOutput
+
 
     # Default fundamental shift thresholds (used if not provided in config)
     DEFAULT_FUNDAMENTAL_THRESHOLDS = {
@@ -146,6 +131,25 @@ class CloseSignalGenerator:
         self.max_hold_days = max_hold_days
         self.max_portfolio_drawdown_pct = max_portfolio_drawdown_pct
         self.fundamental_thresholds = fundamental_thresholds or self.DEFAULT_FUNDAMENTAL_THRESHOLDS
+
+    def execute(self, input_data: CloseSignalInput) -> CloseSignalOutput:
+        """VCL standard execute hook for generating close signals."""
+        latest_bar = input_data.price_history[-1]
+        
+        signal = self.evaluate_position(
+            current_price=latest_bar.close,
+            current_date=latest_bar.timestamp,
+            current_fundamentals=input_data.current_fundamentals,
+            portfolio_nav=input_data.portfolio_nav,
+            portfolio_high_water_mark=input_data.portfolio_high_water_mark,
+            snapshot=input_data.snapshot
+        )
+        return CloseSignalOutput(signal=signal)
+
+    def health(self) -> HealthResult:
+        """Close Signal Generator is deterministic and stateless, always healthy."""
+        return HealthResult(status=HealthStatus.HEALTHY)
+
 
     @classmethod
     def from_config(cls, exit_config: Dict[str, Any]) -> "CloseSignalGenerator":
