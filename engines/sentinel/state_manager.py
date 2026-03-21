@@ -14,7 +14,7 @@ import json
 import uuid
 import logging
 import os
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from typing import Dict, Any, List, Optional
 from enum import Enum
 
@@ -57,6 +57,9 @@ class SignalCard:
         thesis: str,
         confidence: float,
         session_quality: str = "nominal",
+        volatility_bucket: str = "medium_volatility",
+        freshness_threshold: float = 0.010,
+        polling_interval: int = 30,
     ):
         self.card_id = str(uuid.uuid4())
         self.sentinel_id = sentinel_id
@@ -71,7 +74,10 @@ class SignalCard:
         self.thesis = thesis
         self.confidence = confidence
         self.session_quality = session_quality
-        self.generated_at = datetime.utcnow()
+        self.volatility_bucket = volatility_bucket
+        self.freshness_threshold = freshness_threshold
+        self.polling_interval = polling_interval
+        self.generated_at = datetime.now(timezone.utc)
         self.status = "PENDING"  # PENDING → ACCEPTED | DECLINED
 
         # Close signal info (filled for CLOSE cards)

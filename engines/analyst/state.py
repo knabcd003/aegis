@@ -7,6 +7,7 @@ class AgentState(TypedDict):
     date: str
     fundamental_context: Dict[str, Any]
     exclusion_context: str
+    failing_scenarios: List[str]
     
     # Trace log for Glass Box debugging (accumulates strings across nodes)
     reasoning_trace: Annotated[List[str], operator.add]

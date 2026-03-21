@@ -32,7 +32,12 @@ Start your response directly with '{{' and return ONLY the JSON. No <think> bloc
   "rationale": "Max 20 words."
 }}"""
 
-        user_prompt = f"Fundamental Context:\n{context_str}\n\nWhat is your proposal?"
+        failing_scenarios_str = ""
+        failing_list = state.get("failing_scenarios", [])
+        if failing_list:
+            failing_scenarios_str = "PREVIOUS GENERATION FAILED SCENARIOS:\n" + "\n".join(failing_list) + "\n\n"
+
+        user_prompt = f"Fundamental Context:\n{context_str}\n\n{failing_scenarios_str}What is your proposal?"
         
         messages = [
             SystemMessage(content=system_prompt),
