@@ -167,10 +167,19 @@ class AgenticSupervisor:
         """
         Executes the dynamic LangGraph for a given ticker and point-in-time date.
         """
+        from engines.intake.archetype_pool import StrategyArchetypePool
+        
+        try:
+            pool = StrategyArchetypePool()
+            exclusion_context = pool.get_exclusion_context()
+        except Exception as e:
+            exclusion_context = f"Error loading exclusion context: {e}"
+
         initial_state = {
             "ticker": ticker,
             "date": str(date),
             "fundamental_context": fundamental_context,
+            "exclusion_context": exclusion_context,
             "reasoning_trace": [],
             "analyst_proposal": {},
             "risk_veto": False,

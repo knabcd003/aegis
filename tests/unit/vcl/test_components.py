@@ -47,3 +47,34 @@ def test_state_manager_registration(registry):
     comp.deploy_sentinel(sentinel_id="a", config={}, promoted_run_id="test")
     res = registry.register(comp)
     assert res.success is True, f"Failed at {res.failed_gate}: {res.reason}"
+
+def test_fingerprint_stability():
+    """Verify that equivalent components have identical fingerprints and survive serialization roundtrips."""
+    import json
+    
+    comp1 = CloseSignalGenerator()
+    comp2 = CloseSignalGenerator()
+    
+    # 1. Two separate instances of same class must have identical fingerprints
+    fp1 = comp1.compatibility_fingerprint
+    fp2 = comp2.compatibility_fingerprint
+    assert fp1 == fp2, "Fingerprints differ between identical instances"
+    
+    # 2. Serialize and Deserialize via JSON to ensure deterministic ordering holds
+    # dump input and output schema model json_schemas
+    in_schema_json = json.dumps(comp1.input_schema.model_json_schema())
+    out_schema_json = json.dumps(comp1.output_schema.model_json_schema())
+    
+    # deserialize back to python dicts
+    in_dict = json.loads(in_schema_json)
+    out_dict = json.loads(out_schema_json)
+    
+    # Recreate fingerprint logic based on the dicts (which lose python internal ordering)
+    import hashlib
+    roundtrip = (
+        json.dumps(in_dict, sort_keys=True) +
+        json.dumps(out_dict, sort_keys=True)
+    )
+    fp_roundtrip = hashlib.sha256(roundtrip.encode()).hexdigest()[:16]
+    
+    assert fp1 == fp_roundtrip, "Fingerprint changed after JSON roundtrip serialization (ordering bug)"

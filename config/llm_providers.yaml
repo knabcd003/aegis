@@ -145,6 +145,11 @@ role_assignments:
     fallback_chain: ["local/qwen3:8b"]
     is_critical: false
 
+  debate_compression:
+    primary: "groq/llama-4-scout"
+    fallback_chain: ["local/qwen3:8b"]
+    is_critical: false
+
   schema_routing:
     primary: "local/qwen3:8b"
     fallback_chain: []
