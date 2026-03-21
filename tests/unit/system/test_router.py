@@ -220,3 +220,52 @@ class TestProviderRouter:
             
         with pytest.raises(ValueError, match="no unlimited provider"):
             ProviderRouter(config_path=str(path))
+
+    def test_excluded_provider_in_chain_fails_startup(self, tmp_path):
+        # Even if there's an unlimited provider (e.g., local/qwen3:8b) at the end, 
+        # an excluded provider shouldn't be in the chain
+        config = {
+            "providers": [
+                {"id": "local/qwen3:8b", "limits": {"rpd": None}},
+                {"id": "deepseek/deepseek-r1", "limits": {"rpd": None}}
+            ],
+            "role_assignments": {
+                "role1": {
+                    "primary": "local/qwen3:8b", 
+                    "fallback_chain": ["deepseek/deepseek-r1"]
+                }
+            },
+            "settings": {
+                "exclude_providers": ["deepseek/*"]
+            }
+        }
+        path = tmp_path / "bad2.yaml"
+        with open(path, "w") as f:
+            yaml.dump(config, f)
+            
+        with pytest.raises(ValueError, match="includes excluded provider"):
+            ProviderRouter(config_path=str(path))
+
+    def test_severe_depth_ceiling_enforced(self, router):
+        # By default global severely_degraded_fallback_depth=2. 
+        # Claude is configured with critical_fallback_depth=3.
+        # It should be CAPPED at 2.
+        # Let's walk the chain by 2 steps.
+        
+        # Primary: claude (depth 0)
+        # Fallback 1: gemini (depth 1)
+        # Fallback 2: groq/gpt (depth 2)
+        
+        # Exhaust claude and gemini
+        router.quota.providers["claude-sonnet-4-6"]["limits"]["rpd"] = 200
+        router.quota.increment("claude-sonnet-4-6", 200)
+        router.quota.increment("gemini-2.5-flash", 500)
+        
+        # Next comes groq/gpt-oss-120b. This is depth=2. 
+        # Since the global ceiling is 2, it should immediately be severely_degraded,
+        # even though claude configured a critical_fallback_depth of 3.
+        decision = router.get_provider_for_role("strategy_generation")
+        assert decision.was_primary is False
+        assert decision.model_id == "gpt-oss-120b"
+        assert decision.session_quality == "severely_degraded"
+

@@ -52,22 +52,28 @@ class ProviderRouter:
         Critical safety check: Ensure that every role has at least one
         reachable provider in its chain (primary or fallback) with NO rpd limit.
         Otherwise, the entire pipeline can stall.
+        Also validates that no explicitly excluded provider is present in the chain.
         """
         for role, assignment in self.roles.items():
             chain = [assignment["primary"]] + assignment.get("fallback_chain", [])
             has_unlimited = False
             
             for provider_id in chain:
-                # If provider doesn't exist or is excluded in config, we skip logic checks
-                if provider_id not in self.providers:
-                    continue
                 if self._is_excluded(provider_id):
+                    raise ValueError(
+                        f"Configuration Error: Role '{role}' includes excluded provider "
+                        f"'{provider_id}' in its fallback chain. An excluded provider "
+                        f"must not be relied upon for routing."
+                    )
+                
+                # If provider doesn't exist, we skip logic checks (could be local stub)
+                if provider_id not in self.providers:
                     continue
                     
                 limit = self.providers[provider_id].get("limits", {}).get("rpd")
                 if limit is None:
                     has_unlimited = True
-                    break
+                    # Don't break here, we need to check the rest of the chain for excluded providers
                     
             if not has_unlimited:
                 raise ValueError(
@@ -78,7 +84,12 @@ class ProviderRouter:
     def _is_excluded(self, provider_id: str) -> bool:
         """Check if provider is manually excluded in config or settings."""
         if provider_id not in self.providers:
-            return True
+            # If it's not in providers but matches an exclude pattern, it's excluded
+            for pattern in self.exclude_patterns:
+                if fnmatch.fnmatch(provider_id, pattern):
+                    return True
+            return False
+            
         if self.providers[provider_id].get("exclude", False):
             return True
         for pattern in self.exclude_patterns:
@@ -173,7 +184,8 @@ class ProviderRouter:
         If depth == 0, nominal.
         If depth >= severely_degraded_fallback_depth OR the provider explicitly
         defines critical_fallback_depth and depth >= that, severely_degraded.
-        Else, degraded.
+        Enforces that per-provider critical_fallback_depth cannot be higher 
+        than the global severely_degraded_fallback_depth ceiling.
         """
         assignment = self.roles.get(role, {})
         if not assignment.get("is_critical", False):
@@ -183,7 +195,11 @@ class ProviderRouter:
             return "nominal"
             
         provider_cfg = self.providers.get(chosen_model, {})
-        crit_depth = provider_cfg.get("critical_fallback_depth", self.severe_depth)
+        # Global ceiling is self.severe_depth. Use minimum of global and per-provider setting.
+        crit_depth = min(
+            self.severe_depth,
+            provider_cfg.get("critical_fallback_depth", self.severe_depth)
+        )
 
         if depth_walked >= crit_depth:
             return "severely_degraded"
