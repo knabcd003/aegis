@@ -12,12 +12,12 @@ providers:
   critical_fallback_depth: 3
   exclude: false
   litellm_model_string: ollama/qwen3:8b
-- id: groq/llama-4-scout
-  display_name: Llama 4 Scout (Groq)
+- id: groq/llama-3.3-70b-versatile
+  display_name: Llama 3.3 70B (Groq)
   tier: 1
   type: openai_compatible
   base_url: https://api.groq.com/openai/v1
-  model: llama-4-scout
+  model: llama-3.3-70b-versatile
   api_key_env: GROQ_API_KEY
   limits:
     rpd: 1000
@@ -25,13 +25,13 @@ providers:
     tpd: 500000
   cost_per_1k_tokens: 0.0
   exclude: false
-  litellm_model_string: groq/llama-4-scout
-- id: groq/qwen3-32b
-  display_name: Qwen3 32B (Groq)
+  litellm_model_string: groq/llama-3.3-70b-versatile
+- id: groq/llama-3.1-8b-instant
+  display_name: Llama 3.1 8B Instant (Groq)
   tier: 2
   type: openai_compatible
   base_url: https://api.groq.com/openai/v1
-  model: qwen/qwen3-32b
+  model: llama-3.1-8b-instant
   api_key_env: GROQ_API_KEY
   limits:
     rpd: 1000
@@ -39,13 +39,13 @@ providers:
     tpd: 500000
   cost_per_1k_tokens: 0.0
   exclude: false
-  litellm_model_string: groq/qwen/qwen3-32b
-- id: groq/kimi-k2
-  display_name: Kimi K2 (Groq)
+  litellm_model_string: groq/llama-3.1-8b-instant
+- id: groq/gpt-oss-20b
+  display_name: GPT-OSS 20B (Groq)
   tier: 3
   type: openai_compatible
   base_url: https://api.groq.com/openai/v1
-  model: moonshot-v1-8k
+  model: gpt-oss-20b
   api_key_env: GROQ_API_KEY
   limits:
     rpd: 1000
@@ -53,7 +53,7 @@ providers:
     tpd: 500000
   cost_per_1k_tokens: 0.0
   exclude: false
-  litellm_model_string: groq/moonshot-v1-8k
+  litellm_model_string: groq/gpt-oss-20b
 - id: groq/gpt-oss-120b
   display_name: GPT-OSS 120B (Groq)
   tier: 4
@@ -115,9 +115,9 @@ role_assignments:
     fallback_chain:
     - gemini-2.5-flash
     - groq/gpt-oss-120b
-    - groq/kimi-k2
-    - groq/qwen3-32b
-    - groq/llama-4-scout
+    - groq/gpt-oss-20b
+    - groq/llama-3.1-8b-instant
+    - groq/llama-3.3-70b-versatile
     - openrouter/:free
     - local/qwen3:8b
     is_critical: true
@@ -146,21 +146,21 @@ role_assignments:
   debate_bull:
     primary: groq/gpt-oss-120b
     fallback_chain:
-    - groq/qwen3-32b
+    - groq/llama-3.1-8b-instant
     - local/qwen3:8b
     is_critical: false
   debate_bear:
-    primary: groq/qwen3-32b
+    primary: groq/llama-3.1-8b-instant
     fallback_chain:
     - local/qwen3:8b
     is_critical: false
   fast_eval:
-    primary: groq/llama-4-scout
+    primary: groq/llama-3.3-70b-versatile
     fallback_chain:
     - local/qwen3:8b
     is_critical: false
   debate_compression:
-    primary: groq/llama-4-scout
+    primary: groq/llama-3.3-70b-versatile
     fallback_chain:
     - local/qwen3:8b
     is_critical: false
