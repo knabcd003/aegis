@@ -78,7 +78,7 @@ async def health_check() -> Dict[str, Any]:
         }
     }
 
-from api.routers import quant, analyst, mlops, stream, systems, audit, health, improvements, portfolio, openclaw, pipeline_events
+from api.routers import quant, analyst, mlops, stream, systems, audit, health, improvements, portfolio, openclaw, pipeline_events, intake
 
 # ============================================================
 # API Routers
@@ -93,5 +93,6 @@ app.include_router(health.router, prefix="/api/system-health", tags=["Health"])
 app.include_router(improvements.router, prefix="/api/improvements", tags=["Improvements"])
 app.include_router(portfolio.router, prefix="/api/portfolio", tags=["Portfolio"])
 app.include_router(openclaw.router, prefix="/api/openclaw", tags=["OpenClaw"])
+app.include_router(intake.router, prefix="/api/intake", tags=["Intake"])
 app.include_router(pipeline_events.router, prefix="/ws", tags=["Pipeline Events"])
 

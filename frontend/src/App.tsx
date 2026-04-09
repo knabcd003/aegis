@@ -6,6 +6,7 @@ import { MLOpsArena } from '@/components/MLOpsArena';
 import { SystemHealth } from '@/components/SystemHealth';
 import { PortfolioTracker } from '@/components/PortfolioTracker';
 import { SentinelDetail } from '@/components/SentinelDetail';
+import { IntakePage } from '@/pages/IntakePage';
 import { usePipelineWebSocket } from '@/lib/usePipelineWebSocket';
 import { SystemHealth } from '@/components/SystemHealth';
 // Removed dead routes as per V7 deletion
@@ -21,7 +22,8 @@ function App() {
                     <Route path="/" element={<Navigate to="/command" replace />} />
                     {/* OBSERVE */}
                     <Route path="/command" element={<CommandCenter />} />
-                    {/* INTAKE (Pending Step 5 components) */}
+                    {/* INTAKE */}
+                    <Route path="/intake" element={<IntakePage />} />
                     {/* PORTFOLIO */}
                     <Route path="/portfolio" element={<PortfolioTracker />} />
                     <Route path="/sentinel/:id" element={<SentinelDetail />} />
