@@ -1,5 +1,5 @@
 """
-Metrics Calculator (Phase 4 — Complete)
+Metrics Calculator (Phase 5 — Complete)
 
 Computes all performance metrics required by the Promotion Gate:
   1. Total return (optimization + held-out)
@@ -11,11 +11,12 @@ Computes all performance metrics required by the Promotion Gate:
   7. Trade count
   8. Profit factor
   9. P-value (bootstrap permutation test)
- 10. Walk-forward efficiency (stub — requires loop restructuring, Phase 4 Step 0 last)
+ 10. Walk-forward efficiency (computed via WalkForwardValidator, stubbed here)
 
 Correlation with existing promoted strategies is handled at the Promotion Gate level,
 not here, because it requires access to the MLflow registry.
 """
+
 from typing import Dict, Any, List, Optional
 import pandas as pd
 import numpy as np
@@ -188,6 +189,21 @@ def compute_sharpe(returns: pd.Series) -> float:
     return float(returns.mean() / returns.std() * np.sqrt(252))
 
 
+def compute_walk_forward_efficiency(
+    fold_oos_sharpes: List[float],
+    full_is_sharpe: float,
+) -> float:
+    """
+    Walk-Forward Efficiency = mean(OOS Sharpe across k folds) / full IS Sharpe.
+
+    Returns 0.0 if IS Sharpe <= 0 (no positive in-sample performance) or if
+    no fold results are provided. Negative WFE values are allowed — they
+    indicate the strategy actively loses money out-of-sample.
+    """
+    if full_is_sharpe <= 0 or not fold_oos_sharpes:
+        return 0.0
+    return float(np.mean(fold_oos_sharpes) / full_is_sharpe)
+
 def compute_sortino(returns: pd.Series) -> float:
     """Annualized Sortino ratio."""
     if returns.empty:
@@ -271,9 +287,10 @@ def compute_metrics(
     metrics["win_rate"] = compute_win_rate(round_trips)
     metrics["bootstrap_pvalue"] = compute_bootstrap_pvalue(round_trips, seed=42)
 
-    # Walk-forward efficiency — stub until loop restructuring (Phase 4, last step)
-    # Returns 0.0 (which will fail the gate's min 0.50 threshold, preventing
-    # false promotions until walk-forward is properly implemented).
+    # Walk-forward efficiency — computed externally by WalkForwardValidator
+    # (requires k-fold simulation runs). Stub at 0.0 here; the caller
+    # (run_backtest.py) overwrites this with the real value from
+    # WalkForwardValidator.run().
     metrics["walk_forward_efficiency"] = 0.0
 
     # Correlation with existing — returns 0.0 until promoted strategy registry populated.

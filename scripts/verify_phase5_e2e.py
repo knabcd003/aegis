@@ -141,7 +141,7 @@ def verify_pipeline():
             mlflow.log_metric("optimization_max_drawdown", -0.10)
             mlflow.log_metric("trade_count", 250)
             mlflow.log_metric("profit_factor", 1.65)
-            mlflow.log_metric("walk_forward_efficiency", 0.0)  # intentionally 0
+            mlflow.log_metric("walk_forward_efficiency", 0.0)  # placeholder, overwritten by Step 7.5
             mlflow.log_metric("correlation_with_existing", 0.15)
             mlflow.log_metric("bootstrap_pvalue", 0.02)
             mlflow.log_metric("held_out_degradation", 0.20)
@@ -306,6 +306,60 @@ def verify_pipeline():
         print(f"  ✗ FAILED: {e}")
 
     # ═══════════════════════════════════════════════════════════════════════
+    # STEP 7.5 — Walk-Forward Efficiency (real computation, synthetic data)
+    # ═══════════════════════════════════════════════════════════════════════
+    section("Step 7.5 · Walk-Forward Efficiency — real computation")
+    wfe_value = 0.0
+    try:
+        from engines.simulation.metrics import compute_walk_forward_efficiency
+
+        # Generate synthetic daily returns with mild positive drift.
+        # A trending series should have OOS Sharpe close to IS Sharpe → WFE > 0.50.
+        np.random.seed(2024)
+        n_total_days = 504  # ~2 years of trading days
+        drift = 0.0004  # ~10% annualized
+        vol = 0.012
+        synthetic_returns = np.random.normal(drift, vol, n_total_days)
+
+        # Split into 7 chunks (1 initial train + 6 test folds)
+        chunk_size = n_total_days // 7
+        chunks = [synthetic_returns[i*chunk_size:(i+1)*chunk_size] for i in range(7)]
+
+        # Full IS Sharpe (all data)
+        full_is_sharpe = float(np.mean(synthetic_returns) / np.std(synthetic_returns) * np.sqrt(252))
+
+        # Per-fold OOS Sharpe (expanding window)
+        fold_oos_sharpes = []
+        n_negative_folds = 0
+        for k in range(1, 7):  # 6 folds
+            test_returns = chunks[k]
+            oos_sharpe = float(np.mean(test_returns) / np.std(test_returns) * np.sqrt(252))
+            fold_oos_sharpes.append(oos_sharpe)
+            marker = " ← NEGATIVE" if oos_sharpe < 0 else ""
+            print(f"    Fold {k}: OOS Sharpe = {oos_sharpe:.2f}{marker}")
+            if oos_sharpe < 0:
+                n_negative_folds += 1
+
+        wfe_value = compute_walk_forward_efficiency(fold_oos_sharpes, full_is_sharpe)
+        mean_oos = float(np.mean(fold_oos_sharpes))
+
+        print(f"  ✓ WFE computed             | WFE={wfe_value:.3f}")
+        print(f"    IS Sharpe: {full_is_sharpe:.2f}  Mean OOS: {mean_oos:.2f}")
+        print(f"    Negative OOS folds: {n_negative_folds}/6")
+
+        # Update MLflow with real WFE
+        with mlflow.start_run(run_id=backend_run_id):
+            mlflow.log_metric("walk_forward_efficiency", wfe_value)
+
+        if wfe_value >= 0.50:
+            print(f"  ✓ WFE >= 0.50 — strategy would pass the walk-forward gate")
+        else:
+            print(f"  ⚠ WFE < 0.50 — strategy would fail (synthetic drift too weak)")
+
+    except Exception as e:
+        errors.append(f"Step 7.5 (Walk-Forward): {e}")
+        print(f"  ✗ FAILED: {e}")
+    # ═══════════════════════════════════════════════════════════════════════
     # STEP 8 — Promotion Gate (expects REJECT on WFE=0.0)
     # ═══════════════════════════════════════════════════════════════════════
     section("Step 8 · Promotion Gate — Stage 1 Evaluation")
@@ -335,13 +389,17 @@ def verify_pipeline():
         if result.metrics_snapshot:
             print(f"  Metrics snapshot: {json.dumps(result.metrics_snapshot, indent=2, default=str)}")
 
-        # We EXPECT rejection because walk_forward_efficiency = 0.0
-        if not result.passed:
+        if result.passed:
+            print(f"\n  ✓ PROMOTION GATE PASSED — strategy eligible for deployment.")
+        else:
+            # Report which gates failed
             wfe_failed = any("WALK_FORWARD" in f for f in result.failures)
+            spr_failed = any("SCENARIO" in f for f in result.failures)
             if wfe_failed:
-                print(f"\n  ✓ EXPECTED REJECTION on WFE=0.0 — Promotion Gate is working correctly.")
-            else:
-                print(f"\n  ⚠ Rejected but NOT on WFE — check metric names")
+                print(f"\n  ⚠ WFE gate failed (WFE={wfe_value:.3f} < 0.50)")
+            if spr_failed:
+                print(f"\n  ⚠ Scenario pass rate gate failed ({scenario_pass_rate:.2f} < 0.70)")
+            print(f"  (Non-WFE rejections are expected in this synthetic trace)")
 
     except Exception as e:
         errors.append(f"Step 8 (Promotion Gate): {e}")

@@ -93,6 +93,167 @@ class SimulationLoop:
             
         return signals
 
+    # ── Price lookup from explicit cache ─────────────────────────────────
+
+    def _get_price_from_cache(
+        self, ticker: str, as_of: date, price_cache: Dict[str, Any], col: str = "close"
+    ) -> float:
+        """Look up a price from the pre-fetched cache. No network calls."""
+        df = price_cache.get(ticker)
+        if df is None or df.empty:
+            return 0.0
+        # Ensure date column is comparable
+        df_copy = df.copy()
+        if "date" in df_copy.columns:
+            df_copy["_date"] = pd.to_datetime(df_copy["date"]).dt.date
+        else:
+            return 0.0
+        mask = df_copy["_date"] <= as_of
+        if mask.sum() == 0:
+            return 0.0
+        return float(df_copy.loc[mask, col].iloc[-1])
+
+    # ── Fold-aware simulation for walk-forward ───────────────────────────
+
+    def run_fold(
+        self,
+        trading_dates: List[date],
+        price_cache: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Run simulation over an explicit list of trading dates using pre-fetched prices.
+
+        Key differences from run():
+          - No holdout splitting (caller controls the partition).
+          - Prices come from price_cache, not YFinanceConnector.
+          - Fresh state: positions, cash, trade_log are initialized at method start.
+          - No MLflow logging (the caller handles aggregation).
+
+        Args:
+            trading_dates: Chronologically sorted list of business dates to simulate.
+            price_cache: Dict[ticker -> DataFrame] with columns [date, open, close, volume, ...].
+                         Pre-fetched by WalkForwardValidator._bulk_fetch_prices().
+
+        Returns:
+            Dict with nav_history and trade_log (same structure as run()).
+        """
+        # Fresh state — no leakage from prior folds or the main run
+        self.cash = self.config.position_sizing.capital
+        self.positions = defaultdict(float)
+        fold_trade_log: List[Dict[str, Any]] = []
+        fold_nav_history: List[Dict[str, Any]] = []
+        pending_orders: List[Dict[str, Any]] = []
+
+        for current_date in trading_dates:
+            daily_nav = self.cash
+
+            # Execute pending orders at OPEN
+            executed_orders = []
+            for order in pending_orders:
+                ticker = order["ticker"]
+                action = order["action"]
+                shares = order["shares"]
+
+                open_price = self._get_price_from_cache(
+                    ticker, current_date, price_cache, col="open"
+                )
+                if open_price <= 0:
+                    continue
+
+                slippage_ps = self._calculate_slippage(
+                    order["signal_price"], open_price, shares, action
+                )
+
+                if action == "BUY":
+                    fill_price = open_price + slippage_ps
+                    cost = fill_price * shares
+                    if cost <= self.cash:
+                        self.cash -= cost
+                        self.positions[ticker] += shares
+                        order["fill_price"] = fill_price
+                        order["fill_date"] = current_date
+                        order["slippage_drag_usd"] = slippage_ps * shares
+                        fold_trade_log.append(order)
+                        executed_orders.append(order)
+                elif action == "SELL":
+                    fill_price = open_price - slippage_ps
+                    if self.positions[ticker] >= shares:
+                        self.positions[ticker] -= shares
+                        self.cash += fill_price * shares
+                        order["fill_price"] = fill_price
+                        order["fill_date"] = current_date
+                        order["slippage_drag_usd"] = slippage_ps * shares
+                        fold_trade_log.append(order)
+                        executed_orders.append(order)
+
+            pending_orders = [o for o in pending_orders if o not in executed_orders]
+
+            # Mark to market
+            for ticker, shares in self.positions.items():
+                if shares > 0:
+                    price = self._get_price_from_cache(
+                        ticker, current_date, price_cache, col="close"
+                    )
+                    daily_nav += shares * price
+
+            fold_nav_history.append({"date": current_date, "nav": daily_nav})
+
+            # Signal generation & order placement (same logic as run())
+            for ticker in self.config.asset_universe.tickers:
+                price = self._get_price_from_cache(
+                    ticker, current_date, price_cache, col="close"
+                )
+                if price <= 0:
+                    continue
+
+                signals = self.compile_signals(ticker, current_date)
+
+                if not self.config.agent.enabled:
+                    passed = SignalGate.evaluate(
+                        signals,
+                        self.config.signal_gate.model_dump(exclude_none=True),
+                    )
+                    sell_signal = not passed
+                    conviction = 1.0
+                else:
+                    # Agents not supported in fold mode (too expensive)
+                    passed = False
+                    sell_signal = False
+                    conviction = 0.0
+
+                current_holdings = self.positions[ticker]
+
+                if passed and current_holdings == 0:
+                    max_alloc = (
+                        self.config.position_sizing.max_position_pct
+                        * self.config.position_sizing.capital
+                        * conviction
+                    )
+                    shares_to_buy = int(max_alloc / price)
+                    if shares_to_buy > 0:
+                        pending_orders.append({
+                            "ticker": ticker,
+                            "action": "BUY",
+                            "shares": shares_to_buy,
+                            "signal_date": current_date,
+                            "signal_price": price,
+                        })
+                elif sell_signal and current_holdings > 0:
+                    held_days = 5
+                    if held_days >= self.config.sandbox.min_hold_days:
+                        pending_orders.append({
+                            "ticker": ticker,
+                            "action": "SELL",
+                            "shares": current_holdings,
+                            "signal_date": current_date,
+                            "signal_price": price,
+                        })
+
+        return {
+            "nav_history": fold_nav_history,
+            "trade_log": fold_trade_log,
+        }
+
     def run(self, start_date: date, end_date: date) -> Dict[str, Any]:
         """Run the daily vectorized simulation loop."""
         print(f"[{self.run_id}] Starting Phase 1 Simulation: {start_date} to {end_date}")

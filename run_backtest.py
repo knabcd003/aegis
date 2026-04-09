@@ -54,13 +54,37 @@ def main():
     
     metrics = compute_metrics(
         loop_results["nav_history"],
-        b_returns,
-        loop_results["holdout_dates"]
+        loop_results["trade_log"],
+        loop_results["holdout_dates"],
+        benchmark_returns=b_returns,
     )
+
+    # K-fold walk-forward efficiency — overwrites the 0.0 stub from compute_metrics()
+    print("\n--- Walk-Forward Validation (6-fold anchored) ---")
+    try:
+        from engines.simulation.walk_forward import WalkForwardValidator, InsufficientDataError
+        wf = WalkForwardValidator(config, n_folds=6)
+        wf_result = wf.run(
+            start_dt, end_dt,
+            holdout_dates=[
+                date.fromisoformat(d) for d in loop_results["holdout_dates"]
+            ],
+        )
+        metrics["walk_forward_efficiency"] = wf_result.wfe
+        print(f"WFE: {wf_result.wfe:.3f}  (threshold: >= 0.50)")
+        print(f"IS Sharpe: {wf_result.is_sharpe:.2f}  |  Mean OOS Sharpe: {wf_result.mean_oos_sharpe:.2f}")
+        print(f"Valid folds: {wf_result.n_folds_valid}  |  Negative OOS folds: {wf_result.n_folds_negative_oos}")
+    except InsufficientDataError as e:
+        print(f"Walk-forward skipped: {e}")
+        metrics["walk_forward_efficiency"] = 0.0
+    except Exception as e:
+        print(f"Walk-forward error: {e}")
+        metrics["walk_forward_efficiency"] = 0.0
     
     print("\n--- Strategy Metrics ---")
     print(f"Optimization Sharpe: {metrics.get('optimization_sharpe', 0):.2f}")
     print(f"Held-out Sharpe:     {metrics.get('held_out_sharpe', 0):.2f}")
+    print(f"Walk-Forward Eff:    {metrics.get('walk_forward_efficiency', 0):.3f}")
     print(f"Slippage Drag (USD): ${metrics.get('slippage_drag', 0):.2f}")
     
     print("\nWriting artifacts to MLflow...")
