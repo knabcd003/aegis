@@ -12,65 +12,107 @@ providers:
   critical_fallback_depth: 3
   exclude: false
   litellm_model_string: ollama/qwen3:8b
+- id: groq/llama-3.1-8b-instant
+  display_name: Llama 3.1 8B Instant (Groq)
+  tier: 1
+  type: openai_compatible
+  base_url: https://api.groq.com/openai/v1
+  model: llama-3.1-8b-instant
+  api_key_env: GROQ_API_KEY
+  limits:
+    rpd: 14400
+    rpm: 30
+    tpd: 500000
+  cost_per_1k_tokens: 0.0
+  exclude: false
+  litellm_model_string: groq/llama-3.1-8b-instant
+- id: groq/llama-4-scout
+  display_name: Llama 4 Scout 17B (Groq)
+  tier: 2
+  type: openai_compatible
+  base_url: https://api.groq.com/openai/v1
+  model: meta-llama/llama-4-scout-17b-16e-instruct
+  api_key_env: GROQ_API_KEY
+  limits:
+    rpd: 1000
+    rpm: 30
+    tpd: 500000
+  cost_per_1k_tokens: 0.0
+  exclude: false
+  litellm_model_string: groq/meta-llama/llama-4-scout-17b-16e-instruct
+- id: groq/gpt-oss-20b
+  display_name: GPT-OSS 20B (Groq)
+  tier: 3
+  type: openai_compatible
+  base_url: https://api.groq.com/openai/v1
+  model: openai/gpt-oss-20b
+  api_key_env: GROQ_API_KEY
+  limits:
+    rpd: 1000
+    rpm: 30
+    tpd: 500000
+  cost_per_1k_tokens: 0.0
+  exclude: false
+  litellm_model_string: groq/openai/gpt-oss-20b
+- id: groq/kimi-k2
+  display_name: Kimi K2 (Groq)
+  tier: 4
+  type: openai_compatible
+  base_url: https://api.groq.com/openai/v1
+  model: moonshotai/kimi-k2-instruct
+  api_key_env: GROQ_API_KEY
+  limits:
+    rpd: 1000
+    rpm: 60
+    tpd: 500000
+  cost_per_1k_tokens: 0.0
+  exclude: false
+  litellm_model_string: groq/moonshotai/kimi-k2-instruct
+- id: groq/qwen3-32b
+  display_name: Qwen3 32B (Groq)
+  tier: 5
+  type: openai_compatible
+  base_url: https://api.groq.com/openai/v1
+  model: qwen/qwen3-32b
+  api_key_env: GROQ_API_KEY
+  limits:
+    rpd: 1000
+    rpm: 60
+    tpd: 500000
+  cost_per_1k_tokens: 0.0
+  exclude: false
+  litellm_model_string: groq/qwen/qwen3-32b
 - id: groq/llama-3.3-70b-versatile
   display_name: Llama 3.3 70B (Groq)
-  tier: 1
+  tier: 6
   type: openai_compatible
   base_url: https://api.groq.com/openai/v1
   model: llama-3.3-70b-versatile
   api_key_env: GROQ_API_KEY
   limits:
     rpd: 1000
-    rpm: 60
+    rpm: 30
     tpd: 500000
   cost_per_1k_tokens: 0.0
   exclude: false
   litellm_model_string: groq/llama-3.3-70b-versatile
-- id: groq/llama-3.1-8b-instant
-  display_name: Llama 3.1 8B Instant (Groq)
-  tier: 2
-  type: openai_compatible
-  base_url: https://api.groq.com/openai/v1
-  model: llama-3.1-8b-instant
-  api_key_env: GROQ_API_KEY
-  limits:
-    rpd: 1000
-    rpm: 60
-    tpd: 500000
-  cost_per_1k_tokens: 0.0
-  exclude: false
-  litellm_model_string: groq/llama-3.1-8b-instant
-- id: groq/gpt-oss-20b
-  display_name: GPT-OSS 20B (Groq)
-  tier: 3
-  type: openai_compatible
-  base_url: https://api.groq.com/openai/v1
-  model: gpt-oss-20b
-  api_key_env: GROQ_API_KEY
-  limits:
-    rpd: 1000
-    rpm: 60
-    tpd: 500000
-  cost_per_1k_tokens: 0.0
-  exclude: false
-  litellm_model_string: groq/gpt-oss-20b
 - id: groq/gpt-oss-120b
   display_name: GPT-OSS 120B (Groq)
-  tier: 4
+  tier: 7
   type: openai_compatible
   base_url: https://api.groq.com/openai/v1
-  model: gpt-oss-120b
+  model: openai/gpt-oss-120b
   api_key_env: GROQ_API_KEY
   limits:
     rpd: 1000
-    rpm: 60
+    rpm: 30
     tpd: 500000
   cost_per_1k_tokens: 0.0
   exclude: false
-  litellm_model_string: groq/gpt-oss-120b
+  litellm_model_string: groq/openai/gpt-oss-120b
 - id: gemini-2.5-flash
   display_name: Gemini 2.5 Flash
-  tier: 5
+  tier: 8
   type: google
   model: gemini-2.5-flash
   api_key_env: GEMINI_API_KEY
@@ -83,7 +125,7 @@ providers:
   litellm_model_string: gemini/gemini-2.5-flash
 - id: openrouter/:free
   display_name: OpenRouter Free Pool
-  tier: 6
+  tier: 9
   type: openai_compatible
   base_url: https://openrouter.ai/api/v1
   model: openrouter/:free
@@ -97,7 +139,7 @@ providers:
   litellm_model_string: openrouter/:free
 - id: claude-sonnet-4-6
   display_name: Claude Sonnet 4.6
-  tier: 7
+  tier: 10
   type: anthropic
   model: claude-sonnet-4-6
   api_key_env: ANTHROPIC_API_KEY
@@ -109,15 +151,16 @@ providers:
   cost_per_1k_tokens: 0.021
   exclude: false
   litellm_model_string: anthropic/claude-sonnet-4-6
+
 role_assignments:
   strategy_generation:
     primary: claude-sonnet-4-6
     fallback_chain:
     - gemini-2.5-flash
     - groq/gpt-oss-120b
-    - groq/gpt-oss-20b
-    - groq/llama-3.1-8b-instant
     - groq/llama-3.3-70b-versatile
+    - groq/qwen3-32b
+    - groq/kimi-k2
     - openrouter/:free
     - local/qwen3:8b
     is_critical: true
@@ -126,6 +169,7 @@ role_assignments:
     fallback_chain:
     - gemini-2.5-flash
     - groq/gpt-oss-120b
+    - groq/llama-3.3-70b-versatile
     - openrouter/:free
     - local/qwen3:8b
     is_critical: true
@@ -134,6 +178,7 @@ role_assignments:
     fallback_chain:
     - gemini-2.5-flash
     - groq/gpt-oss-120b
+    - groq/llama-3.3-70b-versatile
     - local/qwen3:8b
     is_critical: true
   improvement_analyzer:
@@ -141,26 +186,32 @@ role_assignments:
     fallback_chain:
     - gemini-2.5-flash
     - groq/gpt-oss-120b
+    - groq/qwen3-32b
     - local/qwen3:8b
     is_critical: true
   debate_bull:
     primary: groq/gpt-oss-120b
     fallback_chain:
-    - groq/llama-3.1-8b-instant
+    - groq/llama-3.3-70b-versatile
+    - groq/qwen3-32b
     - local/qwen3:8b
     is_critical: false
   debate_bear:
-    primary: groq/llama-3.1-8b-instant
+    primary: groq/qwen3-32b
     fallback_chain:
+    - groq/kimi-k2
+    - groq/llama-4-scout
     - local/qwen3:8b
     is_critical: false
   fast_eval:
-    primary: groq/llama-3.3-70b-versatile
+    primary: groq/llama-4-scout
     fallback_chain:
+    - groq/gpt-oss-20b
+    - groq/llama-3.1-8b-instant
     - local/qwen3:8b
     is_critical: false
   debate_compression:
-    primary: groq/llama-3.3-70b-versatile
+    primary: groq/llama-3.1-8b-instant
     fallback_chain:
     - local/qwen3:8b
     is_critical: false
@@ -172,6 +223,7 @@ role_assignments:
     primary: local/qwen3:8b
     fallback_chain: []
     is_critical: false
+
 settings:
   context_size_threshold_tokens: 50000
   context_override_provider: gemini-2.5-flash

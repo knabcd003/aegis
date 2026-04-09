@@ -116,8 +116,7 @@ def verify_pipeline():
             {"role": "system", "content": "You are a financial analyst. Reply in one sentence."},
             {"role": "user", "content": "What is the Sharpe ratio?"}
         ]
-        # Use 'fast_eval' role — it has Groq Llama 4 Scout primary with local fallback
-        resp = adapter.invoke(test_messages, role="fast_eval", estimated_tokens=100)
+        resp = adapter.invoke(test_messages, role="debate_bear", estimated_tokens=100)
         print(f"  ✓ LLM Response received   | provider={resp.provider_id}/{resp.model_id}")
         print(f"    was_primary={resp.was_primary}  quality={resp.session_quality}")
         print(f"    tokens: prompt={resp.prompt_tokens}  completion={resp.completion_tokens}")
@@ -201,9 +200,13 @@ def verify_pipeline():
         # Build a mock invoker that uses our LLMAdapter if available
         if adapter:
             def llm_invoker(provider_id: str, model_id: str, prompt: str) -> str:
+                # Resolve backwards from provider to role just for the mock, or just pass prompt
                 msgs = [{"role": "user", "content": prompt}]
                 try:
-                    r = adapter.invoke(msgs, role="fast_eval", estimated_tokens=500)
+                    # In true implementation, the agent knows its role. In E2E, we hit the model directly.
+                    # Since adapter.invoke(model=...) isn't fully implemented in mock, we'll try to find role.
+                    # Or we can just use the debate_bear role as a proxy.
+                    r = adapter.invoke(msgs, role="debate_bear", estimated_tokens=500)
                     return r.content
                 except Exception:
                     return '{"verdict": "REJECT", "confidence_score": 50}'
