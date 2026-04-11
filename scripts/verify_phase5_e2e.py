@@ -39,6 +39,7 @@ from engines.system.token_messenger.messenger import TokenMessenger
 from engines.system.token_messenger.models import WorkflowStage
 from engines.system.llm_adapter import LLMAdapter, AdapterResponse
 from engines.system.llm_router.router import ProviderRouter
+from engines.system.node_ids import NodeID
 from engines.system.scenario.generator import BlockBootstrapGenerator
 from engines.system.scenario.models import BootstrapRequest
 from engines.debate.orchestrator import FinDebateOrchestrator
@@ -116,7 +117,13 @@ def verify_pipeline():
             {"role": "system", "content": "You are a financial analyst. Reply in one sentence."},
             {"role": "user", "content": "What is the Sharpe ratio?"}
         ]
-        resp = adapter.invoke(test_messages, role="debate_bear", estimated_tokens=100)
+        resp = adapter.invoke(
+            test_messages, 
+            role="debate_bear",
+            workflow_id=trace_id,
+            node_id=NodeID.DEBATE_BEAR,
+            estimated_tokens=100
+        )
         print(f"  ✓ LLM Response received   | provider={resp.provider_id}/{resp.model_id}")
         print(f"    was_primary={resp.was_primary}  quality={resp.session_quality}")
         print(f"    tokens: prompt={resp.prompt_tokens}  completion={resp.completion_tokens}")
@@ -176,6 +183,7 @@ def verify_pipeline():
         audit_token = messenger.consume_and_issue(
             token_value=bt_token,
             workflow_id=trace_id,
+            node_id=NodeID.BACKTEST_FULL,
             expected_stage=WorkflowStage.BACKTEST,
             config_hash=config_hash,
             next_stage=WorkflowStage.AUDIT
@@ -205,8 +213,13 @@ def verify_pipeline():
                 try:
                     # In true implementation, the agent knows its role. In E2E, we hit the model directly.
                     # Since adapter.invoke(model=...) isn't fully implemented in mock, we'll try to find role.
-                    # Or we can just use the debate_bear role as a proxy.
-                    r = adapter.invoke(msgs, role="debate_bear", estimated_tokens=500)
+                    r = adapter.invoke(
+                        msgs, 
+                        role="debate_bear", 
+                        workflow_id=trace_id,
+                        node_id=NodeID.FINDEBATE,
+                        estimated_tokens=500
+                    )
                     return r.content
                 except Exception:
                     return '{"verdict": "REJECT", "confidence_score": 50}'
@@ -416,6 +429,7 @@ def verify_pipeline():
         promo_token = messenger.consume_and_issue(
             token_value=audit_token,
             workflow_id=trace_id,
+            node_id=NodeID.PROMOTION_GATE,
             expected_stage=WorkflowStage.AUDIT,
             config_hash=config_hash,
             next_stage=WorkflowStage.PROMOTION

@@ -8,6 +8,7 @@ from litellm import RateLimitError
 
 from engines.system.llm_router.router import ProviderRouter, RoutingDecision
 from engines.system.llm_router.budget_tracker import ClaudeBudgetTracker
+from api.routers.pipeline_events import broadcaster
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +73,14 @@ class LLMAdapter:
         self.settings = self.router.settings
         self.claude_budget_limit = self.settings.get("claude_budget_total_usd", 20.0)
 
-    def invoke(self, messages: List[Dict[str, str]], role: str, estimated_tokens: int = 0) -> AdapterResponse:
+    def invoke(
+        self, 
+        messages: List[Dict[str, str]], 
+        role: str,
+        workflow_id: str,
+        node_id: str, 
+        estimated_tokens: int = 0
+    ) -> AdapterResponse:
         """
         Iteratively safely dispatches execution down the fallback chain.
         Ensures strict mathematical isolation of the Claude API budget.
@@ -131,6 +139,23 @@ class LLMAdapter:
                 # Specifically update the disk DB for Claude
                 if is_claude and estimated_cost > 0:
                     self.claude_budget.log_call(estimated_cost, pt, ct)
+                
+                # Broadcast the inference telemetry metrics
+                broadcaster.broadcast_sync({
+                    "event_id": f"evt_{int(time.time()*1000)}_{node_id}",
+                    "workflow_id": workflow_id,
+                    "timestamp": str(time.time()),
+                    "event_type": "model_call",
+                    "node_id": node_id,
+                    "session_quality": decision.session_quality,
+                    "payload": {
+                        "provider_id": decision.provider_id,
+                        "model_id": decision.model_id,
+                        "latency_ms": latency_ms,
+                        "cost": estimated_cost,
+                        "tokens_total": pt + ct
+                    }
+                })
                 
                 return AdapterResponse.from_litellm(
                     response, decision, estimated_cost, latency_ms

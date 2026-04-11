@@ -12,9 +12,14 @@ from datetime import datetime
 import logging
 import os
 import json
+from engines.sentinel.freshness_validator import FreshnessValidator, SignalFreshnessState
+from engines.sentinel.price_feed import FinnhubPriceFeed
 
 router = APIRouter()
 logger = logging.getLogger("aegis.portfolio")
+
+# Singleton validator instance
+freshness_validator = FreshnessValidator(price_feed=FinnhubPriceFeed())
 
 
 class PortfolioSnapshot(BaseModel):
@@ -158,3 +163,29 @@ def _load_backtest_navs() -> List[Dict[str, Any]]:
                     logger.warning(f"Failed to parse {nav_path}: {e}")
     
     return navs
+
+@router.get("/signals/{signal_id}/freshness")
+async def get_signal_freshness(signal_id: str) -> SignalFreshnessState:
+    """
+    Evaluates whether a pending SignalCard is still valid for entry.
+    Checks dynamic price deviation against threshold and session quality.
+    """
+    from api.main import state
+    if not state.sentinel_mgr:
+        raise HTTPException(status_code=500, detail="Sentinel State Manager offline")
+
+    # Search for the signal card across all active sentinels' pending queues
+    target_card = None
+    for sid, sentinel in state.sentinel_mgr.sentinels.items():
+        for card in sentinel.pending_cards:
+            if card.card_id == signal_id:
+                target_card = card
+                break
+        if target_card:
+            break
+            
+    if not target_card:
+        # It may have been resolved (accepted/declined) already
+        raise HTTPException(status_code=404, detail="Signal card not found or already resolved")
+        
+    return freshness_validator.validate_signal_freshness(target_card)

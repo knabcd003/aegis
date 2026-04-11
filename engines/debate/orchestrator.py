@@ -6,6 +6,7 @@ from engines.debate.compressor import DebateCompressor
 from engines.debate.agents import BullAgent, BearAgent, ModeratorAgent
 from engines.system.token_messenger.messenger import TokenMessenger
 from engines.system.token_messenger.models import WorkflowStage
+from engines.system.node_ids import NodeID
 
 class FinDebateOrchestrator:
     """
@@ -45,6 +46,7 @@ class FinDebateOrchestrator:
         audit_token_value = self.messenger.consume_and_issue(
             token_value=token_value,
             workflow_id=workflow_id,
+            node_id=NodeID.FINDEBATE,
             expected_stage=WorkflowStage.BACKTEST,
             config_hash=config_hash,
             next_stage=WorkflowStage.AUDIT

@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { TrendingUp, TrendingDown, DollarSign, BarChart2, RefreshCw, Loader2, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { 
+    TrendingUp, TrendingDown, DollarSign, BarChart2, RefreshCw, 
+    Loader2, ArrowUpRight, ArrowDownRight, ShieldCheck, 
+    Zap, Target, Activity, Search, LayoutGrid, Globe
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const API_BASE = "http://localhost:8000";
 
@@ -61,155 +66,144 @@ export function PortfolioTracker() {
 
     if (loading) {
         return (
-            <div className="flex h-full items-center justify-center">
-                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            <div className="flex h-full items-center justify-center bg-[#0C0E11]">
+                <div className="flex flex-col items-center gap-4 py-20 px-40 border border-[#2D333B] bg-[#111418]">
+                    <Loader2 className="w-5 h-5 animate-spin text-white/50" />
+                    <span className="text-[10px] font-mono font-bold text-white/30 uppercase tracking-[0.2em]">Hydrating_Portfolio_State...</span>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="max-w-5xl mx-auto p-8">
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2.5">
-                        <DollarSign className="w-6 h-6 text-accent" />
-                        Portfolio Tracker
-                    </h1>
-                    <p className="text-sm text-muted-foreground mt-1">
-                        Live NAV, counterfactual mirror, and human override gap analysis
-                    </p>
-                </div>
-                <button onClick={load}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors">
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    Refresh
-                </button>
-            </div>
+        <div className="flex flex-col h-full bg-[#0C0E11] overflow-hidden">
+            <div className="flex-1 flex flex-col p-6 gap-6 overflow-hidden">
+                {/* Technical Header */}
+                <header className="flex items-center justify-between border-b border-[#2D333B] pb-4">
+                    <div className="flex flex-col">
+                        <h1 className="text-sm font-bold text-white uppercase tracking-[0.2em]">Portfolio Attribution Matrix</h1>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] font-mono text-white/40 uppercase">Gateway: PROT-V7-ALPHA</span>
+                            <span className="text-[10px] font-mono text-white/20">•</span>
+                            <span className="text-[10px] font-mono text-white/40 uppercase">Oracles: LIVE_FEED</span>
+                        </div>
+                    </div>
+                    <button onClick={load} className="h-7 px-3 rounded border border-[#2D333B] text-[10px] font-bold text-white/60 hover:text-white transition-all uppercase tracking-widest flex items-center gap-2">
+                        <RefreshCw className="w-3 h-3" />
+                        Refresh
+                    </button>
+                </header>
 
-            {error && (
-                <div className="rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 p-4 text-sm mb-6">
-                    {error}
-                </div>
-            )}
+                {error && (
+                    <div className="border border-red-900 bg-red-950/20 text-red-400 p-2 text-[10px] font-mono uppercase tracking-widest">
+                        ERROR_ID::PORTFOLIO_LINK_FAIL -- {error}
+                    </div>
+                )}
 
-            {/* Summary Cards */}
-            {data && (data.sentinels.length > 0 || data.backtest_navs.length > 0) ? (
-                <>
-                    {data.sentinels.length > 0 && (
-                        <div className="grid grid-cols-3 gap-4 mb-8">
-                            <div className="rounded-lg border border-border bg-card p-5">
-                                <span className="text-[11px] text-muted-foreground uppercase tracking-wider block mb-1">Actual NAV</span>
-                                <span className="text-xl font-semibold font-mono">{formatCurrency(data.total_actual_nav)}</span>
+                {data && (data.sentinels.length > 0 || data.backtest_navs.length > 0) ? (
+                    <div className="flex-1 flex flex-col gap-6 overflow-hidden min-h-0">
+                        {/* Summary Bar */}
+                        <div className="grid grid-cols-3 border border-[#2D333B] bg-[#111418]">
+                            <div className="p-4 border-r border-[#2D333B]">
+                                <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest block mb-1">Total_Actual_NAV</span>
+                                <span className="text-lg font-mono font-bold text-white">{formatCurrency(data.total_actual_nav)}</span>
                             </div>
-                            <div className="rounded-lg border border-border bg-card p-5">
-                                <span className="text-[11px] text-muted-foreground uppercase tracking-wider block mb-1">Mirror NAV (AI-only)</span>
-                                <span className="text-xl font-semibold font-mono">{formatCurrency(data.total_mirror_nav)}</span>
+                            <div className="p-4 border-r border-[#2D333B]">
+                                <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest block mb-1">Mirror_Shadow_NAV</span>
+                                <span className="text-lg font-mono font-bold text-white/40">{formatCurrency(data.total_mirror_nav)}</span>
                             </div>
-                            <div className="rounded-lg border border-border bg-card p-5">
-                                <span className="text-[11px] text-muted-foreground uppercase tracking-wider block mb-1">Human Override Gap</span>
-                                <span className={`text-xl font-semibold font-mono flex items-center gap-1 ${
-                                    data.total_gap >= 0 ? "text-emerald-500" : "text-red-400"
-                                }`}>
-                                    {data.total_gap >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                                    {formatCurrency(Math.abs(data.total_gap))}
+                            <div className="p-4 flex flex-col justify-center">
+                                <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest block mb-1">Override_Gap</span>
+                                <span className={cn(
+                                    "text-lg font-mono font-bold",
+                                    data.total_gap >= 0 ? "text-emerald-500/80" : "text-rose-500/80"
+                                )}>
+                                    {formatCurrency(data.total_gap)}
                                 </span>
                             </div>
                         </div>
-                    )}
 
-                    {/* Sentinel Details */}
-                    {data.sentinels.length > 0 && (
-                        <section className="mb-8">
-                            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-                                <TrendingUp className="w-3.5 h-3.5" />
-                                Live Sentinels
-                            </h2>
-                            <div className="space-y-3">
-                                {data.sentinels.map((s, i) => (
-                                    <div key={i} className="rounded-lg border border-border bg-card p-5 hover:bg-muted/30 transition-colors">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <h3 className="text-sm font-semibold font-mono">{s.sentinel_id}</h3>
-                                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                                                s.human_outperformance ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-400"
-                                            }`}>
-                                                {s.human_outperformance ? "Human Outperforming" : "AI Outperforming"}
-                                            </span>
-                                        </div>
-                                        <div className="grid grid-cols-4 gap-4 text-sm">
-                                            <div>
-                                                <span className="text-[11px] text-muted-foreground uppercase block mb-0.5">Actual NAV</span>
-                                                <span className="font-mono">{formatCurrency(s.actual_nav)}</span>
-                                            </div>
-                                            <div>
-                                                <span className="text-[11px] text-muted-foreground uppercase block mb-0.5">Mirror NAV</span>
-                                                <span className="font-mono">{formatCurrency(s.mirror_nav)}</span>
-                                            </div>
-                                            <div>
-                                                <span className="text-[11px] text-muted-foreground uppercase block mb-0.5">Actual Return</span>
-                                                <span className={`font-mono ${s.actual_return_pct >= 0 ? "text-emerald-500" : "text-red-400"}`}>
-                                                    {formatPct(s.actual_return_pct)}
-                                                </span>
-                                            </div>
-                                            <div>
-                                                <span className="text-[11px] text-muted-foreground uppercase block mb-0.5">Mirror Return</span>
-                                                <span className={`font-mono ${s.mirror_return_pct >= 0 ? "text-emerald-500" : "text-red-400"}`}>
-                                                    {formatPct(s.mirror_return_pct)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
+                        {/* Registry Table */}
+                        <div className="flex-1 border border-[#2D333B] bg-[#111418] relative overflow-hidden flex flex-col min-h-0">
+                            <div className="px-4 py-2 bg-[#1C1F24] border-b border-[#2D333B] flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Active_Sentinel_Nodes</span>
+                                <LayoutGrid className="w-3 h-3 text-white/20" />
                             </div>
-                        </section>
-                    )}
-
-                    {/* Backtest Equity Curves */}
-                    {data.backtest_navs.length > 0 && (
-                        <section>
-                            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-                                <BarChart2 className="w-3.5 h-3.5" />
-                                Backtest Results
-                            </h2>
-                            <div className="rounded-lg border border-border bg-card overflow-hidden">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border">
+                            <div className="overflow-auto scrollbar-thin flex-1">
+                                <table className="w-full text-left border-collapse">
+                                    <thead className="sticky top-0 bg-[#111418] border-b border-[#2D333B] z-10">
                                         <tr>
-                                            <th className="px-4 py-3 font-semibold">Run ID</th>
-                                            <th className="px-4 py-3 font-semibold">Start NAV</th>
-                                            <th className="px-4 py-3 font-semibold">End NAV</th>
-                                            <th className="px-4 py-3 font-semibold">Return</th>
-                                            <th className="px-4 py-3 font-semibold">Data Points</th>
+                                            <th className="px-4 py-2 text-[9px] font-bold text-white/30 uppercase tracking-widest border-r border-[#2D333B]">Node_ID</th>
+                                            <th className="px-4 py-2 text-[9px] font-bold text-white/30 uppercase tracking-widest border-r border-[#2D333B]">Actual_Perf</th>
+                                            <th className="px-4 py-2 text-[9px] font-bold text-white/30 uppercase tracking-widest border-r border-[#2D333B]">Mirror_Perf</th>
+                                            <th className="px-4 py-2 text-[9px] font-bold text-white/30 uppercase tracking-widest text-right">Attribution_Status</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        {data.backtest_navs.map((nav, i) => (
-                                            <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
-                                                <td className="px-4 py-3 font-mono text-xs">{nav.run_id}</td>
-                                                <td className="px-4 py-3 font-mono">{formatCurrency(nav.start_nav)}</td>
-                                                <td className="px-4 py-3 font-mono">{formatCurrency(nav.end_nav)}</td>
-                                                <td className={`px-4 py-3 font-mono font-semibold ${nav.return_pct >= 0 ? "text-emerald-500" : "text-red-400"}`}>
-                                                    {nav.return_pct >= 0 ? "+" : ""}{nav.return_pct.toFixed(2)}%
+                                    <tbody className="divide-y divide-[#2D333B]">
+                                        {data.sentinels.map((s, i) => (
+                                            <tr key={i} className="hover:bg-white/[0.02]">
+                                                <td className="px-4 py-2 border-r border-[#2D333B] font-mono text-[11px] text-white/80">{s.sentinel_id}</td>
+                                                <td className="px-4 py-2 border-r border-[#2D333B]">
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-[11px] font-mono text-white">{formatCurrency(s.actual_nav)}</span>
+                                                        <span className={cn("text-[9px] font-mono", s.actual_return_pct >= 0 ? "text-emerald-500/60" : "text-rose-500/60")}>
+                                                            {formatPct(s.actual_return_pct)}
+                                                        </span>
+                                                    </div>
                                                 </td>
-                                                <td className="px-4 py-3 text-muted-foreground">{nav.data_points}</td>
+                                                <td className="px-4 py-2 border-r border-[#2D333B]">
+                                                    <div className="flex flex-col gap-0.5 opacity-40">
+                                                        <span className="text-[11px] font-mono text-white">{formatCurrency(s.mirror_nav)}</span>
+                                                        <span className={cn("text-[9px] font-mono", s.mirror_return_pct >= 0 ? "text-emerald-500/60" : "text-rose-500/60")}>
+                                                            {formatPct(s.mirror_return_pct)}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-2 text-right">
+                                                    <div className="inline-flex items-center gap-1.5 grayscale opacity-50">
+                                                        <div className={cn("w-1 h-1 rounded-full", s.human_outperformance ? "bg-emerald-500" : "bg-white")} />
+                                                        <span className="text-[9px] font-mono text-white uppercase tracking-tighter">
+                                                            {s.human_outperformance ? "Positive_Alpha" : "Baseline"}
+                                                        </span>
+                                                    </div>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             </div>
-                        </section>
-                    )}
-                </>
-            ) : (
-                <div className="rounded-lg border border-border bg-card p-8 text-center">
-                    <DollarSign className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground">
-                        No portfolio data yet. Deploy a sentinel and run backtests to populate this view.
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-2">
-                        Backtest results with <span className="font-mono">portfolio_nav.csv</span> will appear here automatically.
-                    </p>
-                </div>
-            )}
+                        </div>
+
+                        {/* Archive Footer */}
+                        <div className="h-40 border border-[#2D333B] bg-[#111418] flex flex-col overflow-hidden shrink-0">
+                             <div className="px-4 py-1.5 bg-[#1C1F24] border-b border-[#2D333B] flex items-center justify-between">
+                                <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Simulation_Archive</span>
+                             </div>
+                             <div className="overflow-auto scrollbar-thin">
+                                <table className="w-full text-left border-collapse">
+                                    <tbody className="divide-y divide-[#2D333B]">
+                                        {data.backtest_navs.map((nav, i) => (
+                                            <tr key={i} className="hover:bg-white/[0.02]">
+                                                <td className="px-4 py-1.5 font-mono text-[10px] text-white/40">{nav.run_id}</td>
+                                                <td className="px-4 py-1.5 font-mono text-[10px] text-white/60">{formatCurrency(nav.end_nav)}</td>
+                                                <td className={cn("px-4 py-1.5 font-mono text-[10px]", nav.return_pct >= 0 ? "text-emerald-500/40" : "text-rose-500/40")}>
+                                                    {nav.return_pct >= 0 ? "+" : ""}{nav.return_pct.toFixed(2)}%
+                                                </td>
+                                                <td className="px-4 py-1.5 text-right font-mono text-[9px] text-white/20 uppercase tracking-tighter">{nav.data_points} POINTS</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                             </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="py-20 text-center border border-dashed border-[#2D333B]">
+                         <p className="text-[11px] font-mono text-white/20 uppercase tracking-[0.3em]">No_Sentinel_Nodes_Active</p>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
+

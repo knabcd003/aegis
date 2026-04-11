@@ -4,6 +4,7 @@ from typing import Optional
 
 from engines.system.token_messenger.models import WorkflowStage, WorkflowToken
 from engines.system.token_messenger.store import _store
+from api.routers.pipeline_events import broadcaster
 
 class SequenceViolationError(Exception):
     """Raised when a token sequence is violated (skip, drift, replay, expiry)."""
@@ -35,6 +36,7 @@ class TokenMessenger:
         self,
         token_value: str,
         workflow_id: str,
+        node_id: str,
         expected_stage: WorkflowStage,
         config_hash: str,
         next_stage: WorkflowStage
@@ -64,4 +66,29 @@ class TokenMessenger:
 
         # Mark consumed before issuing next to prevent replay attacks
         token.consumed = True
-        return self.issue(workflow_id, next_stage, config_hash)
+
+        broadcaster.broadcast_sync({
+            "event_id": f"evt_tok_{int(time.time()*1000)}",
+            "workflow_id": workflow_id,
+            "timestamp": str(time.time()),
+            "event_type": "token_consumed",
+            "node_id": node_id,
+            "session_quality": "nominal",
+            "token_type": expected_stage.value,
+            "payload": {"status": "success"}
+        })
+
+        new_token = self.issue(workflow_id, next_stage, config_hash)
+
+        broadcaster.broadcast_sync({
+            "event_id": f"evt_tok_iss_{int(time.time()*1000)}",
+            "workflow_id": workflow_id,
+            "timestamp": str(time.time()),
+            "event_type": "token_issued",
+            "node_id": node_id,
+            "session_quality": "nominal",
+            "token_type": next_stage.value,
+            "payload": {"status": "issued"}
+        })
+
+        return new_token

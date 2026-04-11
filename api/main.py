@@ -1,8 +1,12 @@
 import logging
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, Any, Optional
+
+# Load environment variables from .env
+load_dotenv()
 
 from engines.data_ingestion.data_engine import DataEngine
 from engines.data_ingestion.connectors.yfinance_connector import YFinanceConnector
@@ -78,7 +82,7 @@ async def health_check() -> Dict[str, Any]:
         }
     }
 
-from api.routers import quant, analyst, mlops, stream, systems, audit, health, improvements, portfolio, openclaw, pipeline_events, intake
+from api.routers import quant, analyst, mlops, stream, systems, audit, health, improvements, portfolio, openclaw, pipeline_events, intake, budget
 
 # ============================================================
 # API Routers
@@ -94,5 +98,5 @@ app.include_router(improvements.router, prefix="/api/improvements", tags=["Impro
 app.include_router(portfolio.router, prefix="/api/portfolio", tags=["Portfolio"])
 app.include_router(openclaw.router, prefix="/api/openclaw", tags=["OpenClaw"])
 app.include_router(intake.router, prefix="/api/intake", tags=["Intake"])
+app.include_router(budget.router, prefix="/api/budget", tags=["Budget"])
 app.include_router(pipeline_events.router, prefix="/ws", tags=["Pipeline Events"])
-

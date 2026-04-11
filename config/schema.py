@@ -44,6 +44,8 @@ class PromotionCriteriaConfig(BaseModel):
 class SandboxConfig(BaseModel):
     slippage_bps: int = 15
     min_hold_days: int = 5
+    max_hold_days: Optional[int] = None
+    stop_loss_pct: Optional[float] = None
     promotion_criteria: PromotionCriteriaConfig
 
 

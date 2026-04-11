@@ -1,7 +1,13 @@
-import React from 'react';
-import { ReactFlow, Background, Controls, Node, Edge } from '@xyflow/react';
+import React, { useMemo } from 'react';
+import { ReactFlow, Background, Controls, type Node, type Edge } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { nodeTypes, PipelineNodeData } from './NodeTypes';
+import { nodeTypes, type PipelineNodeData } from './NodeTypes';
+import { DataEdge } from './DataEdge';
+import { useAegisStore } from '@/lib/store';
+
+const edgeTypes = {
+    data: DataEdge
+};
 
 // We do NOT wire useAegisStore here yet per Step 6 constraint. All nodes are static IDLE.
 
@@ -27,11 +33,11 @@ const initialNodes: Node[] = [
         data: { label: null }
     },
     
-    // Debate Children (absolute relative to parent = false in this array context unless specified, so absolute global is fine)
-    { id: "findebate",       type: "pipeline", position: {x: 1200, y: 100}, data: {label: "FinDebate Orch",  status: "IDLE"}, parentId: "findebate_group", extent: 'parent' },
-    { id: "debate_bull",     type: "pipeline", position: {x: 1200, y: 200}, data: {label: "Bull Agent",      status: "IDLE"}, parentId: "findebate_group", extent: 'parent' },
-    { id: "debate_bear",     type: "pipeline", position: {x: 1450, y: 200}, data: {label: "Bear Agent",      status: "IDLE"}, parentId: "findebate_group", extent: 'parent' },
-    { id: "debate_moderator",type: "pipeline", position: {x: 1325, y: 320}, data: {label: "Moderator",       status: "IDLE"}, parentId: "findebate_group", extent: 'parent' },
+    // Debate Children (Relative to parent position x:1180, y:80)
+    { id: "findebate",       type: "pipeline", position: {x: 20, y: 20}, data: {label: "FinDebate Orch",  status: "IDLE"}, parentId: "findebate_group", extent: 'parent' },
+    { id: "debate_bull",     type: "pipeline", position: {x: 20, y: 120}, data: {label: "Bull Agent",      status: "IDLE"}, parentId: "findebate_group", extent: 'parent' },
+    { id: "debate_bear",     type: "pipeline", position: {x: 270, y: 120}, data: {label: "Bear Agent",      status: "IDLE"}, parentId: "findebate_group", extent: 'parent' },
+    { id: "debate_moderator",type: "pipeline", position: {x: 145, y: 240}, data: {label: "Moderator",       status: "IDLE"}, parentId: "findebate_group", extent: 'parent' },
     
     { id: "token_audit",     type: "token",    position: {x: 1530, y: 470}, data: {token_type: "audit",    stage: "unissued"} },
     
@@ -77,19 +83,88 @@ const initialEdges: Edge[] = [
 ];
 
 export function VisualPipelineMap() {
+    const nodeStatuses = useAegisStore(state => state.node_statuses);
+    const tokenStates = useAegisStore(state => state.tokens);
+    const edgePayloads = useAegisStore(state => state.edge_payloads);
+
+    const nodes = useMemo(() => {
+        return initialNodes.map(node => {
+            if (node.type === "group") {
+                return {
+                    ...node,
+                    style: { 
+                        width: node.style?.width, 
+                        height: node.style?.height, 
+                        backgroundColor: 'rgba(255, 255, 255, 0.01)', 
+                        border: '1px solid #2D333B',
+                        borderRadius: '0px'
+                    }
+                };
+            }
+            if (node.type === "token") {
+                return {
+                    ...node,
+                    data: {
+                        ...node.data,
+                        stage: tokenStates[(node.data as any).token_type] ?? "unissued",
+                    }
+                };
+            } else if (node.type === "pipeline") {
+                return {
+                    ...node,
+                    data: {
+                        ...node.data,
+                        status: nodeStatuses[node.id] ?? "IDLE",
+                    }
+                };
+            }
+            return node;
+        });
+    }, [nodeStatuses, tokenStates]);
+
+    const edges = useMemo(() => {
+        return initialEdges.map(edge => {
+            const dynamicEdge = {
+                ...edge,
+                type: edge.type === 'smoothstep' ? 'data' : edge.type,
+                data: {
+                    ...edge.data,
+                    payload: edgePayloads[edge.source]
+                }
+            };
+            return dynamicEdge;
+        });
+    }, [edgePayloads]);
+
     return (
-        <div className="w-full h-full bg-[#0d0d12] rounded-lg border border-border overflow-hidden">
+        <div className="w-full h-full bg-[#0C0E11] overflow-hidden relative group isolate">
             <ReactFlow 
-                nodes={initialNodes}
-                edges={initialEdges}
+                nodes={nodes}
+                edges={edges}
                 nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
                 fitView
-                className="bg-[#050508]"
+                fitViewOptions={{ padding: 0.1 }}
+                className="bg-transparent"
                 proOptions={{ hideAttribution: true }}
+                minZoom={0.2}
+                maxZoom={1.5}
             >
-                <Background color="#1a1a24" gap={16} />
-                <Controls className="!bg-[#1a1a24] !border-border !fill-white" />
+                <Background 
+                    color="#2D333B" 
+                    gap={20} 
+                    size={0.5} 
+                    variant={BackgroundVariant.Dots}
+                    className="opacity-10"
+                />
+                <Controls 
+                    className="!bg-[#111418] !border-[#2D333B] !rounded !shadow-none !p-0.5 !flex !flex-row group"
+                    showInteractive={false}
+                />
             </ReactFlow>
         </div>
     );
 }
+
+import { BackgroundVariant } from '@xyflow/react';
+

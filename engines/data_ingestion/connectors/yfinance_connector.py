@@ -71,7 +71,7 @@ class YFinanceConnector(BaseConnector):
             end = datetime.combine(sim_date, datetime.min.time()) + timedelta(days=1)
             start = end - timedelta(days=days)
 
-            df = stock.history(start=start, end=end, interval=interval)
+            df = stock.history(start=start, end=end, interval=interval, auto_adjust=False)
 
             if df.empty:
                 print(f"[{self.name}] No price data returned for {ticker}")

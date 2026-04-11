@@ -1,6 +1,7 @@
+import logging
+import asyncio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from typing import List, Dict, Any
-import logging
 
 logger = logging.getLogger("aegis.ws.pipeline")
 
@@ -9,6 +10,10 @@ router = APIRouter()
 class PipelineBroadcaster:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
+        self._loop: asyncio.AbstractEventLoop | None = None
+
+    def set_loop(self, loop: asyncio.AbstractEventLoop):
+        self._loop = loop
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -20,10 +25,9 @@ class PipelineBroadcaster:
             self.active_connections.remove(websocket)
             logger.info(f"WebSocket client disconnected. Total clients: {len(self.active_connections)}")
 
-    async def broadcast(self, message: Dict[str, Any]):
+    async def _broadcast_async(self, message: Dict[str, Any]):
         """
-        Broadcasts a CanvasEvent dict to all connected clients.
-        Import `broadcaster` and call `await broadcaster.broadcast(event)` to push events.
+        Internal async broadcast.
         """
         disconnected = []
         for connection in self.active_connections:
@@ -36,6 +40,22 @@ class PipelineBroadcaster:
         # Clean up dead connections
         for conn in disconnected:
             self.disconnect(conn)
+
+    def broadcast_sync(self, message: Dict[str, Any]):
+        """
+        Safely broadcast from synchronous backend engine threads.
+        """
+        if self._loop is None or not self._loop.is_running():
+            return
+            
+        asyncio.run_coroutine_threadsafe(
+            self._broadcast_async(message),
+            self._loop
+        )
+
+    # Maintain async compatibility if needed by router
+    async def broadcast(self, message: Dict[str, Any]):
+        await self._broadcast_async(message)
 
 # Singleton global instance for backend engines to import
 broadcaster = PipelineBroadcaster()

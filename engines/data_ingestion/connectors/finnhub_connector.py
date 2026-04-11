@@ -26,6 +26,7 @@ class FinnhubConnector(BaseConnector):
     def __init__(self, api_key: Optional[str] = None):
         self._api_key = api_key or os.getenv("FINNHUB_API_KEY")
         self._last_successful_fetch_ts: Optional[datetime] = None
+        self._cache: Dict[str, Any] = {}
 
     @property
     def name(self) -> str:
@@ -49,12 +50,20 @@ class FinnhubConnector(BaseConnector):
             print(f"[{self.name}] No API key set. Set FINNHUB_API_KEY in .env")
             return None
         params = params or {}
+        
+        # Build cache key
+        cache_key = f"{endpoint}_{'_'.join(f'{k}={v}' for k, v in sorted(params.items()) if k != 'token')}"
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+            
         params["token"] = self._api_key
         try:
             resp = requests.get(f"{FINNHUB_BASE}/{endpoint}", params=params, timeout=10)
             resp.raise_for_status()
             self._last_successful_fetch_ts = datetime.utcnow()
-            return resp.json()
+            data = resp.json()
+            self._cache[cache_key] = data
+            return data
         except Exception as e:
             print(f"[{self.name}] Request error ({endpoint}): {e}")
             return None

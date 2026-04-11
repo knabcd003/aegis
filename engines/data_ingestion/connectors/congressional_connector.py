@@ -39,6 +39,7 @@ class CongressionalConnector(BaseConnector):
 
     def __init__(self):
         self._last_successful_fetch_ts: Optional[datetime] = None
+        self._cache: Dict[str, Any] = {}
 
     @property
     def name(self) -> str:
@@ -127,7 +128,7 @@ class CongressionalConnector(BaseConnector):
             # parsing. For structured data, we use the efts.house.gov endpoint.
 
             # House clerk EFTS search
-            search_url = "https://efts.house.gov/LATEST/search-index"
+            search_url = "https://disclosures-clerk.house.gov/public_disc/search-index"
             params = {
                 "q": f'"{ticker}"',
                 "dateRange": "custom",
@@ -136,11 +137,20 @@ class CongressionalConnector(BaseConnector):
                 "type": "ptr",  # Periodic Transaction Reports
             }
 
-            resp = requests.get(search_url, params=params, timeout=15)
-            if resp.status_code != 200:
-                return []
+            cache_key = f"house_{ticker}"
+            if cache_key in self._cache:
+                data = self._cache[cache_key]
+            else:
+                # Override to sweep 5 years of data in one hit to cache globally
+                search_params = params.copy()
+                search_params["fromDate"] = "2019-01-01"
+                search_params["toDate"] = "2024-12-31"
+                resp = requests.get(search_url, params=search_params, timeout=15)
+                if resp.status_code != 200:
+                    return []
+                data = resp.json()
+                self._cache[cache_key] = data
 
-            data = resp.json()
             hits = data.get("hits", {}).get("hits", [])
 
             disclosures = []
@@ -183,6 +193,8 @@ class CongressionalConnector(BaseConnector):
 
         except Exception as e:
             print(f"[{self.name}] House disclosure fetch error for {ticker}: {e}")
+            cache_key = f"house_{ticker}"
+            self._cache[cache_key] = []
             return []
 
     def _fetch_senate_disclosures(
@@ -204,11 +216,20 @@ class CongressionalConnector(BaseConnector):
                 "type": "ptr",
             }
 
-            resp = requests.get(SENATE_BASE, params=params, timeout=15)
-            if resp.status_code != 200:
-                return []
+            cache_key = f"senate_{ticker}"
+            if cache_key in self._cache:
+                data = self._cache[cache_key]
+            else:
+                # Override to sweep 5 years of data in one hit to cache globally
+                search_params = params.copy()
+                search_params["fromDate"] = "2019-01-01"
+                search_params["toDate"] = "2024-12-31"
+                resp = requests.get(SENATE_BASE, params=search_params, timeout=15)
+                if resp.status_code != 200:
+                    return []
+                data = resp.json()
+                self._cache[cache_key] = data
 
-            data = resp.json()
             hits = data.get("hits", {}).get("hits", [])
 
             disclosures = []
@@ -250,6 +271,8 @@ class CongressionalConnector(BaseConnector):
 
         except Exception as e:
             print(f"[{self.name}] Senate disclosure fetch error for {ticker}: {e}")
+            cache_key = f"senate_{ticker}"
+            self._cache[cache_key] = []
             return []
 
     def get_cluster_buy_signal(
@@ -320,7 +343,7 @@ class CongressionalConnector(BaseConnector):
         """Check if House disclosure portal is reachable."""
         try:
             resp = requests.get(
-                "https://efts.house.gov/LATEST/search-index",
+                "https://disclosures-clerk.house.gov/public_disc/search-index",
                 params={"q": "AAPL", "type": "ptr"},
                 timeout=10,
             )

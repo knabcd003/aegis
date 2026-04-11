@@ -5,16 +5,16 @@ class SignalGate:
     Evaluates compiled fundamental signals against the provided configuration gate.
     """
     @staticmethod
-    def evaluate(signals: Dict[str, Any], gate_config: Dict[str, Any]) -> bool:
+    def evaluate(signals: Dict[str, Any], gate_config: Dict[str, Any]) -> tuple[bool, bool]:
         """
         Input: all engine outputs (dict) + gate config (dict)
-        Output: True (gate passed) or False (no signal)
+        Output: (entry_passed: bool, exit_passed: bool)
         
         Logs gate result + margin per condition (future use by Phase 2 Uncertainty Scorer).
         """
         if not gate_config:
             # If the gate is entirely empty, it passes immediately
-            return True
+            return True, False
             
         passed = True
         margin_per_condition = {}
@@ -47,5 +47,25 @@ class SignalGate:
              if actual_cluster != required_cluster:
                  passed = False
 
+        # 4. Technical Gate
+        if gate_config.get("type", "") == "technical":
+            entry_type = gate_config.get("entry")
+            exit_type = gate_config.get("exit")
+            fast = signals.get("fast_sma", 0.0)
+            slow = signals.get("slow_sma", 0.0)
+            p_fast = signals.get("prev_fast_sma", 0.0)
+            p_slow = signals.get("prev_slow_sma", 0.0)
+            
+            entry_passed = False
+            exit_passed = False
+            
+            if entry_type == "fast_crosses_above_slow":
+                entry_passed = (fast > slow and p_fast <= p_slow)
+            
+            if exit_type == "fast_crosses_below_slow":
+                exit_passed = (fast < slow and p_fast >= p_slow)
+                
+            return entry_passed, exit_passed
+
         signals["_gate_margin"] = margin_per_condition
-        return passed
+        return passed, not passed

@@ -31,19 +31,19 @@ class EarningsRevisionTracker:
         # The revisions come back sorted latest first
         latest = revisions[0]
         
-        # Determine direction based on the latest revisions 'up' vs 'down' counts
-        # This is a simplified proxy - real logic might compare eps estimates over time
-        up_revisions = latest.get("up", 0)
-        down_revisions = latest.get("down", 0)
+        # Determine direction based on surprise
+        actual = latest.get("actual", 0.0)
+        estimate = latest.get("estimate", 0.0)
+        surprise = latest.get("surprise", 0.0)
         
-        if up_revisions > down_revisions:
+        if surprise > 0 or actual > estimate:
             direction = "up"
-        elif down_revisions > up_revisions:
+        elif surprise < 0 or actual < estimate:
             direction = "down"
         else:
             direction = "flat"
             
-        magnitude = float(up_revisions - down_revisions) / max(1, up_revisions + down_revisions)
+        magnitude = abs(surprise) / max(0.01, abs(estimate))
         momentum = "stable"
         if magnitude > 0.5:
             momentum = "accelerating"

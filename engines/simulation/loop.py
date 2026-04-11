@@ -30,6 +30,8 @@ class SimulationLoop:
         self.capital = config.position_sizing.capital
         self.cash = self.capital
         self.positions: Dict[str, float] = defaultdict(float) # Ticker -> Shares
+        self.entry_dates: Dict[str, date] = {} # Ticker -> Date of entry
+        self.entry_prices: Dict[str, float] = {} # Ticker -> Entry Fill Price
         
         self.trade_log: List[Dict[str, Any]] = []
         self.nav_history: List[Dict[str, Any]] = []
@@ -91,6 +93,24 @@ class SimulationLoop:
             cluster_window = self.config.fundamental_engine.insider_monitor.cluster_window_days
             signals["insider_activity"] = self.im_monitor.compute(ticker, as_of, cluster_window)
             
+        gate_type = getattr(self.config.signal_gate, "type", None)
+        if gate_type == "technical":
+            fast = getattr(self.config.signal_gate, "fast_sma_days", 20)
+            slow = getattr(self.config.signal_gate, "slow_sma_days", 50)
+            
+            df = self.yf.get_prices(ticker, days=slow+10, as_of_date=as_of)
+            if df is not None and not df.empty and len(df) > slow:
+                closes = df["close"].values
+                signals["fast_sma"] = closes[-fast:].mean()
+                signals["slow_sma"] = closes[-slow:].mean()
+                signals["prev_fast_sma"] = closes[-(fast+1):-1].mean()
+                signals["prev_slow_sma"] = closes[-(slow+1):-1].mean()
+            else:
+                signals["fast_sma"] = 0.0
+                signals["slow_sma"] = 0.0
+                signals["prev_fast_sma"] = 0.0
+                signals["prev_slow_sma"] = 0.0
+            
         return signals
 
     # ── Price lookup from explicit cache ─────────────────────────────────
@@ -140,6 +160,8 @@ class SimulationLoop:
         # Fresh state — no leakage from prior folds or the main run
         self.cash = self.config.position_sizing.capital
         self.positions = defaultdict(float)
+        self.entry_dates = {}
+        self.entry_prices = {}
         fold_trade_log: List[Dict[str, Any]] = []
         fold_nav_history: List[Dict[str, Any]] = []
         pending_orders: List[Dict[str, Any]] = []
@@ -170,6 +192,7 @@ class SimulationLoop:
                     if cost <= self.cash:
                         self.cash -= cost
                         self.positions[ticker] += shares
+                        self.entry_dates[ticker] = current_date
                         order["fill_price"] = fill_price
                         order["fill_date"] = current_date
                         order["slippage_drag_usd"] = slippage_ps * shares
@@ -179,6 +202,9 @@ class SimulationLoop:
                     fill_price = open_price - slippage_ps
                     if self.positions[ticker] >= shares:
                         self.positions[ticker] -= shares
+                        if self.positions[ticker] <= 0:
+                            self.entry_dates.pop(ticker, None)
+                            self.entry_prices.pop(ticker, None)
                         self.cash += fill_price * shares
                         order["fill_price"] = fill_price
                         order["fill_date"] = current_date
@@ -209,11 +235,10 @@ class SimulationLoop:
                 signals = self.compile_signals(ticker, current_date)
 
                 if not self.config.agent.enabled:
-                    passed = SignalGate.evaluate(
+                    passed, sell_signal = SignalGate.evaluate(
                         signals,
                         self.config.signal_gate.model_dump(exclude_none=True),
                     )
-                    sell_signal = not passed
                     conviction = 1.0
                 else:
                     # Agents not supported in fold mode (too expensive)
@@ -238,9 +263,24 @@ class SimulationLoop:
                             "signal_date": current_date,
                             "signal_price": price,
                         })
-                elif sell_signal and current_holdings > 0:
-                    held_days = 5
-                    if held_days >= self.config.sandbox.min_hold_days:
+                elif current_holdings > 0:
+                    entry_date = self.entry_dates.get(ticker, current_date)
+                    held_days = (current_date - entry_date).days
+                    
+                    stop_loss_pct = getattr(self.config.sandbox, "stop_loss_pct", None)
+                    max_hold_days = getattr(self.config.sandbox, "max_hold_days", None)
+                    
+                    sl_triggered = False
+                    if stop_loss_pct is not None:
+                        entry_pr = self.entry_prices.get(ticker, price)
+                        if price <= entry_pr * (1.0 - stop_loss_pct):
+                            sl_triggered = True
+                            
+                    mh_triggered = False
+                    if max_hold_days is not None and held_days >= max_hold_days:
+                        mh_triggered = True
+                        
+                    if sl_triggered or mh_triggered or (sell_signal and held_days >= self.config.sandbox.min_hold_days):
                         pending_orders.append({
                             "ticker": ticker,
                             "action": "SELL",
@@ -298,6 +338,7 @@ class SimulationLoop:
                     if cost <= self.cash:
                         self.cash -= cost
                         self.positions[ticker] += shares
+                        self.entry_dates[ticker] = current_date
                         order["fill_price"] = fill_price
                         order["fill_date"] = current_date
                         order["slippage_drag_usd"] = slippage_ps * shares
@@ -308,6 +349,9 @@ class SimulationLoop:
                     revenue = fill_price * shares
                     if self.positions[ticker] >= shares:
                         self.positions[ticker] -= shares
+                        if self.positions[ticker] <= 0:
+                            self.entry_dates.pop(ticker, None)
+                            self.entry_prices.pop(ticker, None)
                         self.cash += revenue
                         order["fill_price"] = fill_price
                         order["fill_date"] = current_date
@@ -337,8 +381,7 @@ class SimulationLoop:
                 
                 # If agents disabled, fallback to legacy Signal Gate
                 if not self.config.agent.enabled:
-                    passed = SignalGate.evaluate(signals, self.config.signal_gate.model_dump(exclude_none=True))
-                    sell_signal = not passed
+                    passed, sell_signal = SignalGate.evaluate(signals, self.config.signal_gate.model_dump(exclude_none=True))
                     conviction = 1.0 # default scalar for legacy
                     
                     self.gate_events.append({
@@ -401,10 +444,24 @@ class SimulationLoop:
                             "signal_date": current_date,
                             "signal_price": price
                         })
-                elif sell_signal and current_holdings > 0:
-                    # Sell logic - normally check hold duration, but keep it deterministic here
-                    held_days = 5 # Simplification, track actual hold days in prod
-                    if held_days >= self.config.sandbox.min_hold_days:
+                elif current_holdings > 0:
+                    entry_date = self.entry_dates.get(ticker, current_date)
+                    held_days = (current_date - entry_date).days
+                    
+                    stop_loss_pct = getattr(self.config.sandbox, "stop_loss_pct", None)
+                    max_hold_days = getattr(self.config.sandbox, "max_hold_days", None)
+                    
+                    sl_triggered = False
+                    if stop_loss_pct is not None:
+                        entry_pr = self.entry_prices.get(ticker, price)
+                        if price <= entry_pr * (1.0 - stop_loss_pct):
+                            sl_triggered = True
+                            
+                    mh_triggered = False
+                    if max_hold_days is not None and held_days >= max_hold_days:
+                        mh_triggered = True
+                        
+                    if sl_triggered or mh_triggered or (sell_signal and held_days >= self.config.sandbox.min_hold_days):
                         pending_orders.append({
                             "ticker": ticker,
                             "action": "SELL",

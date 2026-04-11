@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { useAegisStore } from '@/lib/store';
-import { Code, FileWarning, Shield } from 'lucide-react';
+import { 
+    Code, FileWarning, Shield, Terminal, Zap, ShieldCheck, 
+    Info, Check, AlertTriangle, Activity 
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { cn } from "@/lib/utils";
 
 export function IntakePathB() {
     const navigate = useNavigate();
@@ -23,16 +27,16 @@ export function IntakePathB() {
         try {
             parsed = JSON.parse(jsonInput);
         } catch (e: any) {
-            setSyntaxError(`Line ${e.message.match(/at position (\d+)/)?.[1] || "Unknown"}: Invalid JSON Syntax. ${e.message}`);
+            setSyntaxError(`Syntax Error: ${e.message}`);
             return null;
         }
 
         const errors: string[] = [];
-        if (parsed._schema_version !== "v7.0") errors.push("_schema_version must exactly match 'v7.0'.");
-        if (!parsed.risk_tolerance) errors.push("risk_tolerance is a required string.");
-        if (parsed.max_drawdown_target === undefined) errors.push("max_drawdown_target is a required float.");
-        if (!parsed.time_horizon) errors.push("time_horizon is a required string.");
-        if (!parsed.raw_desire) errors.push("raw_desire is a required string.");
+        if (parsed._schema_version !== "v7.0") errors.push("_schema_version mismatch: Expected 'v7.0'");
+        if (!parsed.risk_tolerance) errors.push("Missing required: risk_tolerance");
+        if (parsed.max_drawdown_target === undefined) errors.push("Missing required: max_drawdown_target");
+        if (!parsed.time_horizon) errors.push("Missing required: time_horizon");
+        if (!parsed.raw_desire) errors.push("Missing required: raw_desire");
 
         if (errors.length > 0) {
             setSchemaErrors(errors);
@@ -44,7 +48,7 @@ export function IntakePathB() {
 
     const handleValidate = async () => {
         const parsedNode = validateJSONStructure();
-        if (!parsedNode) return; // Blocked by local Schema/Syntax
+        if (!parsedNode) return;
         
         setIsValidating(true);
         try {
@@ -53,6 +57,7 @@ export function IntakePathB() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ ...parsedNode, is_path_b: true })
             });
+            if (!res.ok) throw new Error("Validation failed");
             const data = await res.json();
             setValidationResult(data);
         } catch (err) {
@@ -64,7 +69,7 @@ export function IntakePathB() {
 
     const handleConfirm = async () => {
         setIsConfirming(true);
-        const parsedNode = JSON.parse(jsonInput); // Guaranteed safe here
+        const parsedNode = JSON.parse(jsonInput);
         try {
             const res = await fetch("http://localhost:8000/api/intake/confirm", {
                 method: "POST",
@@ -83,80 +88,108 @@ export function IntakePathB() {
 
     if (validationResult) {
         return (
-            <div className="flex flex-col items-center justify-center p-8 bg-[#0d0d12] rounded-lg border border-border w-full max-w-2xl mx-auto">
-                <Shield className="w-12 h-12 text-cyan-400 mb-4" />
-                <h2 className="text-2xl font-bold text-white mb-2">Mandate Confirmation (Path B)</h2>
-                <p className="text-gray-400 mb-6 text-center">Your JSON schema was successfully parsed into the following mathematical anchors.</p>
-                
-                <div className="w-full bg-[#1a1a24] rounded-md p-4 mb-6 border border-border">
-                    {Object.entries(validationResult.mandate_summary).map(([key, val]) => (
-                        <div key={key} className="flex justify-between py-2 border-b border-border/50 last:border-0 text-sm">
-                            <span className="text-gray-400 uppercase tracking-widest">{key}</span>
-                            <span className="text-white font-mono">{String(val)}</span>
+            <div className="max-w-3xl mx-auto border border-[#2D333B] bg-[#111418]">
+                <div className="px-8 py-6 border-b border-[#2D333B] bg-white/5 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 border border-[#2D333B] flex items-center justify-center">
+                            <ShieldCheck className="w-5 h-5 text-white/60" />
                         </div>
-                    ))}
+                        <div>
+                            <h2 className="text-sm font-bold text-white uppercase tracking-[0.1em]">Schema Mandate Lock</h2>
+                            <p className="text-[10px] text-white/40 uppercase tracking-widest font-mono mt-1">JSON-Validated_Alpha_Constraints</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] font-mono text-white/40">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white opacity-40" />
+                        EXTERNAL_SCHEMA: IMPORTED
+                    </div>
                 </div>
 
-                {validationResult.contradictions.length > 0 && (
-                    <div className="w-full bg-red-500/10 border border-red-500/30 rounded-md p-4 mb-6">
-                        <div className="flex items-center gap-2 text-red-400 font-bold mb-2">
-                            <FileWarning className="w-5 h-5" /> Contradictions Detected
+                <div className="p-8 space-y-8">
+                    {validationResult.contradictions.length > 0 && (
+                        <div className="border border-red-900 bg-red-950/20 p-6">
+                            <div className="flex items-start gap-4">
+                                <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
+                                <div>
+                                    <h3 className="font-bold text-[10px] text-red-400 uppercase tracking-widest">Semantic Logic Faults</h3>
+                                    <ul className="space-y-2 mt-4">
+                                        {validationResult.contradictions.map((c: string, i: number) => (
+                                            <li key={i} className="flex items-center gap-2 text-[10px] font-mono text-white/60">
+                                                <span className="w-1 h-1 bg-red-500" />
+                                                {c}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
-                        <ul className="list-disc list-inside text-sm text-red-200/80">
-                            {validationResult.contradictions.map((c: string, idx: number) => (
-                                <li key={idx}>{c}</li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
+                    )}
 
-                <div className="flex gap-4 w-full">
-                    <button onClick={() => setValidationResult(null)} className="flex-1 py-3 px-4 border border-border rounded-md text-gray-300 hover:bg-white/5 transition-colors">
-                        Re-Edit JSON
-                    </button>
-                    <button 
-                        onClick={handleConfirm}
-                        disabled={validationResult.contradictions.length > 0 || isConfirming}
-                        className="flex-2 w-2/3 py-3 px-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-md font-bold tracking-widest uppercase disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                    >
-                        {isConfirming ? "Spinning Up Pipeline..." : "Lock Mandate & Execute"}
-                    </button>
+                    <div className="grid grid-cols-2 border border-[#2D333B] bg-[#0C0E11]">
+                        {Object.entries(validationResult.mandate_summary).map(([key, val]) => (
+                            <div key={key} className="flex flex-col p-4 border-r border-b border-[#2D333B]">
+                                <span className="text-[9px] text-white/20 uppercase tracking-widest mb-1.5 font-bold">{key}</span>
+                                <p className="text-white font-mono text-sm uppercase">{String(val)}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="flex gap-4 pt-4">
+                        <button onClick={() => setValidationResult(null)} className="flex-1 h-12 border border-[#2D333B] text-[10px] font-bold text-white/40 hover:text-white uppercase tracking-widest transition-all">
+                            Back to Editor
+                        </button>
+                        <button 
+                            onClick={handleConfirm}
+                            disabled={validationResult.contradictions.length > 0 || isConfirming}
+                            className="flex-[2] h-12 bg-white text-black text-[10px] font-bold uppercase tracking-[0.2em] transition-all disabled:opacity-20 flex items-center justify-center gap-2"
+                        >
+                            {isConfirming ? "Committing..." : "Commit JSON Mandate"}
+                        </button>
+                    </div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="w-full max-w-3xl mx-auto p-8 border border-border bg-[#14141b] rounded-lg">
-            <h2 className="text-2xl font-semibold mb-2 flex items-center gap-2">
-                <Code className="w-5 h-5 text-accent" />
-                Intake Path B (Power User)
-            </h2>
-            <p className="text-sm text-muted-foreground mb-6">
-                Paste the `aegis_intake_schema.json` generated by your external LLM session here.
-            </p>
-            
-            <div className="space-y-4">
-                <div className="relative group">
-                    <textarea 
-                        className="w-full h-80 bg-[#0d0d12] border border-border/80 focus:border-accent p-4 rounded-md text-sm font-mono text-cyan-300/80 placeholder-gray-600 resize-y"
-                        spellCheck={false}
-                        value={jsonInput}
-                        onChange={e => setJsonInput(e.target.value)}
-                    />
+        <div className="max-w-4xl mx-auto space-y-8">
+            <header className="space-y-3">
+                <div className="inline-flex items-center gap-2 text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">
+                    <Terminal className="w-3.5 h-3.5" />
+                    Path_B :: Direct_Schema_Import
                 </div>
+                <h1 className="text-2xl font-bold tracking-tight text-white uppercase tracking-[0.1em]">Import Configuration</h1>
+                <p className="text-white/40 text-[11px] font-mono uppercase">V7.0 JSON schema integration for external agents.</p>
+            </header>
+            
+            <div className="border border-[#2D333B] bg-[#111418] relative overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-[#2D333B] bg-white/5">
+                    <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest">aegis_mandate_v7.json</span>
+                    <Code className="w-3 h-3 text-white/20" />
+                </div>
+                <textarea 
+                    className="w-full h-[400px] bg-transparent p-6 text-[12px] font-mono text-white/60 leading-relaxed outline-none resize-none scrollbar-thin"
+                    spellCheck={false}
+                    value={jsonInput}
+                    onChange={e => setJsonInput(e.target.value)}
+                />
+            </div>
 
+            <div className="space-y-4">
                 {syntaxError && (
-                    <div className="bg-red-500/10 border-l-4 border-red-500 p-3 text-red-400 text-sm font-mono">
+                    <div className="p-4 border border-red-900 bg-red-950/10 text-red-400 text-[10px] font-mono uppercase tracking-widest flex items-center gap-3">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
                         {syntaxError}
                     </div>
                 )}
-
                 {schemaErrors.length > 0 && (
-                    <div className="bg-orange-500/10 border-l-4 border-orange-500 p-3 text-orange-400 text-sm font-mono">
-                        Schema Violations Detected:
-                        <ul className="list-disc list-inside mt-1">
-                            {schemaErrors.map((err, i) => <li key={i}>{err}</li>)}
+                    <div className="p-4 border border-orange-900 bg-orange-950/10 text-orange-400 text-[10px] font-mono space-y-2 uppercase tracking-widest">
+                        <p className="font-bold">Schema Faults Found:</p>
+                        <ul className="space-y-1">
+                            {schemaErrors.map((err, i) => <li key={i} className="flex items-center gap-2 opacity-80">
+                                <span className="w-1 h-1 bg-orange-500" />
+                                {err}
+                            </li>)}
                         </ul>
                     </div>
                 )}
@@ -164,11 +197,27 @@ export function IntakePathB() {
                 <button 
                     disabled={isValidating || jsonInput.trim() === ""}
                     onClick={handleValidate}
-                    className="w-full py-4 bg-white hover:bg-gray-200 text-black rounded-md font-bold tracking-widest uppercase disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="w-full h-14 bg-white text-black font-bold tracking-[0.3em] uppercase text-xs transition-all disabled:opacity-20 flex items-center justify-center gap-4"
                 >
-                    {isValidating ? "Validating Target Schema..." : "Parse JSON Structure"}
+                    {isValidating ? (
+                        <>
+                            <Activity className="w-4 h-4 animate-spin" />
+                            Structural Audit in Progress...
+                        </>
+                    ) : (
+                        <>
+                            <Zap className="w-4 h-4 fill-current" />
+                            Parse & Validate Mandate
+                        </>
+                    )}
                 </button>
+            </div>
+            
+            <div className="flex items-center justify-center gap-6 text-[10px] font-mono text-white/20 uppercase tracking-widest">
+                <span className="flex items-center gap-1.5"><ShieldCheck className="w-3 h-3" /> Pydantic L1</span>
+                <span className="flex items-center gap-1.5"><Terminal className="w-3 h-3" /> Alpha-Strict</span>
             </div>
         </div>
     );
 }
+
