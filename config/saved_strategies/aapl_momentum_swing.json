@@ -1,0 +1,64 @@
+{
+  "config_id": "aapl_momentum_swing_v1",
+  "version": "1.0",
+  "asset_universe": {
+    "tickers": [
+      "AAPL",
+      "MSFT",
+      "NVDA"
+    ],
+    "benchmark": "SPY"
+  },
+  "signal_gate": {
+    "insider_monitor": {
+      "source": "congressional",
+      "cluster_threshold": 3,
+      "lookback_days": 45
+    },
+    "finbert_above": 0.1,
+    "min_hold_days": 3
+  },
+  "fundamental_engine": {
+    "earnings_revision": {
+      "enabled": false,
+      "warn_threshold": 0.02
+    },
+    "insider_monitor": {
+      "enabled": true,
+      "cluster_window_days": 45
+    }
+  },
+  "agent": {
+    "enabled": false,
+    "provider": "ollama",
+    "model": "qwen2.5:14b",
+    "pipeline": [
+      "analyst",
+      "risk_manager"
+    ],
+    "edges": null
+  },
+  "position_sizing": {
+    "capital": 100000.0,
+    "max_position_pct": 0.5,
+    "method": "equal_weight"
+  },
+  "sandbox": {
+    "slippage_bps": 5,
+    "min_hold_days": 3,
+    "promotion_criteria": {
+      "held_out_sharpe_min": 0.70,
+      "held_out_degradation_max": 0.40
+    }
+  },
+  "routing": {
+    "mode": "build",
+    "logging": {
+      "depth": "production"
+    }
+  },
+  "date_range": {
+    "start": "2020-01-01",
+    "end": "2023-12-31"
+  }
+}

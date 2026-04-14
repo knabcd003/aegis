@@ -45,6 +45,9 @@ The correct role for a retail investor is mandate-setting and final execution co
 | Tool architecture | Custom wrappers per agent | VCL + MCP + Token Messenger Pattern |
 | Sequencing enforcement | LangGraph edges (behavioral) | Token Messenger cryptographic chaining |
 | Primary interface | Control panel + Glass Box | Visual Pipeline Map + Glass Box as product |
+| UI Aesthetic | Monochromatic Industrial | Premium Editorial (MD3-inspired) |
+| Iconography | Lucide React | Material Symbols Outlined |
+| Data Layer | Mixed Static/Dynamic | 100% Dynamic Backend-Hooked |
 | Human role | Wizard + proposals + Signal Cards | Intake + Signal Cards only |
 | Claude budget | Regular escalation tool | Emergency backstop — ~3–5 calls/month |
 | Diversity mechanism | Measured after generation | Driven before generation via ArchetypePool |
@@ -1438,62 +1441,67 @@ Generated once at run completion. Stored as MLflow artifact. No LLM at render ti
 
 ---
 
-## PART XV: FRONTEND — VISUAL PIPELINE INTERFACE
+## PART XV: FRONTEND — PREMIUM EDITORIAL INTERFACE
 
-### Stack
+### The Aesthetic Mandate
 
-React + Vite + TypeScript + TailwindCSS + React Flow (`@xyflow/react`) + Zustand + TanStack Virtual + Lightweight Charts + Three WebSocket channels
+Aegis v7 departs from "Industrial Realism" in favor of a **Premium Editorial** design language. The goal is to feel like a high-end technical publication (e.g., Databricks, Stripe, or a sophisticated newsroom) rather than a terminal.
 
-### Sidebar
+**Core Tokens:**
+- **Typography:** `Newsreader` (Serif) for headlines/brand; `Inter` (Sans-serif) for body/labels.
+- **Palette:** MD3-inspired dark theme. Background: `#131312` (Surface). Accents: Terracotta (`#FFB59E`), Sage (`#ACCEC5`), Rose (`#FFB3B2`).
+- **Styling:** Glassmorphism (`backdrop-blur: 20px`), subtle gradients, and `rounded-lg` (8px) corners.
+- **Iconography:** **Material Symbols Outlined** exclusively. No Lucide.
 
+### Dynamic Integrity Requirement
+
+The frontend is strictly a view layer for the backend state. **Zero static mock data is permitted in the frontend code.**
+- Every chart must hit a backend series endpoint.
+- Every signal must originate from the `Sentinel` event stream.
+- Every node status must reflect the real-time `/health` check.
+- Local development uses a backend `seed_demo_data.py` script to populate real databases, ensuring the UI remains dynamic even in dev environments.
+
+### Component Map
+
+**Sidebar Navigation**
 ```
-AEGIS AI
+AEGIS AI (Newsreader)
 ├── OBSERVE
-│   ├── Mission Control     Sentinels, Signal Cards, event feed
-│   ├── Portfolio Tracker   mirror portfolio, counterfactuals
-│   └── System Health       connectors, quotas, budgets
+│   ├── Mission Control     [mon_live]      Real-time logs, WebSocket signals
+│   ├── Portfolio Tracker   [monitoring]    Actual vs Mirror NAV analysis
+│   └── System Health       [health_metrics] Real connector state
 │
 ├── PIPELINE
-│   ├── Visual Map          live canvas (Phase A — now)
-│   ├── Component Library   VCL browser, import
-│   └── Flow Editor         interactive editing (Phase B — Phase 6)
+│   ├── Visual Map          [hub]           Live React Flow topology
+│   ├── Component Library   [library_books] VCL browser
+│   └── Flow Editor         [edit_note]     Interactive configuration
 │
 ├── ANALYZE
-│   ├── Glass Box           audit trail, narrative, graph
-│   ├── Arena               MLflow runs, leaderboard
-│   ├── Debate Theater      transcripts, evidentiary scores, replay
-│   └── Budget Dashboard    quota, routing, spend, session quality
+│   ├── Glass Box           [visibility]    Trace-level audit trail
+│   ├── Arena               [analytics]     MLflow run leaderboard
+│   ├── Debate Theater      [forum]         Adversarial audit replays
+│   └── Budget Dashboard    [payments]      Token quotas and spend
 │
 └── SETTINGS
-    ├── Intake              view and update mandate
-    ├── Connectors          API keys, health config
-    └── World Monitor       OpenClaw status, subscriptions
+    ├── Intake              [deployed_code] Mandate management
+    ├── Connectors          [api]           Key management
+    └── World Monitor       [globe]         OpenClaw status
 ```
+
+### Information Density Rule
+
+Density must be achieved through **utility**, not visual noise.
+- Use small, high-contrast monospace for technical values.
+- Use `Newsreader` for high-level narrative summaries.
+- Avoid large decorative "marketing" headers; prioritize specific data points (Sharpe ratio, TPD, latency, etc.).
 
 ### Phase A — Live Monitoring Map (Build Now)
 
-Read-only. Observation only.
+Read-only. Observation only. High-utility density.
 
 **Node types:** Component nodes (name, role, status, latency sparkline, provider badge), Data nodes (click for JSON inspector), Token nodes (gold chain, TTL countdown), Model nodes (provider badge, quota remaining, `was_primary_model` indicator).
 
 **Live behaviors:** Blue pulse when executing, particle flow on active edges, red flash on validation failure, agent dialogue overlays, gold token chain propagation, amber/red provider badge when fallback triggers.
-
-**Red flags:**
-- Schema validation failure
-- VCL component health failure
-- Connector DEGRADED or OFFLINE
-- FinDebate COMPROMISED
-- Circuit breaker trigger
-- Any Groq model > 90% daily quota
-- Claude > 75% budget consumed
-- Sequence violation attempt
-- Session quality degraded (amber badge on run)
-- Session quality severely degraded (red badge)
-- Bear win rate alert
-
-### Phase B — Interactive Flow Editor (Phase 6)
-
-~6 weeks after Phase A is stable and VCL SDK proven. Drag-and-drop component swap with fingerprint compatibility enforcement, live wiring with schema validation, chat control with confirmation and versioned provenance.
 
 ---
 

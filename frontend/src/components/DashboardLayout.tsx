@@ -83,24 +83,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     };
 
     return (
-        <div className="flex h-screen w-screen overflow-hidden bg-[#0C0E11] text-[#E1E1E1] selection:bg-white/10 font-sans">
-            {/* Unified Industrial Sidebar */}
-            <nav className="w-60 flex flex-col border-r border-[#2D333B] bg-[#111418] shrink-0">
-                <div className="px-5 py-6 border-b border-[#2D333B]">
-                    <h1 className="text-sm font-bold tracking-tight text-white flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4 text-white" />
-                        AEGIS COMMAND
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-white/50 border border-white/10 uppercase tracking-tighter">V7-F</span>
-                    </h1>
+    return (
+        <div className="flex h-screen w-screen overflow-hidden bg-surface text-on-surface selection:bg-primary-container selection:text-on-primary-container font-body">
+            {/* Editorial Sidebar */}
+            <aside className="w-64 flex flex-col border-r border-white/5 bg-surface shrink-0 z-50">
+                <div className="px-6 py-8">
+                    <h1 className="font-headline text-2xl font-light text-[#E5E2DE]">Aegis AI</h1>
+                    <p className="text-[0.6875rem] uppercase tracking-[0.2em] text-muted-foreground mt-1 font-medium">Intelligence Core v2.4</p>
                 </div>
 
-                <div className="flex-1 overflow-y-auto px-2 py-4 scrollbar-thin">
+                <nav className="flex-1 overflow-y-auto space-y-1">
                     {sections.map((section) => (
-                        <div key={section.label} className="mb-6">
-                            <div className="px-3 mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">
-                                {section.label}
-                            </div>
-                            <ul className="space-y-0.5">
+                        <div key={section.label} className="mb-4">
+                            <ul className="space-y-1">
                                 {section.items.map((item) => {
                                     const isActive = location.pathname === item.path;
                                     return (
@@ -108,14 +103,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                                             <Link
                                                 to={item.path}
                                                 className={cn(
-                                                    "flex items-center gap-2.5 px-3 py-1.5 rounded text-[12.5px] font-medium transition-colors",
+                                                    "flex items-center gap-3 px-4 py-3 transition-all duration-200 group relative",
                                                     isActive
-                                                        ? "bg-white/5 text-white border border-white/10"
-                                                        : "text-white/50 hover:bg-white/5 hover:text-white"
+                                                        ? "bg-[#1c1c1b] text-primary border-r-2 border-primary-container rounded-none"
+                                                        : "text-muted-foreground hover:text-[#E5E2DE] hover:bg-[#1a1a19]"
                                                 )}
                                             >
-                                                <item.icon className={cn("w-3.5 h-3.5 shrink-0", isActive ? "text-white" : "text-white/30")} />
-                                                <span>{item.name}</span>
+                                                <item.icon className={cn("w-5 h-5 transition-transform group-hover:scale-110", isActive ? "text-primary" : "text-muted-foreground")} />
+                                                <span className="text-[0.8125rem] font-normal tracking-wide">{item.name}</span>
                                             </Link>
                                         </li>
                                     );
@@ -123,59 +118,69 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                             </ul>
                         </div>
                     ))}
+                </nav>
+
+                <div className="px-4 mb-4">
+                    <button className="w-full bg-primary-container text-on-primary-container py-2.5 rounded-lg text-[0.8125rem] font-medium flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-lg">
+                        <PlusCircle className="w-4 h-4" />
+                        Deploy New Node
+                    </button>
                 </div>
 
-                {/* System Stats (Industrial) */}
-                <div className="p-4 border-t border-[#2D333B] bg-black/20">
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest">
-                            <span className="text-white/30 text-xs">GATEWAY_OS</span>
-                            <div className="flex items-center gap-1.5">
-                                <span className={cn(
-                                    "w-1 h-1 rounded-full",
-                                    serverStatus === "online" ? "bg-emerald-500" : "bg-red-500"
-                                )} />
-                                <span className={serverStatus === "online" ? "text-emerald-500" : "text-red-400"}>
-                                    {serverStatus === "online" ? "LIVE" : "DCR"}
-                                </span>
-                            </div>
-                        </div>
-                        <div className="space-y-1">
-                            <div className="text-[9px] text-white/20 uppercase font-bold tracking-tighter">Active Session</div>
-                            <code className="text-[10px] font-mono text-white/40 block truncate">
-                                {active_run_id || "SYS_IDLE_STANDBY"}
-                            </code>
-                        </div>
-                    </div>
+                <div className="mt-auto border-t border-white/5 pt-4">
+                    <Link to="/docs" className="flex items-center gap-3 px-4 py-2 text-muted-foreground hover:text-[#E5E2DE] text-[0.8125rem]">
+                        <Library className="w-4 h-4" />
+                        Documentation
+                    </Link>
+                    <Link to="/settings" className="flex items-center gap-3 px-4 py-2 text-muted-foreground hover:text-[#E5E2DE] text-[0.8125rem]">
+                        <Settings className="w-4 h-4" />
+                        Settings
+                    </Link>
                 </div>
-            </nav>
+            </aside>
 
-            {/* Main Operational Body */}
-            <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#0C0E11]">
-                {/* Secondary Header (Tabs/Breadcrumbs) */}
-                <header className="h-10 border-b border-[#2D333B] bg-[#111418]/50 flex items-center justify-between px-6 shrink-0 z-10">
-                    <div className="flex items-center gap-2 text-[11px] font-bold text-white/40 uppercase tracking-widest">
-                        <span className="hover:text-white cursor-pointer transition-colors">Workspace</span>
-                        <ChevronRight className="w-3 h-3 opacity-20" />
-                        <span className="text-white tracking-normal lowercase font-mono">
-                            /{sections.flatMap(s => s.items).find(i => i.path === location.pathname)?.path.replace('/', '') || "home"}
-                        </span>
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col h-full overflow-hidden bg-surface">
+                {/* Top Bar (Glassmorphism) */}
+                <header className="flex justify-between items-center w-full px-8 sticky top-0 z-40 glass-panel h-16 shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
+                    <div className="flex items-center gap-8">
+                        <h2 className="font-headline text-xl font-semibold italic text-[#E5E2DE]">
+                            {sections.flatMap(s => s.items).find(i => i.path === location.pathname)?.name || "Mission Control"}
+                        </h2>
+                        <div className="hidden md:flex gap-6">
+                            <span className="text-primary font-medium border-b-2 border-primary-container pb-1 text-[0.8125rem] cursor-default whitespace-nowrap">Live Overview</span>
+                            <span className="text-muted-foreground font-normal hover:text-[#E5E2DE] text-[0.8125rem] cursor-pointer transition-colors whitespace-nowrap">Historical Logs</span>
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className="px-3 py-1 rounded bg-white/5 border border-white/10 flex items-center gap-2">
-                             <div className="w-1 h-1 rounded-full bg-blue-500" />
-                             <span className="text-[9px] font-bold text-white/60 uppercase tracking-widest">Mandate: V7-ALPHA-SWING</span>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                            <input 
+                                className="bg-surface-container-low border-none rounded-lg pl-9 pr-4 py-1.5 text-[0.8125rem] text-on-surface placeholder:text-muted-foreground w-64 focus:ring-1 focus:ring-primary-container transition-all" 
+                                placeholder="Search instruments..." 
+                                type="text"
+                            />
                         </div>
-                        <button 
-                            onClick={() => setIsAuditOpen(true)}
-                            className="h-7 flex items-center gap-2 px-3 rounded bg-white/5 border border-white/10 text-[10px] font-bold text-white hover:bg-white/10 transition-all uppercase tracking-widest"
-                        >
-                            <MessageSquare className="w-3 h-3" />
-                            Audit
-                        </button>
+                        <div className="flex items-center gap-2 ml-4">
+                            <button className="p-2 hover:bg-[#1a1a19] rounded-full transition-colors text-muted-foreground hover:text-[#E5E2DE]">
+                                <HeartPulse className="w-5 h-5" />
+                            </button>
+                            <button className="p-2 hover:bg-[#1a1a19] rounded-full transition-colors text-muted-foreground hover:text-[#E5E2DE] relative">
+                                <Bell className="w-5 h-5" />
+                                <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary rounded-full border-2 border-surface"></span>
+                            </button>
+                            <div className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center ml-2 border border-white/5">
+                                <User className="w-5 h-5 text-on-surface-variant" />
+                            </div>
+                        </div>
                     </div>
                 </header>
+
+                <main className="flex-1 overflow-auto relative scrollbar-thin">
+                    {children}
+                </main>
+            </div>
 
                 <main className="flex-1 overflow-auto relative scrollbar-thin">
                     {children}

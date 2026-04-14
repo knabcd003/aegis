@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Newsreader:opsz,ital,wght@6..72,0,400;6..72,0,600;6..72,0,700&amp;family=Public+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#D97757",
+                        "on-primary": "#FFFFFF",
+                        surface: "#131312",
+                        "on-surface": "#E5E2DE",
+                        muted: "#8E9E82",
+                        border: "#2A2A28",
+                        overlay: "#1C1C1B"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        headline: ["Newsreader", "serif"],
+                        body: ["Public Sans", "sans-serif"],
+                        label: ["Inter", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+            font-size: 20px;
+        }
+        body {
+            background-color: #131312;
+            color: #E5E2DE;
+            font-family: 'Public Sans', sans-serif;
+            overflow: hidden;
+        }
+        .topology-grid {
+            background-image: radial-gradient(circle, #2A2A28 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        .node-pulse {
+            box-shadow: 0 0 0 0 rgba(217, 119, 87, 0.4);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(217, 119, 87, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(217, 119, 87, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(217, 119, 87, 0); }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #131312;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #2A2A28;
+        }
+    </style>
+</head>
+<body class="h-screen flex">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-screen flex flex-col z-40 bg-[#131312] dark:bg-[#131312] w-64 border-r border-[#2A2A28]">
+<div class="p-6">
+<h1 class="text-xl font-semibold text-[#E5E2DE] font-serif">Aegis AI</h1>
+<p class="text-xs text-[#8E9E82] mt-1 uppercase tracking-widest">Analyst Intelligence</p>
+</div>
+<nav class="flex-1 mt-4">
+<!-- Active Tab: Signals (closest to Topology/Mapping intent) -->
+<a class="flex items-center gap-3 px-4 py-3 text-[#D97757] bg-[#1C1C1B] border-r-2 border-[#D97757] transition-colors" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label tracking-tight text-sm">Signals</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#8E9E82] opacity-70 hover:bg-[#1C1C1B] hover:text-[#E5E2DE] transition-colors" href="#">
+<span class="material-symbols-outlined">science</span>
+<span class="font-label tracking-tight text-sm">Sandbox</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#8E9E82] opacity-70 hover:bg-[#1C1C1B] hover:text-[#E5E2DE] transition-colors" href="#">
+<span class="material-symbols-outlined">deployed_code</span>
+<span class="font-label tracking-tight text-sm">Deployed</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#8E9E82] opacity-70 hover:bg-[#1C1C1B] hover:text-[#E5E2DE] transition-colors" href="#">
+<span class="material-symbols-outlined">article</span>
+<span class="font-label tracking-tight text-sm">Content</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#8E9E82] opacity-70 hover:bg-[#1C1C1B] hover:text-[#E5E2DE] transition-colors" href="#">
+<span class="material-symbols-outlined">query_stats</span>
+<span class="font-label tracking-tight text-sm">Performance</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#8E9E82] opacity-70 hover:bg-[#1C1C1B] hover:text-[#E5E2DE] transition-colors" href="#">
+<span class="material-symbols-outlined">menu_book</span>
+<span class="font-label tracking-tight text-sm">Documentation</span>
+</a>
+</nav>
+<div class="p-4 border-t border-[#2A2A28] flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary/20 flex items-center justify-center">
+<img alt="User profile" class="w-full h-full object-cover rounded" data-alt="close up of a professional analyst profile avatar with minimalist dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmjFNTVsj1dUHmeUzNKG4uIei3SsNZoyP7kB2EcmWHM8VoMDNg0Rw0Tl0wOfnVuEHiRe8EEMAjbsxb7XnTONVOL7AneBIykqY45niPlmUszKoW7IdyIDJMWSPi2sl_z4MAY_gKc7LArZNSJFXR1PsDgCVMCWH6yqL8pylfq2ugEuySrem847PBwYTZatbqlHghtisU7blAzcuSIxqGYHL2VgFDVVugVsIHA8J6J-oAmMyFRIfw18FmEr07X_LgqJ7Emh05Q2PKBkkp"/>
+</div>
+<div class="flex-1 overflow-hidden">
+<p class="text-sm font-medium truncate text-[#E5E2DE]">Analyst_042</p>
+<p class="text-[10px] text-[#8E9E82] truncate">L3 Neural Architect</p>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 ml-64 flex flex-col relative">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center w-full px-6 py-2 bg-[#131312] border-b border-[#2A2A28] z-30">
+<div class="flex items-center gap-8">
+<div class="flex gap-6 items-center">
+<a class="text-[#8E9E82] font-medium hover:text-[#D97757] transition-all text-sm" href="#">Terminal</a>
+<a class="text-[#E5E2DE] border-b border-[#D97757] pb-1 text-sm font-medium" href="#">Markets</a>
+<a class="text-[#8E9E82] font-medium hover:text-[#D97757] transition-all text-sm" href="#">Portfolio</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8E9E82] text-sm">search</span>
+<input class="bg-[#1C1C1B] border-none text-xs rounded-full py-2 pl-9 pr-4 w-64 text-[#E5E2DE] focus:ring-1 focus:ring-[#D97757]" placeholder="Query network nodes..." type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-[#8E9E82] hover:text-[#D97757] active:opacity-100 opacity-80"><span class="material-symbols-outlined">notifications</span></button>
+<button class="p-2 text-[#8E9E82] hover:text-[#D97757] active:opacity-100 opacity-80"><span class="material-symbols-outlined">settings</span></button>
+<button class="p-2 text-[#8E9E82] hover:text-[#D97757] active:opacity-100 opacity-80"><span class="material-symbols-outlined">help_outline</span></button>
+</div>
+</div>
+</header>
+<!-- Topology Workspace -->
+<div class="flex-1 relative topology-grid overflow-hidden">
+<!-- CI/CD Health Overlays -->
+<div class="absolute top-6 left-6 flex gap-4 z-20">
+<div class="bg-[#1C1C1B]/80 backdrop-blur-md border border-[#2A2A28] px-3 py-2 rounded flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+<div>
+<p class="text-[10px] text-[#8E9E82] uppercase tracking-tighter leading-none">Overfitting Guard</p>
+<p class="text-xs font-bold text-[#E5E2DE]">PASS <span class="font-normal opacity-50 ml-1">0.0024</span></p>
+</div>
+</div>
+<div class="bg-[#1C1C1B]/80 backdrop-blur-md border border-[#2A2A28] px-3 py-2 rounded flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-[#D97757] shadow-[0_0_8px_rgba(217,119,87,0.6)]"></div>
+<div>
+<p class="text-[10px] text-[#8E9E82] uppercase tracking-tighter leading-none">Latency Delta</p>
+<p class="text-xs font-bold text-[#E5E2DE]">WARN <span class="font-normal opacity-50 ml-1">+14ms</span></p>
+</div>
+</div>
+<div class="bg-[#1C1C1B]/80 backdrop-blur-md border border-[#2A2A28] px-3 py-2 rounded flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+<div>
+<p class="text-[10px] text-[#8E9E82] uppercase tracking-tighter leading-none">Data Drift</p>
+<p class="text-xs font-bold text-[#E5E2DE]">STABLE</p>
+</div>
+</div>
+</div>
+<!-- SVG Topology Map (Mock Connections) -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none opacity-40">
+<path d="M120,400 L280,300 M120,500 L280,300 M280,300 L440,300 M440,300 L600,200 M440,300 L600,400 M600,200 L760,200 M600,400 L760,400" fill="none" stroke="#2A2A28" stroke-width="1.5"></path>
+<circle cx="280" cy="300" fill="#D97757" r="3"></circle>
+<!-- Logic Divergence Callout -->
+<g>
+<path d="M440,300 L500,250" stroke="#D97757" stroke-dasharray="4,4" stroke-width="1"></path>
+<text class="text-[10px] font-mono" fill="#D97757" x="505" y="245">DIVERGENCE_0x4F: DELTA &gt; 0.05</text>
+</g>
+</svg>
+<!-- Nodes Layer -->
+<div class="absolute inset-0 p-12">
+<!-- Data Sources -->
+<div class="absolute left-20 top-1/2 -translate-y-1/2 space-y-16">
+<div class="group relative">
+<div class="w-10 h-10 bg-[#1C1C1B] border border-[#2A2A28] rounded flex items-center justify-center text-[#8E9E82] group-hover:border-[#D97757] transition-all cursor-pointer">
+<span class="material-symbols-outlined">database</span>
+</div>
+<div class="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-mono uppercase tracking-widest text-[#8E9E82]">SEC_EDGAR</div>
+</div>
+<div class="group relative">
+<div class="w-10 h-10 bg-[#1C1C1B] border border-[#2A2A28] rounded flex items-center justify-center text-[#8E9E82] group-hover:border-[#D97757] transition-all cursor-pointer">
+<span class="material-symbols-outlined">monitoring</span>
+</div>
+<div class="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-mono uppercase tracking-widest text-[#8E9E82]">ALFRED_FED</div>
+</div>
+</div>
+<!-- Math Models -->
+<div class="absolute left-[260px] top-[280px]">
+<div class="bg-[#1C1C1B] border border-[#D97757]/50 p-4 rounded-lg shadow-2xl w-48 node-pulse">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[10px] font-mono text-[#D97757]">MODEL_X_89</span>
+<span class="material-symbols-outlined text-xs text-[#D97757]">function</span>
+</div>
+<p class="text-xs font-bold text-[#E5E2DE] mb-1">Transformer_LSTM_v2</p>
+<div class="h-1 w-full bg-border rounded-full overflow-hidden">
+<div class="h-full bg-[#D97757]" style="width: 74%"></div>
+</div>
+<div class="flex justify-between mt-1">
+<span class="text-[9px] text-[#8E9E82]">Confidence</span>
+<span class="text-[9px] text-[#E5E2DE]">74.2%</span>
+</div>
+</div>
+</div>
+<!-- Gates -->
+<div class="absolute left-[420px] top-[290px]">
+<div class="w-6 h-6 rotate-45 border-2 border-[#8E9E82] bg-[#131312] flex items-center justify-center">
+<div class="w-2 h-2 rounded-full bg-emerald-500 -rotate-45"></div>
+</div>
+</div>
+<!-- Agents (Bull/Bear) -->
+<div class="absolute left-[580px] top-[150px]">
+<div class="group relative">
+<div class="w-12 h-12 bg-emerald-950/30 border border-emerald-500/50 rounded-full flex items-center justify-center text-emerald-500 cursor-pointer hover:bg-emerald-500/10 transition-all">
+<span class="material-symbols-outlined">trending_up</span>
+</div>
+<div class="absolute -right-24 top-1/2 -translate-y-1/2 bg-[#1C1C1B] border border-[#2A2A28] px-2 py-1 rounded text-[10px]">
+                            AGENT_BULL_HFT
+                        </div>
+</div>
+</div>
+<div class="absolute left-[580px] top-[380px]">
+<div class="group relative">
+<div class="w-12 h-12 bg-red-950/30 border border-red-500/50 rounded-full flex items-center justify-center text-red-500 cursor-pointer hover:bg-red-500/10 transition-all">
+<span class="material-symbols-outlined">trending_down</span>
+</div>
+<div class="absolute -right-24 top-1/2 -translate-y-1/2 bg-[#1C1C1B] border border-[#2A2A28] px-2 py-1 rounded text-[10px]">
+                            AGENT_BEAR_SHORT
+                        </div>
+</div>
+</div>
+</div>
+</div>
+<!-- Node Inspector Sidebar (Right) -->
+<aside class="absolute right-0 top-0 bottom-0 w-80 bg-[#131312] border-l border-[#2A2A28] flex flex-col z-20">
+<div class="p-4 border-b border-[#2A2A28] flex items-center justify-between">
+<h2 class="text-xs font-bold uppercase tracking-widest text-[#E5E2DE]">Node Inspector</h2>
+<span class="text-[10px] text-[#D97757] font-mono">LIVE_STREAMING</span>
+</div>
+<div class="flex-1 overflow-y-auto custom-scrollbar">
+<!-- MLflow Artifacts -->
+<div class="p-4 space-y-6">
+<section>
+<h3 class="text-[10px] font-mono text-[#8E9E82] mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-xs">attachment</span> MLFLOW_ARTIFACTS.JSON
+                        </h3>
+<div class="bg-[#1C1C1B] p-3 rounded font-mono text-[10px] leading-relaxed text-emerald-400/80">
+<span class="text-blue-400">{</span><br/>
+                              "run_id": "ae49-11f2",<br/>
+                              "status": "ACTIVE",<br/>
+                              "hyperparams": {<br/>
+                                "lr": 0.0001,<br/>
+                                "dropout": 0.2<br/>
+                              },<br/>
+                              "metrics": [<span class="text-yellow-400">0.982</span>, <span class="text-yellow-400">0.975</span>]<br/>
+<span class="text-blue-400">}</span>
+</div>
+</section>
+<!-- Latency Metrics -->
+<section>
+<h3 class="text-[10px] font-mono text-[#8E9E82] mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-xs">timer</span> LATENCY_DISTRIBUTION
+                        </h3>
+<div class="space-y-2">
+<div class="flex justify-between text-[10px]">
+<span>P99_HEAD_END</span>
+<span class="text-[#E5E2DE]">42ms</span>
+</div>
+<div class="w-full bg-[#1C1C1B] h-1.5 rounded-full">
+<div class="bg-[#D97757] h-full w-[40%]"></div>
+</div>
+<div class="flex justify-between text-[10px] pt-1">
+<span>INGEST_DELTA</span>
+<span class="text-[#E5E2DE]">11ms</span>
+</div>
+<div class="w-full bg-[#1C1C1B] h-1.5 rounded-full">
+<div class="bg-[#D97757] h-full w-[15%]"></div>
+</div>
+</div>
+</section>
+<!-- Gradient Health Charts -->
+<section>
+<h3 class="text-[10px] font-mono text-[#8E9E82] mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-xs">query_stats</span> GRADIENT_HEALTH_STABILITY
+                        </h3>
+<div class="h-24 w-full bg-[#1C1C1B] rounded overflow-hidden relative border border-[#2A2A28]">
+<svg class="w-full h-full" viewbox="0 0 100 40">
+<path d="M0 30 Q 10 35, 20 25 T 40 28 T 60 15 T 80 20 T 100 10" fill="none" stroke="#D97757" stroke-width="1"></path>
+<path d="M0 30 Q 10 35, 20 25 T 40 28 T 60 15 T 80 20 T 100 10 L 100 40 L 0 40 Z" fill="url(#grad)" opacity="0.2"></path>
+<defs>
+<lineargradient id="grad" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" style="stop-color:#D97757;stop-opacity:1"></stop>
+<stop offset="100%" style="stop-color:#D97757;stop-opacity:0"></stop>
+</lineargradient>
+</defs>
+</svg>
+</div>
+</section>
+<!-- Deployment Logs -->
+<section>
+<h3 class="text-[10px] font-mono text-[#8E9E82] mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-xs">terminal</span> RECENT_EVENTS
+                        </h3>
+<div class="text-[9px] font-mono space-y-1.5 text-[#8E9E82]">
+<p><span class="text-blue-500">[14:22:01]</span> NODE_GATE_B Passed security</p>
+<p><span class="text-blue-500">[14:21:45]</span> RE-CALCULATION initiated</p>
+<p><span class="text-[#D97757]">[14:21:30]</span> WARN: Divergence in Layer 4</p>
+</div>
+</section>
+</div>
+</div>
+<div class="p-4 bg-[#1C1C1B] border-t border-[#2A2A28]">
+<button class="w-full bg-[#D97757] hover:bg-[#c06549] text-white text-xs font-bold py-2 rounded transition-colors uppercase tracking-widest">
+                    Manual Override
+                </button>
+</div>
+</aside>
+<!-- Footer Utility -->
+<footer class="absolute bottom-0 left-0 right-80 h-8 bg-[#131312] border-t border-[#2A2A28] z-30 flex items-center px-4 justify-between text-[9px] font-mono text-[#8E9E82]">
+<div class="flex items-center gap-4">
+<span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> ENGINE_STABLE</span>
+<span>TPS: 1.4M</span>
+<span>SYNC: 0.00ms</span>
+</div>
+<div class="flex items-center gap-4">
+<span>VIEW: TOPOLOGY_BRANCH_3</span>
+<span>COORD: 39.022, -74.992</span>
+</div>
+</footer>
+</main>
+</body></html>

@@ -1,0 +1,57 @@
+{
+  "config_id": "sma_crossover_tech_v1",
+  "version": "1.0",
+  "asset_universe": {
+    "tickers": ["AAPL", "MSFT", "NVDA", "GOOGL", "META"],
+    "benchmark": "SPY"
+  },
+  "signal_gate": {
+    "type": "technical",
+    "fast_sma_days": 10,
+    "slow_sma_days": 50,
+    "entry": "fast_crosses_above_slow",
+    "exit": "fast_crosses_below_slow",
+    "finbert_above": 0.0,
+    "earnings_revision_direction": null,
+    "insider_cluster": false
+  },
+  "fundamental_engine": {
+    "earnings_revision": {
+      "enabled": false,
+      "warn_threshold": 0.02
+    },
+    "insider_monitor": {
+      "enabled": false,
+      "cluster_window_days": 45
+    }
+  },
+  "agent": {
+    "enabled": false,
+    "provider": "ollama",
+    "model": "qwen2.5:14b",
+    "pipeline": ["analyst", "risk_manager"]
+  },
+  "position_sizing": {
+    "capital": 100000.0,
+    "max_position_pct": 0.05,
+    "method": "equal_weight"
+  },
+  "sandbox": {
+    "slippage_bps": 5,
+    "min_hold_days": 3,
+    "promotion_criteria": {
+      "held_out_sharpe_min": 0.70,
+      "held_out_degradation_max": 0.40
+    }
+  },
+  "routing": {
+    "mode": "build",
+    "logging": {
+      "depth": "production"
+    }
+  },
+  "date_range": {
+    "start": "2019-01-01",
+    "end": "2023-12-31"
+  }
+}

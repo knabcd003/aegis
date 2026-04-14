@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { 
     TrendingUp, TrendingDown, DollarSign, BarChart2, RefreshCw, 
     Loader2, ArrowUpRight, ArrowDownRight, ShieldCheck, 
-    Zap, Target, Activity, Search, LayoutGrid, Globe
+    Zap, Target, Activity, Search, LayoutGrid, Globe,
+    ChevronDown, MoreHorizontal, Download, Share2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -44,7 +45,8 @@ export function PortfolioTracker() {
             setLoading(true);
             const res = await fetch(`${API_BASE}/api/portfolio/overview`);
             if (!res.ok) throw new Error(`API error: ${res.status}`);
-            setData(await res.json());
+            const data = await res.json();
+            setData(data);
             setError(null);
         } catch (e: any) {
             setError(e.message);
@@ -66,144 +68,178 @@ export function PortfolioTracker() {
 
     if (loading) {
         return (
-            <div className="flex h-full items-center justify-center bg-[#0C0E11]">
-                <div className="flex flex-col items-center gap-4 py-20 px-40 border border-[#2D333B] bg-[#111418]">
-                    <Loader2 className="w-5 h-5 animate-spin text-white/50" />
-                    <span className="text-[10px] font-mono font-bold text-white/30 uppercase tracking-[0.2em]">Hydrating_Portfolio_State...</span>
+            <div className="flex h-full items-center justify-center bg-surface">
+                <div className="flex flex-col items-center gap-4 py-20 px-40 glass-panel border border-white/5">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                    <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em]">Hydrating Portfolio State...</span>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col h-full bg-[#0C0E11] overflow-hidden">
-            <div className="flex-1 flex flex-col p-6 gap-6 overflow-hidden">
-                {/* Technical Header */}
-                <header className="flex items-center justify-between border-b border-[#2D333B] pb-4">
-                    <div className="flex flex-col">
-                        <h1 className="text-sm font-bold text-white uppercase tracking-[0.2em]">Portfolio Attribution Matrix</h1>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[10px] font-mono text-white/40 uppercase">Gateway: PROT-V7-ALPHA</span>
-                            <span className="text-[10px] font-mono text-white/20">•</span>
-                            <span className="text-[10px] font-mono text-white/40 uppercase">Oracles: LIVE_FEED</span>
-                        </div>
+        <div className="p-8 max-w-screen-2xl mx-auto space-y-8">
+            {/* Editorial Header */}
+            <header className="flex items-center justify-between border-b border-white/5 pb-6">
+                <div className="flex flex-col">
+                    <h1 className="font-headline text-3xl font-medium text-on-surface">Portfolio Attribution Matrix</h1>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Gateway: PROT-V7-ALPHA</span>
+                        <span className="h-3 w-[1px] bg-white/10 mx-1"></span>
+                        <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest italic text-secondary">Oracles: LIVE_FEED</span>
                     </div>
-                    <button onClick={load} className="h-7 px-3 rounded border border-[#2D333B] text-[10px] font-bold text-white/60 hover:text-white transition-all uppercase tracking-widest flex items-center gap-2">
-                        <RefreshCw className="w-3 h-3" />
+                </div>
+                <div className="flex gap-3">
+                    <button onClick={load} className="h-10 px-4 rounded-lg border border-white/10 text-[0.8125rem] font-bold text-on-surface-variant hover:text-on-surface hover:bg-[#1a1a19] transition-all uppercase tracking-widest flex items-center gap-2">
+                        <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
                         Refresh
                     </button>
-                </header>
+                    <button className="h-10 px-4 rounded-lg bg-primary-container text-on-primary-container text-[0.8125rem] font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg transition-transform active:scale-95">
+                        <Download className="w-4 h-4" />
+                        Export
+                    </button>
+                </div>
+            </header>
 
-                {error && (
-                    <div className="border border-red-900 bg-red-950/20 text-red-400 p-2 text-[10px] font-mono uppercase tracking-widest">
-                        ERROR_ID::PORTFOLIO_LINK_FAIL -- {error}
-                    </div>
-                )}
+            {error && (
+                <div className="bg-tertiary-container/10 border border-tertiary/20 text-tertiary p-4 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-3">
+                    <Zap className="w-4 h-4" />
+                    System Attribution Error: {error}
+                </div>
+            )}
 
-                {data && (data.sentinels.length > 0 || data.backtest_navs.length > 0) ? (
-                    <div className="flex-1 flex flex-col gap-6 overflow-hidden min-h-0">
-                        {/* Summary Bar */}
-                        <div className="grid grid-cols-3 border border-[#2D333B] bg-[#111418]">
-                            <div className="p-4 border-r border-[#2D333B]">
-                                <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest block mb-1">Total_Actual_NAV</span>
-                                <span className="text-lg font-mono font-bold text-white">{formatCurrency(data.total_actual_nav)}</span>
+            {data && (
+                <div className="space-y-8">
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-surface-container rounded-xl p-6 border border-white/5 group hover:bg-surface-container-high transition-colors">
+                            <span className="text-[0.625rem] font-bold text-on-surface-variant uppercase tracking-[0.2em] block mb-2">Total Actual NAV</span>
+                            <div className="flex items-baseline gap-2">
+                                <span className="font-headline text-3xl font-medium text-on-surface">{formatCurrency(data.total_actual_nav)}</span>
+                                <span className="text-secondary text-[10px] font-bold uppercase">+1.2%</span>
                             </div>
-                            <div className="p-4 border-r border-[#2D333B]">
-                                <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest block mb-1">Mirror_Shadow_NAV</span>
-                                <span className="text-lg font-mono font-bold text-white/40">{formatCurrency(data.total_mirror_nav)}</span>
+                            <div className="mt-4 w-full bg-surface-container-highest h-1 rounded-full overflow-hidden">
+                                <div className="bg-secondary h-full w-[65%]" />
                             </div>
-                            <div className="p-4 flex flex-col justify-center">
-                                <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest block mb-1">Override_Gap</span>
+                        </div>
+                        <div className="bg-surface-container rounded-xl p-6 border border-white/5 opacity-80 hover:opacity-100 transition-opacity">
+                            <span className="text-[0.625rem] font-bold text-on-surface-variant uppercase tracking-[0.2em] block mb-2">Mirror Shadow NAV</span>
+                            <span className="font-headline text-3xl font-light text-on-surface-variant italic">{formatCurrency(data.total_mirror_nav)}</span>
+                            <div className="mt-4 flex items-center gap-2">
+                                <Activity className="w-3 h-3 text-on-surface-variant/30" />
+                                <span className="text-[10px] uppercase font-bold text-on-surface-variant/50">Simulated Baseline</span>
+                            </div>
+                        </div>
+                        <div className="bg-surface-container rounded-xl p-6 border border-white/5 border-l-4 border-l-primary">
+                            <span className="text-[0.625rem] font-bold text-on-surface-variant uppercase tracking-[0.2em] block mb-2">Override Alpha Gap</span>
+                            <div className="flex items-baseline gap-2">
                                 <span className={cn(
-                                    "text-lg font-mono font-bold",
-                                    data.total_gap >= 0 ? "text-emerald-500/80" : "text-rose-500/80"
+                                    "font-headline text-3xl font-semibold",
+                                    data.total_gap >= 0 ? "text-primary" : "text-tertiary"
                                 )}>
                                     {formatCurrency(data.total_gap)}
                                 </span>
+                                <TrendingUp className="w-4 h-4 text-primary" />
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-2 font-medium uppercase tracking-tighter italic">Net outperformance vs agent baseline</p>
+                        </div>
+                    </div>
+
+                    {/* Registry Table */}
+                    <div className="bg-surface-container rounded-xl overflow-hidden border border-white/5">
+                        <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+                            <h3 className="font-headline text-xl font-medium">Active Sentinel Nodes</h3>
+                            <div className="flex items-center gap-4">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                                    <input className="bg-surface-container-low border-none rounded-lg pl-9 pr-4 py-1.5 text-[0.75rem] text-on-surface placeholder:text-muted-foreground w-48 focus:ring-1 focus:ring-primary-container" placeholder="Filter nodes..." type="text" />
+                                </div>
+                                <MoreHorizontal className="w-5 h-5 text-muted-foreground cursor-pointer" />
                             </div>
                         </div>
-
-                        {/* Registry Table */}
-                        <div className="flex-1 border border-[#2D333B] bg-[#111418] relative overflow-hidden flex flex-col min-h-0">
-                            <div className="px-4 py-2 bg-[#1C1F24] border-b border-[#2D333B] flex items-center justify-between">
-                                <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Active_Sentinel_Nodes</span>
-                                <LayoutGrid className="w-3 h-3 text-white/20" />
-                            </div>
-                            <div className="overflow-auto scrollbar-thin flex-1">
-                                <table className="w-full text-left border-collapse">
-                                    <thead className="sticky top-0 bg-[#111418] border-b border-[#2D333B] z-10">
-                                        <tr>
-                                            <th className="px-4 py-2 text-[9px] font-bold text-white/30 uppercase tracking-widest border-r border-[#2D333B]">Node_ID</th>
-                                            <th className="px-4 py-2 text-[9px] font-bold text-white/30 uppercase tracking-widest border-r border-[#2D333B]">Actual_Perf</th>
-                                            <th className="px-4 py-2 text-[9px] font-bold text-white/30 uppercase tracking-widest border-r border-[#2D333B]">Mirror_Perf</th>
-                                            <th className="px-4 py-2 text-[9px] font-bold text-white/30 uppercase tracking-widest text-right">Attribution_Status</th>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="text-[0.6875rem] uppercase tracking-widest text-on-surface-variant border-b border-white/5 font-bold">
+                                        <th className="px-6 py-4">Node Identity</th>
+                                        <th className="px-6 py-4">Actual Perf</th>
+                                        <th className="px-6 py-4 text-on-surface-variant/50">Mirror Alpha</th>
+                                        <th className="px-6 py-4 text-right">Attribution</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-[0.8125rem] divide-y divide-white/5">
+                                    {data.sentinels.map((s, i) => (
+                                        <tr key={i} className="hover:bg-white/[0.02] transition-colors group">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded bg-surface-container-highest flex items-center justify-center">
+                                                        <Activity className="w-4 h-4 text-secondary" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-on-surface font-mono">{s.sentinel_id}</p>
+                                                        <p className="text-[0.625rem] text-muted-foreground uppercase font-bold tracking-tighter italic">Primary Execution Node</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col">
+                                                    <span className="font-headline text-lg font-medium text-on-surface">{formatCurrency(s.actual_nav)}</span>
+                                                    <span className={cn("text-[0.6875rem] font-bold", s.actual_return_pct >= 0 ? "text-secondary" : "text-tertiary")}>
+                                                        {formatPct(s.actual_return_pct)}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col opacity-40 group-hover:opacity-60 transition-opacity">
+                                                    <span className="font-headline text-base font-light italic">{formatCurrency(s.mirror_nav)}</span>
+                                                    <span className={cn("text-[0.6875rem] font-bold", s.mirror_return_pct >= 0 ? "text-secondary" : "text-tertiary")}>
+                                                        {formatPct(s.mirror_return_pct)}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className={cn(
+                                                    "inline-flex items-center gap-2 px-3 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-widest",
+                                                    s.human_outperformance 
+                                                        ? "bg-secondary-container/10 border-secondary/20 text-secondary" 
+                                                        : "bg-surface-container-highest border-white/5 text-on-surface-variant"
+                                                )}>
+                                                    <div className={cn("w-1.5 h-1.5 rounded-full", s.human_outperformance ? "bg-secondary" : "bg-outline")} />
+                                                    {s.human_outperformance ? "Alpha Positive" : "Baseline"}
+                                                </div>
+                                            </td>
                                         </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-[#2D333B]">
-                                        {data.sentinels.map((s, i) => (
-                                            <tr key={i} className="hover:bg-white/[0.02]">
-                                                <td className="px-4 py-2 border-r border-[#2D333B] font-mono text-[11px] text-white/80">{s.sentinel_id}</td>
-                                                <td className="px-4 py-2 border-r border-[#2D333B]">
-                                                    <div className="flex flex-col gap-0.5">
-                                                        <span className="text-[11px] font-mono text-white">{formatCurrency(s.actual_nav)}</span>
-                                                        <span className={cn("text-[9px] font-mono", s.actual_return_pct >= 0 ? "text-emerald-500/60" : "text-rose-500/60")}>
-                                                            {formatPct(s.actual_return_pct)}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-2 border-r border-[#2D333B]">
-                                                    <div className="flex flex-col gap-0.5 opacity-40">
-                                                        <span className="text-[11px] font-mono text-white">{formatCurrency(s.mirror_nav)}</span>
-                                                        <span className={cn("text-[9px] font-mono", s.mirror_return_pct >= 0 ? "text-emerald-500/60" : "text-rose-500/60")}>
-                                                            {formatPct(s.mirror_return_pct)}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-2 text-right">
-                                                    <div className="inline-flex items-center gap-1.5 grayscale opacity-50">
-                                                        <div className={cn("w-1 h-1 rounded-full", s.human_outperformance ? "bg-emerald-500" : "bg-white")} />
-                                                        <span className="text-[9px] font-mono text-white uppercase tracking-tighter">
-                                                            {s.human_outperformance ? "Positive_Alpha" : "Baseline"}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
+                    </div>
 
-                        {/* Archive Footer */}
-                        <div className="h-40 border border-[#2D333B] bg-[#111418] flex flex-col overflow-hidden shrink-0">
-                             <div className="px-4 py-1.5 bg-[#1C1F24] border-b border-[#2D333B] flex items-center justify-between">
-                                <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Simulation_Archive</span>
-                             </div>
-                             <div className="overflow-auto scrollbar-thin">
-                                <table className="w-full text-left border-collapse">
-                                    <tbody className="divide-y divide-[#2D333B]">
-                                        {data.backtest_navs.map((nav, i) => (
-                                            <tr key={i} className="hover:bg-white/[0.02]">
-                                                <td className="px-4 py-1.5 font-mono text-[10px] text-white/40">{nav.run_id}</td>
-                                                <td className="px-4 py-1.5 font-mono text-[10px] text-white/60">{formatCurrency(nav.end_nav)}</td>
-                                                <td className={cn("px-4 py-1.5 font-mono text-[10px]", nav.return_pct >= 0 ? "text-emerald-500/40" : "text-rose-500/40")}>
-                                                    {nav.return_pct >= 0 ? "+" : ""}{nav.return_pct.toFixed(2)}%
-                                                </td>
-                                                <td className="px-4 py-1.5 text-right font-mono text-[9px] text-white/20 uppercase tracking-tighter">{nav.data_points} POINTS</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                             </div>
+                    {/* Simulation Archive footer */}
+                    <section className="bg-surface-container-low rounded-xl border border-white/5 overflow-hidden">
+                        <div className="px-6 py-3 bg-surface-container border-b border-white/5 flex items-center justify-between">
+                            <h4 className="font-headline text-sm font-medium italic text-on-surface-variant">Simulation Archive (Historical Path)</h4>
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{data.backtest_navs.length} Segments Logged</span>
                         </div>
-                    </div>
-                ) : (
-                    <div className="py-20 text-center border border-dashed border-[#2D333B]">
-                         <p className="text-[11px] font-mono text-white/20 uppercase tracking-[0.3em]">No_Sentinel_Nodes_Active</p>
-                    </div>
-                )}
-            </div>
+                        <div className="max-h-48 overflow-auto scrollbar-thin">
+                            <table className="w-full text-left">
+                                <tbody className="divide-y divide-white/5">
+                                    {data.backtest_navs.map((nav, i) => (
+                                        <tr key={i} className="hover:bg-white/[0.01] transition-colors">
+                                            <td className="px-6 py-2 font-mono text-[10px] text-on-surface-variant">{nav.run_id}</td>
+                                            <td className="px-6 py-2 font-headline text-sm text-on-surface">{formatCurrency(nav.end_nav)}</td>
+                                            <td className={cn("px-6 py-2 font-bold text-[11px]", nav.return_pct >= 0 ? "text-secondary/60" : "text-tertiary/60")}>
+                                                {formatPct(nav.return_pct)}
+                                            </td>
+                                            <td className="px-6 py-2 text-right text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">{nav.data_points} Data Points</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            )}
         </div>
     );
 }
-

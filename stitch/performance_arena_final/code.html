@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aegis AI | Performance Arena</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&amp;family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary": "#ffb3b2",
+                        "surface-container-highest": "#353532",
+                        "on-secondary-container": "#9ebfb7",
+                        "on-primary-container": "#541400",
+                        "on-secondary-fixed": "#00201b",
+                        "inverse-primary": "#99462a",
+                        "tertiary-container": "#d37878",
+                        "surface": "#131312",
+                        "on-secondary": "#163630",
+                        "on-primary-fixed-variant": "#7a2f15",
+                        "on-primary-fixed": "#390b00",
+                        "tertiary-fixed-dim": "#ffb3b2",
+                        "surface-container": "#20201e",
+                        "on-surface": "#e5e2de",
+                        "error-container": "#93000a",
+                        "surface-container-low": "#1c1c1a",
+                        "primary-fixed": "#ffdbd0",
+                        "secondary-fixed": "#c7eae1",
+                        "tertiary-fixed": "#ffdad8",
+                        "primary-container": "#d97757",
+                        "surface-bright": "#3a3937",
+                        "on-background": "#e5e2de",
+                        "background": "#131312",
+                        "error": "#ffb4ab",
+                        "surface-container-high": "#2a2a28",
+                        "primary-fixed-dim": "#ffb59e",
+                        "outline-variant": "#55433d",
+                        "on-tertiary-fixed": "#3e040a",
+                        "outline": "#a38c85",
+                        "surface-tint": "#ffb59e",
+                        "on-surface-variant": "#dbc1b9",
+                        "on-error-container": "#ffdad6",
+                        "on-tertiary-container": "#531418",
+                        "surface-variant": "#353532",
+                        "on-tertiary-fixed-variant": "#772f31",
+                        "secondary-fixed-dim": "#accec5",
+                        "inverse-surface": "#e5e2de",
+                        "on-primary": "#5c1902",
+                        "secondary-container": "#304f48",
+                        "primary": "#ffb59e",
+                        "inverse-on-surface": "#31302e",
+                        "secondary": "#accec5",
+                        "on-tertiary": "#5a1a1d",
+                        "on-error": "#690005",
+                        "surface-dim": "#131312",
+                        "on-secondary-fixed-variant": "#2d4c46",
+                        "surface-container-lowest": "#0e0e0c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Newsreader"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #131312; color: #e5e2de; }
+        .serif { font-family: 'Newsreader', serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .glass-card { background: rgba(32, 32, 30, 0.8); backdrop-filter: blur(20px); }
+        .heatmap-cell { transition: opacity 0.2s ease; }
+        .heatmap-cell:hover { opacity: 0.8; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- Sidebar Navigation -->
+<aside class="flex flex-col h-full pt-8 pb-4 w-64 fixed left-0 bg-[#131312] border-r border-white/5 z-50">
+<div class="px-6 mb-12">
+<h1 class="font-['Newsreader'] text-2xl font-light text-[#E5E2DE]">Aegis AI</h1>
+<p class="text-[0.6875rem] uppercase tracking-[0.1em] text-outline mt-1 font-medium">Intelligence Core v2.4</p>
+</div>
+<nav class="flex-1 flex flex-col gap-1">
+<a class="flex items-center gap-3 px-4 py-3 text-[#8e8e88] hover:text-[#E5E2DE] hover:bg-[#1a1a19] transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="sensors">sensors</span>
+<span class="font-['Inter'] text-[0.8125rem] tracking-wide">Signals</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#8e8e88] hover:text-[#E5E2DE] hover:bg-[#1a1a19] transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="rocket_launch">rocket_launch</span>
+<span class="font-['Inter'] text-[0.8125rem] tracking-wide">Deployed</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#8e8e88] hover:text-[#E5E2DE] hover:bg-[#1a1a19] transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="menu_book">menu_book</span>
+<span class="font-['Inter'] text-[0.8125rem] tracking-wide">Content</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-[#1c1c1b] text-[#FFB59E] border-r-2 border-[#D97757] rounded-none transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="leaderboard" style="font-variation-settings: 'FILL' 1;">leaderboard</span>
+<span class="font-['Inter'] text-[0.8125rem] tracking-wide">Performance</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#8e8e88] hover:text-[#E5E2DE] hover:bg-[#1a1a19] transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="biotech">biotech</span>
+<span class="font-['Inter'] text-[0.8125rem] tracking-wide">Sandbox</span>
+</a>
+</nav>
+<div class="mt-auto px-4 pb-4 space-y-1">
+<button class="w-full mb-6 bg-primary-container text-on-primary-container py-2.5 rounded-lg text-[0.8125rem] font-medium hover:brightness-110 transition-all active:scale-95">
+                Deploy New Node
+            </button>
+<a class="flex items-center gap-3 px-4 py-2 text-[#8e8e88] hover:text-[#E5E2DE] text-[0.8125rem]" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="menu_book">menu_book</span>
+                Documentation
+            </a>
+<a class="flex items-center gap-3 px-4 py-2 text-[#8e8e88] hover:text-[#E5E2DE] text-[0.8125rem]" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="settings">settings</span>
+                Settings
+            </a>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="ml-64 min-h-screen">
+<!-- Top Bar -->
+<header class="flex justify-between items-center w-full px-8 h-16 sticky top-0 z-40 bg-[#131312]/80 backdrop-blur-md shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
+<div class="flex items-center gap-8">
+<h2 class="serif text-xl font-semibold italic text-[#E5E2DE]">Performance Arena</h2>
+<div class="hidden md:flex gap-6">
+<span class="text-[#FFB59E] font-medium border-b-2 border-[#D97757] pb-1 cursor-default text-[0.8125rem]">Active Analytics</span>
+<span class="text-[#8e8e88] font-normal hover:text-[#E5E2DE] cursor-pointer transition-colors text-[0.8125rem]">Risk Attribution</span>
+<span class="text-[#8e8e88] font-normal hover:text-[#E5E2DE] cursor-pointer transition-colors text-[0.8125rem]">Order Flow</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 px-3 py-1.5 bg-surface-container-low border border-white/5 rounded-lg text-[0.75rem]">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span class="text-on-surface-variant font-medium">Live Feed: Node-04</span>
+</div>
+<div class="flex items-center gap-4 text-on-surface-variant">
+<span class="material-symbols-outlined hover:text-primary cursor-pointer transition-colors" data-icon="health_and_safety">health_and_safety</span>
+<span class="material-symbols-outlined hover:text-primary cursor-pointer transition-colors" data-icon="hub">hub</span>
+<span class="material-symbols-outlined hover:text-primary cursor-pointer transition-colors" data-icon="notifications">notifications</span>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="professional portrait of a senior financial analyst in a dark studio setting with soft key lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGnMuArlt0hBJtRqNcreZFG_vSyUfqWAZnn2xWjbdIbbzd0kTjZFVyWq9tJOBQhLNkxq0VBbINtECfUanCcGV9WfArt_Zu3iAH-Oa1qJbMFyCDf6AA-7toEVasg4xOULHfUPfx6KZi8BwBwqKw44FIZgn1SsclEmlfFq1VKdWIJXuP17FY1hAdTcietffOYbk5u8w0L_4T5HHRHkj08P-gxKxh1a66lpk-JN78NukrD-DF23K8TuyeTGKgWwMb7ctJzCxBWcAgTT4C"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Content Area -->
+<div class="p-8 max-w-screen-2xl mx-auto space-y-8">
+<!-- Hero Grid: Cumulative Performance & Bear Bias -->
+<div class="grid grid-cols-12 gap-6">
+<!-- Main Chart Card -->
+<div class="col-span-12 lg:col-span-8 bg-surface-container rounded-xl p-6 border border-white/5 relative overflow-hidden group">
+<div class="flex justify-between items-start mb-8">
+<div>
+<h3 class="serif text-xl font-medium text-on-surface">Cumulative Performance</h3>
+<p class="text-on-surface-variant text-xs mt-1">Relative alpha comparison across simulation regimes.</p>
+</div>
+<div class="flex gap-4">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="text-[0.6875rem] text-on-surface-variant">Live</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="text-[0.6875rem] text-on-surface-variant">Ideal</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full border border-outline"></span>
+<span class="text-[0.6875rem] text-on-surface-variant">Counterfactual</span>
+</div>
+</div>
+</div>
+<!-- SVG Chart Placeholder -->
+<div class="h-64 w-full relative">
+<svg class="w-full h-full" viewbox="0 0 800 200">
+<path d="M0,150 Q100,140 200,160 T400,120 T600,80 T800,20" fill="none" stroke="#FFB59E" stroke-linecap="round" stroke-width="3"></path>
+<path d="M0,150 Q100,130 200,140 T400,90 T600,50 T800,10" fill="none" opacity="0.6" stroke="#ACCEC5" stroke-dasharray="8,4" stroke-linecap="round" stroke-width="2"></path>
+<path d="M0,150 Q100,160 200,175 T400,180 T600,190 T800,160" fill="none" opacity="0.4" stroke="#a38c85" stroke-linecap="round" stroke-width="1.5"></path>
+</svg>
+<div class="absolute inset-0 grid grid-cols-6 pointer-events-none">
+<div class="border-r border-white/5"></div>
+<div class="border-r border-white/5"></div>
+<div class="border-r border-white/5"></div>
+<div class="border-r border-white/5"></div>
+<div class="border-r border-white/5"></div>
+</div>
+</div>
+<div class="mt-6 flex gap-12 border-t border-white/5 pt-6">
+<div>
+<p class="text-[0.6875rem] text-on-surface-variant uppercase tracking-widest">Live Alpha</p>
+<p class="serif text-2xl text-on-surface font-medium">+14.2%</p>
+</div>
+<div>
+<p class="text-[0.6875rem] text-on-surface-variant uppercase tracking-widest">Slippage Loss</p>
+<p class="serif text-2xl text-tertiary font-medium">-0.82%</p>
+</div>
+<div>
+<p class="text-[0.6875rem] text-on-surface-variant uppercase tracking-widest">Execution Edge</p>
+<p class="serif text-2xl text-secondary font-medium">+2.1%</p>
+</div>
+</div>
+</div>
+<!-- Bear Bias Report Card -->
+<div class="col-span-12 lg:col-span-4 bg-surface-container rounded-xl p-6 border border-white/5">
+<div class="flex justify-between items-center mb-6">
+<h3 class="serif text-xl font-medium text-on-surface">Bear Bias Report</h3>
+<span class="material-symbols-outlined text-tertiary" data-icon="warning">warning</span>
+</div>
+<div class="space-y-6">
+<div class="p-4 bg-surface-container-low rounded-lg border-l-4 border-tertiary-container">
+<p class="text-[0.6875rem] text-on-surface-variant uppercase tracking-widest mb-1">Adversarial Win Rate</p>
+<div class="flex justify-between items-end">
+<p class="serif text-3xl font-semibold text-on-surface">62.4%</p>
+<span class="text-tertiary text-xs font-medium">+4.2% (24h)</span>
+</div>
+</div>
+<div class="space-y-4">
+<div>
+<div class="flex justify-between text-[0.75rem] mb-1.5">
+<span class="text-on-surface-variant">Regime Sensitivity</span>
+<span class="text-on-surface">High</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+<div class="bg-tertiary h-full rounded-full w-[85%]"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-[0.75rem] mb-1.5">
+<span class="text-on-surface-variant">Agent Decay Rate</span>
+<span class="text-on-surface">Moderate</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full w-[42%]"></div>
+</div>
+</div>
+</div>
+<div class="pt-4 border-t border-white/5">
+<p class="text-[0.75rem] text-on-surface-variant italic leading-relaxed">
+                                "Current adversarial nodes are exploiting high-volatility liquidity gaps. Recommend increasing hedging delta for Delta-Neutral clusters."
+                            </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Strategy Leaderboard & Stress Matrix -->
+<div class="grid grid-cols-12 gap-6">
+<!-- Strategy Leaderboard -->
+<div class="col-span-12 xl:col-span-8 bg-surface-container rounded-xl overflow-hidden border border-white/5">
+<div class="px-6 py-5 border-b border-white/5 flex justify-between items-center">
+<h3 class="serif text-xl font-medium">Strategy Leaderboard</h3>
+<button class="text-primary text-[0.8125rem] font-medium flex items-center gap-1 hover:underline">
+                            Export CSV <span class="material-symbols-outlined text-[16px]" data-icon="download">download</span>
+</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="text-[0.6875rem] uppercase tracking-widest text-outline border-b border-white/5">
+<th class="px-6 py-4 font-medium">Strategy Node</th>
+<th class="px-6 py-4 font-medium">Sharp Ratio</th>
+<th class="px-6 py-4 font-medium">Win Rate</th>
+<th class="px-6 py-4 font-medium">Max Drawdown</th>
+<th class="px-6 py-4 font-medium">Net Profit</th>
+<th class="px-6 py-4 font-medium">Status</th>
+</tr>
+</thead>
+<tbody class="text-[0.8125rem] divide-y divide-white/5">
+<tr class="hover:bg-white/[0.02] transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-medium">Vanguard-Alpha-6</span>
+</div>
+</td>
+<td class="px-6 py-4 font-medium text-secondary">3.82</td>
+<td class="px-6 py-4">71.4%</td>
+<td class="px-6 py-4 text-on-surface-variant">-2.1%</td>
+<td class="px-6 py-4 serif font-medium text-[#E5E2DE]">$1,240,492</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 rounded bg-secondary/10 text-secondary text-[0.625rem] font-bold uppercase tracking-wider">Active</span>
+</td>
+</tr>
+<tr class="hover:bg-white/[0.02] transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="font-medium">Shadow-Arbitrage-4</span>
+</div>
+</td>
+<td class="px-6 py-4 font-medium text-secondary">2.91</td>
+<td class="px-6 py-4">68.2%</td>
+<td class="px-6 py-4 text-on-surface-variant">-4.8%</td>
+<td class="px-6 py-4 serif font-medium text-[#E5E2DE]">$892,100</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 rounded bg-secondary/10 text-secondary text-[0.625rem] font-bold uppercase tracking-wider">Active</span>
+</td>
+</tr>
+<tr class="hover:bg-white/[0.02] transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<span class="w-2 h-2 rounded-full bg-outline"></span>
+<span class="font-medium">Momentum-Core-v2</span>
+</div>
+</td>
+<td class="px-6 py-4 font-medium text-tertiary">1.45</td>
+<td class="px-6 py-4">52.1%</td>
+<td class="px-6 py-4 text-on-surface-variant">-12.4%</td>
+<td class="px-6 py-4 serif font-medium text-[#E5E2DE]">$314,202</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 rounded bg-white/5 text-outline text-[0.625rem] font-bold uppercase tracking-wider">Paused</span>
+</td>
+</tr>
+<tr class="hover:bg-white/[0.02] transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-medium">HFT-Liquidity-Nexus</span>
+</div>
+</td>
+<td class="px-6 py-4 font-medium text-secondary">4.12</td>
+<td class="px-6 py-4">84.9%</td>
+<td class="px-6 py-4 text-on-surface-variant">-0.4%</td>
+<td class="px-6 py-4 serif font-medium text-[#E5E2DE]">$2,455,901</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 rounded bg-secondary/10 text-secondary text-[0.625rem] font-bold uppercase tracking-wider">Active</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Scenario Stress Matrix -->
+<div class="col-span-12 xl:col-span-4 bg-surface-container rounded-xl p-6 border border-white/5">
+<div class="mb-6">
+<h3 class="serif text-xl font-medium">Scenario Stress Matrix</h3>
+<p class="text-[0.6875rem] text-on-surface-variant uppercase tracking-widest mt-1">Impact probability heatmap</p>
+</div>
+<div class="grid grid-cols-4 gap-2">
+<!-- Header Labels -->
+<div class="text-[0.625rem] text-outline text-center uppercase tracking-tighter">Prob. L</div>
+<div class="text-[0.625rem] text-outline text-center uppercase tracking-tighter">Prob. M</div>
+<div class="text-[0.625rem] text-outline text-center uppercase tracking-tighter">Prob. H</div>
+<div class="text-[0.625rem] text-outline text-center uppercase tracking-tighter">Prob. VH</div>
+<!-- Heatmap Cells - Row 1 (VIX Spike) -->
+<div class="aspect-square bg-secondary/20 border border-secondary/30 rounded flex items-center justify-center group cursor-help relative">
+<span class="text-[0.625rem] text-secondary font-bold">L</span>
+<div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-24 p-2 bg-surface-container-highest border border-white/10 rounded-lg hidden group-hover:block z-10 text-[0.625rem]">VIX &lt; 20: Safe execution path.</div>
+</div>
+<div class="aspect-square bg-secondary/40 border border-secondary/50 rounded flex items-center justify-center group cursor-help relative">
+<span class="text-[0.625rem] text-secondary font-bold">M</span>
+</div>
+<div class="aspect-square bg-primary/40 border border-primary/50 rounded flex items-center justify-center group cursor-help relative">
+<span class="text-[0.625rem] text-primary font-bold">H</span>
+</div>
+<div class="aspect-square bg-tertiary/60 border border-tertiary/70 rounded flex items-center justify-center group cursor-help relative">
+<span class="text-[0.625rem] text-on-tertiary-container font-bold">VH</span>
+</div>
+<!-- Heatmap Cells - Row 2 (Liquidity Crisis) -->
+<div class="aspect-square bg-secondary/10 border border-white/5 rounded"></div>
+<div class="aspect-square bg-primary/20 border border-primary/30 rounded flex items-center justify-center">
+<span class="text-[0.625rem] text-primary font-bold">M</span>
+</div>
+<div class="aspect-square bg-tertiary/80 border border-tertiary rounded flex items-center justify-center">
+<span class="text-[0.625rem] text-on-tertiary-container font-bold">CRIT</span>
+</div>
+<div class="aspect-square bg-tertiary/20 border border-tertiary/30 rounded"></div>
+<!-- Row 3 (Flash Crash) -->
+<div class="aspect-square bg-secondary/5 border border-white/5 rounded"></div>
+<div class="aspect-square bg-secondary/10 border border-white/5 rounded"></div>
+<div class="aspect-square bg-primary/60 border border-primary rounded flex items-center justify-center">
+<span class="text-[0.625rem] text-on-primary-container font-bold">H</span>
+</div>
+<div class="aspect-square bg-primary/40 border border-primary/50 rounded flex items-center justify-center">
+<span class="text-[0.625rem] text-on-primary-container font-bold">M</span>
+</div>
+<!-- Row 4 (Regulatory Pivot) -->
+<div class="aspect-square bg-secondary/30 border border-secondary/40 rounded"></div>
+<div class="aspect-square bg-secondary/20 border border-secondary/30 rounded"></div>
+<div class="aspect-square bg-secondary/10 border border-white/5 rounded"></div>
+<div class="aspect-square bg-secondary/5 border border-white/5 rounded"></div>
+</div>
+<div class="mt-6 flex flex-col gap-3">
+<div class="flex items-center justify-between text-[0.75rem]">
+<span class="text-on-surface-variant">Top Risk Factor</span>
+<span class="text-tertiary font-medium">Liquidity Crisis</span>
+</div>
+<div class="flex items-center justify-between text-[0.75rem]">
+<span class="text-on-surface-variant">Current VIX Level</span>
+<span class="text-on-surface font-medium">18.42</span>
+</div>
+</div>
+<button class="w-full mt-6 py-2 border border-outline/20 text-on-surface-variant text-[0.75rem] font-medium rounded hover:bg-white/5 transition-colors">
+                        Run New Monte Carlo
+                    </button>
+</div>
+</div>
+<!-- Detailed Agent Analytics Bento -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Data Point 1 -->
+<div class="bg-surface-container-low p-5 rounded-xl border border-white/5">
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-secondary" data-icon="troubleshoot">troubleshoot</span>
+<h4 class="text-[0.8125rem] font-medium tracking-tight">Signal Latency</h4>
+</div>
+<div class="serif text-3xl font-light">4.2ms</div>
+<p class="text-[0.625rem] text-secondary mt-2 font-medium uppercase tracking-widest">Optimized for L1 nodes</p>
+</div>
+<!-- Data Point 2 -->
+<div class="bg-surface-container-low p-5 rounded-xl border border-white/5">
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-primary" data-icon="memory">memory</span>
+<h4 class="text-[0.8125rem] font-medium tracking-tight">Agent Confidence</h4>
+</div>
+<div class="serif text-3xl font-light">94.1%</div>
+<p class="text-[0.625rem] text-primary mt-2 font-medium uppercase tracking-widest">+1.2% above baseline</p>
+</div>
+<!-- Data Point 3 -->
+<div class="bg-surface-container-low p-5 rounded-xl border border-white/5">
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-outline" data-icon="query_stats">query_stats</span>
+<h4 class="text-[0.8125rem] font-medium tracking-tight">Regime Stability</h4>
+</div>
+<div class="serif text-3xl font-light">Stable</div>
+<p class="text-[0.625rem] text-on-surface-variant mt-2 font-medium uppercase tracking-widest">Transition in 4h expected</p>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation (Mobile Only) -->
+<div class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#131312]/95 backdrop-blur-md border-t border-white/5 flex items-center justify-around px-4 z-50">
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" data-icon="leaderboard" style="font-variation-settings: 'FILL' 1;">leaderboard</span>
+<span class="text-[10px] font-medium">Stats</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-outline" href="#">
+<span class="material-symbols-outlined" data-icon="sensors">sensors</span>
+<span class="text-[10px] font-medium">Signals</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-outline" href="#">
+<span class="material-symbols-outlined" data-icon="rocket_launch">rocket_launch</span>
+<span class="text-[10px] font-medium">Deploy</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-outline" href="#">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="text-[10px] font-medium">Profile</span>
+</a>
+</div>
+</body></html>

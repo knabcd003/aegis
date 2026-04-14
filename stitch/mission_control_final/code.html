@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aegis AI | Mission Control</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&amp;family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary": "#ffb3b2",
+                        "surface-container-highest": "#353532",
+                        "on-secondary-container": "#9ebfb7",
+                        "on-primary-container": "#541400",
+                        "on-secondary-fixed": "#00201b",
+                        "inverse-primary": "#99462a",
+                        "tertiary-container": "#d37878",
+                        "surface": "#131312",
+                        "on-secondary": "#163630",
+                        "on-primary-fixed-variant": "#7a2f15",
+                        "on-primary-fixed": "#390b00",
+                        "tertiary-fixed-dim": "#ffb3b2",
+                        "surface-container": "#20201e",
+                        "on-surface": "#e5e2de",
+                        "error-container": "#93000a",
+                        "surface-container-low": "#1c1c1a",
+                        "primary-fixed": "#ffdbd0",
+                        "secondary-fixed": "#c7eae1",
+                        "tertiary-fixed": "#ffdad8",
+                        "primary-container": "#d97757",
+                        "surface-bright": "#3a3937",
+                        "on-background": "#e5e2de",
+                        "background": "#131312",
+                        "error": "#ffb4ab",
+                        "surface-container-high": "#2a2a28",
+                        "primary-fixed-dim": "#ffb59e",
+                        "outline-variant": "#55433d",
+                        "on-tertiary-fixed": "#3e040a",
+                        "outline": "#a38c85",
+                        "surface-tint": "#ffb59e",
+                        "on-surface-variant": "#dbc1b9",
+                        "on-error-container": "#ffdad6",
+                        "on-tertiary-container": "#531418",
+                        "surface-variant": "#353532",
+                        "on-tertiary-fixed-variant": "#772f31",
+                        "secondary-fixed-dim": "#accec5",
+                        "inverse-surface": "#e5e2de",
+                        "on-primary": "#5c1902",
+                        "secondary-container": "#304f48",
+                        "primary": "#ffb59e",
+                        "inverse-on-surface": "#31302e",
+                        "secondary": "#accec5",
+                        "on-tertiary": "#5a1a1d",
+                        "on-error": "#690005",
+                        "surface-dim": "#131312",
+                        "on-secondary-fixed-variant": "#2d4c46",
+                        "surface-container-lowest": "#0e0e0c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Newsreader"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body {
+            background-color: #131312;
+            color: #e5e2de;
+            font-family: 'Inter', sans-serif;
+        }
+        .serif-text { font-family: 'Newsreader', serif; }
+        .glass-panel {
+            background: rgba(32, 32, 30, 0.7);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="flex min-h-screen overflow-x-hidden">
+<!-- SideNavBar -->
+<nav class="flex flex-col h-full pt-8 pb-4 w-64 fixed left-0 bg-[#131312] border-r border-white/5 z-50">
+<div class="px-6 mb-8">
+<h1 class="font-['Newsreader'] text-2xl font-light text-[#E5E2DE]">Aegis AI</h1>
+<p class="text-[0.6875rem] uppercase tracking-[0.2em] text-[#8e8e88] mt-1">Intelligence Core v2.4</p>
+</div>
+<div class="flex-1 space-y-1">
+<!-- Active: Signals -->
+<a class="flex items-center gap-3 px-4 py-3 bg-[#1c1c1b] text-[#FFB59E] border-r-2 border-[#D97757] rounded-none transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="sensors">sensors</span>
+<span class="font-['Inter'] text-[0.8125rem] font-normal tracking-wide">Signals</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#8e8e88] hover:text-[#E5E2DE] hover:bg-[#1a1a19] transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined transition-transform group-hover:scale-110" data-icon="rocket_launch">rocket_launch</span>
+<span class="font-['Inter'] text-[0.8125rem] font-normal tracking-wide">Deployed</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#8e8e88] hover:text-[#E5E2DE] hover:bg-[#1a1a19] transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined transition-transform group-hover:scale-110" data-icon="menu_book">menu_book</span>
+<span class="font-['Inter'] text-[0.8125rem] font-normal tracking-wide">Content</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#8e8e88] hover:text-[#E5E2DE] hover:bg-[#1a1a19] transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined transition-transform group-hover:scale-110" data-icon="leaderboard">leaderboard</span>
+<span class="font-['Inter'] text-[0.8125rem] font-normal tracking-wide">Performance</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#8e8e88] hover:text-[#E5E2DE] hover:bg-[#1a1a19] transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined transition-transform group-hover:scale-110" data-icon="biotech">biotech</span>
+<span class="font-['Inter'] text-[0.8125rem] font-normal tracking-wide">Sandbox</span>
+</a>
+</div>
+<div class="px-4 mb-4">
+<button class="w-full bg-primary-container text-on-primary-container py-2.5 rounded-lg text-[0.8125rem] font-medium flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-lg">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+                Deploy New Node
+            </button>
+</div>
+<div class="mt-auto border-t border-white/5 pt-4">
+<a class="flex items-center gap-3 px-4 py-2 text-[#8e8e88] hover:text-[#E5E2DE] text-[0.8125rem]" href="#">
+<span class="material-symbols-outlined" data-icon="menu_book">menu_book</span>
+                Documentation
+            </a>
+<a class="flex items-center gap-3 px-4 py-2 text-[#8e8e88] hover:text-[#E5E2DE] text-[0.8125rem]" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                Settings
+            </a>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="ml-64 flex-1 min-h-screen flex flex-col bg-surface">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-8 sticky top-0 z-40 bg-[#131312]/80 backdrop-blur-md h-16 shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
+<div class="flex items-center gap-6">
+<h2 class="font-['Newsreader'] text-xl font-semibold italic text-[#E5E2DE]">Mission Control</h2>
+<div class="h-4 w-[1px] bg-white/10"></div>
+<div class="flex gap-4">
+<span class="text-[#FFB59E] font-medium border-b-2 border-[#D97757] pb-1 text-[0.8125rem] cursor-pointer">Live Overview</span>
+<span class="text-[#8e8e88] font-normal hover:text-[#E5E2DE] text-[0.8125rem] cursor-pointer transition-colors">Historical Logs</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8e8e88] text-sm" data-icon="search">search</span>
+<input class="bg-surface-container-low border-none rounded-lg pl-9 pr-4 py-1.5 text-[0.8125rem] text-on-surface placeholder:text-[#8e8e88] w-64 focus:ring-1 focus:ring-primary-container" placeholder="Search instruments..." type="text"/>
+</div>
+<div class="flex items-center gap-2 ml-4">
+<button class="p-2 hover:bg-[#1a1a19] rounded-full transition-colors text-[#8e8e88] hover:text-[#E5E2DE]">
+<span class="material-symbols-outlined" data-icon="health_and_safety">health_and_safety</span>
+</button>
+<button class="p-2 hover:bg-[#1a1a19] rounded-full transition-colors text-[#8e8e88] hover:text-[#E5E2DE]">
+<span class="material-symbols-outlined" data-icon="hub">hub</span>
+</button>
+<button class="p-2 hover:bg-[#1a1a19] rounded-full transition-colors text-[#8e8e88] hover:text-[#E5E2DE] relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border border-surface"></span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center ml-2 border border-white/5">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="account_circle">account_circle</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Dashboard Canvas -->
+<div class="p-8 space-y-8">
+<!-- Hero Summary (Editorial Style) -->
+<section class="grid grid-cols-1 md:grid-cols-12 gap-8">
+<div class="md:col-span-8">
+<p class="text-xs tracking-[0.3em] uppercase text-on-surface-variant font-medium mb-3">System Integrity Status</p>
+<h3 class="font-headline text-5xl font-light leading-tight text-on-surface max-w-2xl">
+                        Aegis AI has identified <span class="italic text-primary">three high-probability</span> vector shifts in the last 14 minutes.
+                    </h3>
+</div>
+<div class="md:col-span-4 flex flex-col justify-end">
+<div class="bg-surface-container-low p-6 rounded-lg border border-white/5 space-y-4">
+<div class="flex justify-between items-center">
+<span class="text-[0.6875rem] text-on-surface-variant uppercase tracking-widest">Active Sentinels</span>
+<span class="text-secondary text-xs flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> Nominal
+                            </span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-3xl font-headline text-on-surface">12 / 12</span>
+<span class="text-xs text-[#8e8e88]">Nodes Online</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1 rounded-full overflow-hidden">
+<div class="bg-primary w-full h-full"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+<!-- Main Feed: Live Signal Feed -->
+<div class="md:col-span-8 space-y-6">
+<div class="flex justify-between items-end">
+<h4 class="font-headline text-xl text-on-surface">Live Signal Feed</h4>
+<span class="text-[0.6875rem] text-[#8e8e88] uppercase tracking-widest">Auto-Refresh: 2s</span>
+</div>
+<!-- Signals List -->
+<div class="space-y-4">
+<!-- Signal Card 1 -->
+<div class="bg-surface-container p-5 rounded-lg border-l-4 border-primary group hover:bg-surface-container-high transition-colors">
+<div class="flex items-start justify-between">
+<div class="flex gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface-container-highest flex items-center justify-center font-bold text-primary border border-white/5">
+                                        BTC
+                                    </div>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-bold text-on-surface">BTC/USDT</span>
+<span class="px-1.5 py-0.5 rounded-sm bg-secondary-container text-on-secondary-container text-[0.625rem] font-bold uppercase">Strong Buy</span>
+</div>
+<p class="text-xs text-[#8e8e88] mt-1 italic">V-Shape Recovery detected on 15m timeframe</p>
+</div>
+</div>
+<div class="text-right">
+<div class="text-[0.6875rem] text-on-surface-variant uppercase tracking-tighter">Confidence Score</div>
+<div class="text-xl font-headline text-secondary">94.2%</div>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-6 mt-6 py-4 border-y border-white/5">
+<div>
+<p class="text-[0.625rem] uppercase text-on-surface-variant tracking-widest mb-1">Entry Range</p>
+<p class="text-sm font-medium">$64,210 - $64,350</p>
+</div>
+<div>
+<p class="text-[0.625rem] uppercase text-on-surface-variant tracking-widest mb-1">Target Price</p>
+<p class="text-sm font-medium text-secondary">$67,800.00</p>
+</div>
+<div>
+<p class="text-[0.625rem] uppercase text-on-surface-variant tracking-widest mb-1">Stop Loss</p>
+<p class="text-sm font-medium text-tertiary">$63,100.00</p>
+</div>
+</div>
+<div class="flex justify-end gap-3 mt-4">
+<button class="px-6 py-2 text-xs font-semibold text-on-surface-variant hover:text-on-surface border border-white/10 hover:border-white/20 transition-all rounded-lg uppercase tracking-wider">Decline</button>
+<button class="px-8 py-2 text-xs font-semibold bg-primary-container text-on-primary-container rounded-lg uppercase tracking-wider shadow-lg hover:scale-[1.02] active:scale-95 transition-all">Accept Signal</button>
+</div>
+</div>
+<!-- Signal Card 2 -->
+<div class="bg-surface-container p-5 rounded-lg border-l-4 border-tertiary group hover:bg-surface-container-high transition-colors">
+<div class="flex items-start justify-between">
+<div class="flex gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface-container-highest flex items-center justify-center font-bold text-tertiary border border-white/5">
+                                        SOL
+                                    </div>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-bold text-on-surface">SOL/USDT</span>
+<span class="px-1.5 py-0.5 rounded-sm bg-tertiary-container text-on-tertiary-container text-[0.625rem] font-bold uppercase">Strong Sell</span>
+</div>
+<p class="text-xs text-[#8e8e88] mt-1 italic">Resistance break failure at psychological barrier</p>
+</div>
+</div>
+<div class="text-right">
+<div class="text-[0.6875rem] text-on-surface-variant uppercase tracking-tighter">Confidence Score</div>
+<div class="text-xl font-headline text-tertiary">88.7%</div>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-6 mt-6 py-4 border-y border-white/5">
+<div>
+<p class="text-[0.625rem] uppercase text-on-surface-variant tracking-widest mb-1">Entry Range</p>
+<p class="text-sm font-medium">$142.10 - $143.00</p>
+</div>
+<div>
+<p class="text-[0.625rem] uppercase text-on-surface-variant tracking-widest mb-1">Target Price</p>
+<p class="text-sm font-medium text-secondary">$128.50.00</p>
+</div>
+<div>
+<p class="text-[0.625rem] uppercase text-on-surface-variant tracking-widest mb-1">Stop Loss</p>
+<p class="text-sm font-medium text-tertiary">$148.00.00</p>
+</div>
+</div>
+<div class="flex justify-end gap-3 mt-4">
+<button class="px-6 py-2 text-xs font-semibold text-on-surface-variant hover:text-on-surface border border-white/10 hover:border-white/20 transition-all rounded-lg uppercase tracking-wider">Decline</button>
+<button class="px-8 py-2 text-xs font-semibold bg-primary-container text-on-primary-container rounded-lg uppercase tracking-wider shadow-lg hover:scale-[1.02] active:scale-95 transition-all">Accept Signal</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Side Panels -->
+<div class="md:col-span-4 space-y-8">
+<!-- Deployed Sentinels -->
+<section class="space-y-4">
+<h4 class="font-headline text-lg text-on-surface">Deployed Sentinels</h4>
+<div class="bg-surface-container-low rounded-lg overflow-hidden border border-white/5">
+<div class="p-4 flex items-center justify-between border-b border-white/5">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-sm" data-icon="bolt">bolt</span>
+</div>
+<div>
+<p class="text-[0.8125rem] font-medium text-on-surface">Sentinel Alpha</p>
+<p class="text-[0.625rem] text-[#8e8e88]">Scalping Strategy</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-xs text-secondary font-medium">+4.2%</p>
+<p class="text-[0.625rem] text-[#8e8e88]">Active</p>
+</div>
+</div>
+<div class="p-4 flex items-center justify-between border-b border-white/5">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-sm" data-icon="shield">shield</span>
+</div>
+<div>
+<p class="text-[0.8125rem] font-medium text-on-surface">Sentinel Beta</p>
+<p class="text-[0.625rem] text-[#8e8e88]">Trend Following</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-xs text-secondary font-medium">+1.8%</p>
+<p class="text-[0.625rem] text-[#8e8e88]">Active</p>
+</div>
+</div>
+<div class="p-4 flex items-center justify-between bg-surface-container-highest/30">
+<div class="flex items-center gap-3 opacity-50">
+<div class="w-8 h-8 rounded bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-[#8e8e88] text-sm" data-icon="pause">pause</span>
+</div>
+<div>
+<p class="text-[0.8125rem] font-medium text-on-surface">Sentinel Gamma</p>
+<p class="text-[0.625rem] text-[#8e8e88]">Mean Reversion</p>
+</div>
+</div>
+<div class="text-right opacity-50">
+<p class="text-xs text-[#8e8e88] font-medium">0.0%</p>
+<p class="text-[0.625rem] text-[#8e8e88]">Paused</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Global Node Map (Placeholder Aesthetic) -->
+<section class="space-y-4">
+<h4 class="font-headline text-lg text-on-surface">Global Node Map</h4>
+<div class="relative h-48 bg-surface-container rounded-lg border border-white/5 overflow-hidden group">
+<img alt="World Map Visualization" class="w-full h-full object-cover opacity-20 grayscale transition-transform duration-700 group-hover:scale-110" data-alt="abstract world map with digital network connections and glowing data points in shades of grey and charcoal" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPJLBzjo3w5y1FceqdPKCy0liXKRO8m6uNWDOByO1jqB5RXa5Dfo40rH9Xc0XDYrSEM9YK8NnepRisgW4tgJGCn3zivpaHR1ZVttDU1r1rOUTfduvKiH2x0Tga3Rf3IWDn8hkf6WD9aHbD2tcydtjlHP1gJCU3sgRYUIJdPGqx1ctX6JVeDH1YutzhEM74UBwvCfsL5d2823cfSK-O6il1gKzQ1jOOY4i8PF4uhy8joNX0f9tmYU_oYdlNEFDkLwB9hIK4f0XHtEXS"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent"></div>
+<!-- Map Overlays -->
+<div class="absolute top-10 left-1/4">
+<div class="w-2 h-2 bg-primary rounded-full animate-ping"></div>
+<div class="w-2 h-2 bg-primary rounded-full absolute top-0"></div>
+</div>
+<div class="absolute bottom-16 right-1/3">
+<div class="w-2 h-2 bg-secondary rounded-full animate-ping"></div>
+<div class="w-2 h-2 bg-secondary rounded-full absolute top-0"></div>
+</div>
+<div class="absolute bottom-3 left-4 flex gap-4">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span class="text-[0.625rem] text-on-surface-variant font-medium">US-EAST</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="text-[0.625rem] text-on-surface-variant font-medium">EU-CENTRAL</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Execution Logs -->
+<section class="space-y-4">
+<div class="flex justify-between items-center">
+<h4 class="font-headline text-lg text-on-surface">Execution Logs</h4>
+<span class="text-[0.625rem] text-primary uppercase tracking-widest font-bold">Live</span>
+</div>
+<div class="bg-surface-container-lowest font-mono text-[0.6875rem] p-4 rounded-lg border border-white/5 h-48 overflow-y-auto space-y-2">
+<div class="text-[#8e8e88]"><span class="text-secondary">[12:44:02]</span> SYSTEM: Initiating node handshake protocol...</div>
+<div class="text-[#8e8e88]"><span class="text-secondary">[12:44:15]</span> ALPHA: Market anomaly detected (BTC/USDT)</div>
+<div class="text-[#8e8e88]"><span class="text-secondary">[12:44:18]</span> AI: Confidence threshold passed (0.94)</div>
+<div class="text-[#8e8e88]"><span class="text-primary">[12:44:21]</span> CORE: Signal broadcasted to control center</div>
+<div class="text-[#8e8e88]"><span class="text-secondary">[12:45:00]</span> BETA: Awaiting user confirmation for node entry</div>
+<div class="text-[#8e8e88] animate-pulse"><span class="text-primary">[12:45:12]</span> MONITOR: Processing ticker SOL/USDT...</div>
+<div class="text-[#8e8e88]"><span class="text-error">[12:45:30]</span> ERROR: Connection timeout on node AP-SOUTH-1 (Retrying)</div>
+</div>
+</section>
+</div>
+</div>
+</div>
+</main>
+</body></html>
