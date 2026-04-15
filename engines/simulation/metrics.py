@@ -183,7 +183,7 @@ def compute_max_drawdown(nav_series: pd.Series) -> float:
 
 
 def compute_sharpe(returns: pd.Series) -> float:
-    """Annualized Sharpe ratio (Rf=0)."""
+    """Annualized Sharpe ratio (Rf=0). Returns 0.0 if returns are empty or std is zero."""
     if returns.empty or returns.std() == 0:
         return 0.0
     return float(returns.mean() / returns.std() * np.sqrt(252))
@@ -214,6 +214,10 @@ def compute_sortino(returns: pd.Series) -> float:
     return float(returns.mean() / downside.std() * np.sqrt(252))
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 def compute_metrics(
     nav_history: List[Dict[str, Any]],
     trade_log: List[Dict[str, Any]],
@@ -222,16 +226,9 @@ def compute_metrics(
 ) -> Dict[str, Any]:
     """
     Computes all Promotion Gate metrics from simulation results.
-
-    Args:
-        nav_history: List of {date, nav} dicts from the simulation loop.
-        trade_log: List of individual trade entries (BUY/SELL) from the simulation loop.
-        holdout_dates: ISO-formatted date strings for the held-out partition.
-        benchmark_returns: Optional benchmark return series for comparison.
-
-    Returns:
-        Dict of all computed metrics, ready for MLflow logging.
     """
+    logger.info(f"compute_metrics called with {len(trade_log)} trades, {len(nav_history)} NAV points")
+    
     # Build NAV DataFrame
     df = pd.DataFrame(nav_history)
     if df.empty:

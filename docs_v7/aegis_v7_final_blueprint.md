@@ -1488,20 +1488,20 @@ AEGIS AI (Newsreader)
     └── World Monitor       [globe]         OpenClaw status
 ```
 
-### Information Density Rule
+### Information Density Rule (Utility over Waste)
 
 Density must be achieved through **utility**, not visual noise.
-- Use small, high-contrast monospace for technical values.
-- Use `Newsreader` for high-level narrative summaries.
-- Avoid large decorative "marketing" headers; prioritize specific data points (Sharpe ratio, TPD, latency, etc.).
+- **NO MOCK DATA**: All `const mockData` blocks are prohibited. If an API is missing data, the backend must be seeded or external connectors must be triggered.
+- **TECHNICAL MONOSPACE**: Use small, high-contrast monospace (e.g., `font-mono`, `text-[10px]`) for specific technical values (latencies, Sharpe ratios, TPD).
+- **EDITORIAL NARRATIVE**: Use `Newsreader` for high-level summaries, but keep them concise. Avoid large decorative "marketing" headers.
+- **MATERIAL ICONOGRAPHY**: Use Material Symbols at small scales (20px) to maximize interactive density.
 
-### Phase A — Live Monitoring Map (Build Now)
+### Verification Cadence
 
-Read-only. Observation only. High-utility density.
-
-**Node types:** Component nodes (name, role, status, latency sparkline, provider badge), Data nodes (click for JSON inspector), Token nodes (gold chain, TTL countdown), Model nodes (provider badge, quota remaining, `was_primary_model` indicator).
-
-**Live behaviors:** Blue pulse when executing, particle flow on active edges, red flash on validation failure, agent dialogue overlays, gold token chain propagation, amber/red provider badge when fallback triggers.
+Every frontend change must follow the **Verify-then-Build** sequence:
+1. **API Validation**: Execute `curl` or script-based validation of the backend endpoint.
+2. **Contract Alignment**: Map the backend schema to a TypeScript interface.
+3. **Utility Refactor**: Replace the frontend mockup with the real-time data implementation.
 
 ---
 

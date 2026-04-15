@@ -15,7 +15,7 @@ from engines.simulation.metrics import compute_metrics
 
 
 class MLflowTracker:
-    def __init__(self, tracking_uri: str = "sqlite:///mlruns.db"):
+    def __init__(self, tracking_uri: str = "sqlite:////Users/karthikn/Documents/Computer Science/Aegis_AI/mlflow.db"):
         mlflow.set_tracking_uri(tracking_uri)
         mlflow.set_experiment("Aegis_AI_Phase4")
 

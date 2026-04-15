@@ -12,6 +12,11 @@ from engines.fundamental.earnings_revision_tracker import EarningsRevisionTracke
 from engines.fundamental.insider_activity_monitor import InsiderActivityMonitor
 from engines.fundamental.macro_overlay import MacroOverlay
 from engines.fundamental.signal_gate import SignalGate
+import logging
+
+logger = logging.getLogger(__name__)
+if not logger.handlers:
+    logging.basicConfig(level=logging.INFO)
 
 class SimulationLoop:
     """
@@ -379,6 +384,10 @@ class SimulationLoop:
                 # Compile fundamental engine outputs
                 signals = self.compile_signals(ticker, current_date)
                 
+                # Diagnostic: Log signals for first 10 days and any day where SMA is non-zero
+                if current_date <= (all_dates[10] if len(all_dates) > 10 else all_dates[-1]) or signals.get("fast_sma", 0) > 0:
+                     logger.debug(f"Signals for {ticker} on {current_date}: {signals}")
+
                 # If agents disabled, fallback to legacy Signal Gate
                 if not self.config.agent.enabled:
                     passed, sell_signal = SignalGate.evaluate(signals, self.config.signal_gate.model_dump(exclude_none=True))
@@ -388,6 +397,8 @@ class SimulationLoop:
                         "date": current_date, "ticker": ticker, 
                         "gate_result": passed, "margin_per_condition": signals.get("_gate_margin", {})
                     })
+                    if passed:
+                        logger.info(f"BUY signal fired: {ticker} on {current_date}")
                 else:
                     # Agentic Mesh Routing
                     if not hasattr(self, "supervisor"):
@@ -491,17 +502,22 @@ class SimulationLoop:
             "node_latencies_log": self.node_latencies_log
         }
         
-        # 3. Wire MLflow Persistence
-        try:
-            from engines.sandbox.mlflow_tracker import MLflowTracker
-            tracker = MLflowTracker()
-            config_dump = self.config.model_dump()
-            run_id = tracker.log_run(config_dump, loop_results)
-            print(f"[{self.run_id}] Logged simulation results to MLflow Run ID: {run_id}")
-            loop_results["mlflow_run_id"] = run_id
-        except ImportError:
-            print(f"[{self.run_id}] Skipping MLflow log - mlflow_tracker not installed.")
-        except Exception as e:
-            print(f"[{self.run_id}] Error logging to MLflow: {str(e)}")
+        # 3. Wire MLflow Persistence [REMOVED FOR BRIDGE UNIFICATION - ORCHESTRATOR HANDLES LOGGING]
+        # try:
+        #     from engines.sandbox.mlflow_tracker import MLflowTracker
+        #     tracker = MLflowTracker()
+        #     config_dump = self.config.model_dump()
+        #     run_id = tracker.log_run(config_dump, loop_results)
+        #     print(f"[{self.run_id}] Logged simulation results to MLflow Run ID: {run_id}")
+        #     loop_results["mlflow_run_id"] = run_id
+        # except ImportError:
+        #     print(f"[{self.run_id}] Skipping MLflow log - mlflow_tracker not installed.")
+        # except Exception as e:
+        #     print(f"[{self.run_id}] Error logging to MLflow: {str(e)}")
+
+        # logger.info(f"Final NAV: {self.nav_series[-1] if self.nav_series else 'EMPTY'}")
+        logger.info(f"Simulation complete. Total trades executed: {len(self.trade_log)}")
+        logger.info(f"NAV series length: {len(self.nav_history)}")
+        logger.info(f"Final NAV: {self.nav_history[-1]['nav'] if self.nav_history else 'EMPTY'}")
 
         return loop_results

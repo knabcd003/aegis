@@ -1,12 +1,11 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks
-from pydantic import BaseModel
-from typing import Dict, Any, List, Optional
 import sqlite3
 import pandas as pd
 import json
 import os
+import mlflow
 
 from api.main import state
+from engines.sentinel.promotion_gate import PromotionGateInput
 
 router = APIRouter()
 
@@ -92,3 +91,62 @@ async def get_mlflow_runs(limit: int = 20) -> Dict[str, Any]:
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+class PromotionRequest(BaseModel):
+    session_quality: str = "nominal"
+    scenario_pass_rate: Optional[float] = 0.8  # Defaulting for verification
+    debate_confidence: Optional[int] = 70      # Defaulting for verification
+
+@router.post("/promote/{run_id}")
+async def promote_strategy(run_id: str, request: PromotionRequest) -> Dict[str, Any]:
+    """
+    Formally evaluate a backtested strategy against the Phase 4 Promotion Gate.
+    If it passes all 10 metric gates, promote it to a live Sentinel.
+    """
+    if not state.promotion_gate or not state.sentinel_mgr:
+        raise HTTPException(status_code=503, detail="Sentinel engines are offline")
+
+    # 1. Gate Evaluation
+    gate_input = PromotionGateInput(
+        run_id=run_id,
+        session_quality=request.session_quality,
+        scenario_pass_rate=request.scenario_pass_rate,
+        debate_confidence=request.debate_confidence
+    )
+    
+    gate_result = state.promotion_gate.evaluate_backtest(
+        run_id=run_id,
+        session_quality=gate_input.session_quality,
+        scenario_pass_rate=gate_input.scenario_pass_rate,
+        debate_confidence=gate_input.debate_confidence
+    )
+    
+    if not gate_result.passed:
+        return {
+            "status": "rejected",
+            "run_id": run_id,
+            "gate_result": gate_result.to_dict()
+        }
+
+    # 2. Deployment (Success path)
+    try:
+        # Fetch the config from MLflow artifacts
+        mlflow.set_tracking_uri("sqlite:///mlflow.db")
+        local_path = mlflow.artifacts.download_artifacts(run_id=run_id, artifact_path="config.json")
+        with open(local_path, "r") as f:
+            config_data = json.load(f)
+            
+        sentinel = state.sentinel_mgr.deploy_sentinel(
+            sentinel_id=f"sentinel_{run_id[:8]}",
+            config=config_data,
+            promoted_run_id=run_id
+        )
+        
+        return {
+            "status": "promoted",
+            "sentinel_id": sentinel.sentinel_id,
+            "gate_result": gate_result.to_dict(),
+            "message": f"Strategy {run_id} passed all gates and is now a live Sentinel."
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Promotion Gate passed, but deployment failed: {str(e)}")

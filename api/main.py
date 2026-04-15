@@ -13,6 +13,8 @@ from engines.data_ingestion.connectors.yfinance_connector import YFinanceConnect
 from engines.monitoring.connector_health import ConnectorHealthMonitor
 from engines.sentinel.state_manager import SentinelStateManager
 
+from engines.sentinel.promotion_gate import PromotionGate
+
 # Setup standard logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("aegis.api")
@@ -22,6 +24,7 @@ class AppState:
     data_engine: Optional[DataEngine] = None
     health_monitor: Optional[ConnectorHealthMonitor] = None
     sentinel_mgr: Optional[SentinelStateManager] = None
+    promotion_gate: Optional[PromotionGate] = None
 
 state = AppState()
 
@@ -46,6 +49,9 @@ async def lifespan(app: FastAPI):
         data_engine=state.data_engine,
         health_monitor=state.health_monitor
     )
+    
+    # Initialize Promotion Gate
+    state.promotion_gate = PromotionGate(health_monitor=state.health_monitor)
     
     logger.info("Aegis AI Engines are online and ready to accept requests.")
     yield # The server is now running and accepting connections

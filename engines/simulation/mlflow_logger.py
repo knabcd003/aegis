@@ -11,13 +11,12 @@ class MLflowLogger:
     """
     Handles logging of config, metrics, and trace artifacts to MLflow based on `logging.depth`.
     """
-    def __init__(self, config: AegisConfig):
+    def __init__(self, config: AegisConfig, tracking_uri: str = "sqlite:////Users/karthikn/Documents/Computer Science/Aegis_AI/mlflow.db"):
         self.config = config
         self.run_id = config.run_id
         self.depth = config.routing.logging.depth
         
-        # In a real environment, this might connect to a remote tracking server
-        mlflow.set_tracking_uri("sqlite:///mlruns.db")
+        mlflow.set_tracking_uri(tracking_uri)
         mlflow.set_experiment(f"aegis_{config.routing.mode}")
 
     def log_run_start(self, holdout_dates: List[str]):
