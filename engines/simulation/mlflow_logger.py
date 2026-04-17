@@ -70,19 +70,14 @@ class MLflowLogger:
                 events_path = f"{run_dir}/recommendation_trace.jsonl"
                 with open(events_path, "w") as f:
                     for e in gate_events:
-                        e_copy = dict(e)
-                        if "date" in e_copy: e_copy["date"] = str(e_copy["date"])
-                        f.write(json.dumps(e_copy) + "\n")
+                        f.write(json.dumps(self._serialize_dict(e)) + "\n")
                 mlflow.log_artifact(events_path)
                 
                 # Trade Log JSONL
                 trades_path = f"{run_dir}/trade_log.jsonl"
                 with open(trades_path, "w") as f:
                     for t in trade_log:
-                        # Serialize dates
-                        if "signal_date" in t: t["signal_date"] = str(t["signal_date"])
-                        if "fill_date" in t: t["fill_date"] = str(t["fill_date"])
-                        f.write(json.dumps(t) + "\n")
+                        f.write(json.dumps(self._serialize_dict(t)) + "\n")
                 mlflow.log_artifact(trades_path)
                 
             if self.depth == "debug":
@@ -92,3 +87,29 @@ class MLflowLogger:
         # Cleanup local run directory after logging to mlflow
         if os.path.exists(run_dir):
             shutil.rmtree(run_dir)
+
+    def _serialize_dict(self, d: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert a dictionary to a JSON-serializable version by casting numpy/date types."""
+        import numpy as np
+        from datetime import date, datetime
+        
+        result = {}
+        for k, v in d.items():
+            if isinstance(v, (date, datetime)):
+                result[k] = v.isoformat()
+            elif isinstance(v, (np.bool_, bool)):
+                result[k] = bool(v)
+            elif isinstance(v, (np.floating, float)):
+                result[k] = float(v)
+            elif isinstance(v, (np.integer, int)):
+                result[k] = int(v)
+            elif isinstance(v, dict):
+                result[k] = self._serialize_dict(v)
+            elif isinstance(v, list):
+                result[k] = [
+                    self._serialize_dict(i) if isinstance(i, dict) else str(i)
+                    for i in v
+                ]
+            else:
+                result[k] = v
+        return result

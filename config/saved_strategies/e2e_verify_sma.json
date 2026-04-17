@@ -1,0 +1,60 @@
+{
+  "config_id": "e2e_verify_sma_v1",
+  "version": "1.0.0",
+  "asset_universe": {
+    "tickers": [
+      "AAPL",
+      "MSFT",
+      "NVDA"
+    ],
+    "benchmark": "SPY"
+  },
+  "signal_gate": {
+    "type": "technical",
+    "entry": "fast_crosses_above_slow",
+    "exit": "fast_crosses_below_slow",
+    "fast_sma_days": 20,
+    "slow_sma_days": 50,
+    "finbert_above": 0.0
+  },
+  "fundamental_engine": {
+    "earnings_revision": {
+      "enabled": false,
+      "warn_threshold": 0.02
+    },
+    "insider_monitor": {
+      "enabled": false,
+      "cluster_window_days": 45
+    }
+  },
+  "agent": {
+    "enabled": false,
+    "provider": "ollama",
+    "model": "qwen3:8b",
+    "pipeline": [
+      "analyst",
+      "risk_manager"
+    ]
+  },
+  "position_sizing": {
+    "capital": 100000.0,
+    "max_position_pct": 0.05,
+    "method": "equal_weight"
+  },
+  "sandbox": {
+    "slippage_bps": 15,
+    "min_hold_days": 5,
+    "max_hold_days": 21,
+    "stop_loss_pct": 0.03,
+    "promotion_criteria": {
+      "held_out_sharpe_min": 0.85,
+      "held_out_degradation_max": 0.35
+    }
+  },
+  "routing": {
+    "mode": "build",
+    "logging": {
+      "depth": "production"
+    }
+  }
+}

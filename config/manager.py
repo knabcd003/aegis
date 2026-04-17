@@ -31,7 +31,22 @@ class ConfigManager:
     def load_dict(cls, data: dict) -> AegisConfig:
         """Load from a dictionary, validate, and return the Config object."""
         fingerprint = cls._generate_fingerprint(data)
+        
+        # FIX 3: Deprecation check for finbert_above
+        signal_gate = data.get("signal_gate", {})
+        if isinstance(signal_gate, dict) and "finbert_above" in signal_gate:
+            import warnings
+            warnings.warn(
+                "'finbert_above' is deprecated in SignalGateConfig. "
+                "Please migrate to the 'finbert_sentiment_gate' VCL component in the signal_pipeline.",
+                DeprecationWarning,
+                stacklevel=2
+            )
+            # Remove from data to allow Pydantic validation to pass against the new schema
+            del signal_gate["finbert_above"]
+
         try:
+
             config = AegisConfig(**data)
             config.fingerprint = fingerprint
             config.run_id = str(uuid4())

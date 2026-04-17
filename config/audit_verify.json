@@ -1,0 +1,29 @@
+{
+    "config_id": "audit_verify_industrial",
+    "version": "1.0.0",
+    "asset_universe": {"tickers": ["AAPL", "TSLA"], "benchmark": "SPY"},
+    "signal_gate": {
+        "type": "technical",
+        "entry": "fast_crosses_above_slow",
+        "exit": "fast_crosses_below_slow",
+        "fast_sma_days": 20,
+        "slow_sma_days": 50,
+        "min_sentiment_score": 0.05,
+        "vcl_pipeline": ["finbert_sentiment_gate"]
+    },
+    "fundamental_engine": {
+        "earnings_revision": {"enabled": false},
+        "insider_monitor": {"enabled": false}
+    },
+    "agent": {"enabled": false},
+    "position_sizing": {"capital": 100000, "max_position_pct": 0.1},
+    "sandbox": {
+        "min_hold_days": 1,
+        "max_hold_days": 21,
+        "promotion_criteria": {
+            "held_out_sharpe_min": 0.0,
+            "held_out_degradation_max": 1.0
+        }
+    },
+    "routing": {"mode": "eval", "logging": {"depth": "debug"}}
+}

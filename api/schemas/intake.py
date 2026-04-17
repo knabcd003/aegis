@@ -8,3 +8,12 @@ class IntakeDraft(BaseModel):
     raw_desire: str
     is_path_b: bool = False
     tickers: Optional[List[str]] = None
+
+class ValidationResponse(BaseModel):
+    mandate_summary: Dict[str, str]
+    contradictions: List[str]
+    is_valid: bool
+
+class ConfirmResponse(BaseModel):
+    workflow_id: str
+    status: str

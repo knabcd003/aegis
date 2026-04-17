@@ -85,7 +85,8 @@ async def generate_proposal(request: ProposalRequest) -> Dict[str, Any]:
     try:
         from engines.analyst.improvement_agent import ImprovementAgent
         agent = ImprovementAgent(model=request.model)
-        proposal = agent.analyze_run(config_dump, metrics, trace_path)
+        proposal = agent.analyze_run(config_dump, metrics, trace_path, run_id=request.run_id)
+
     except Exception as e:
         logger.error(f"ImprovementAgent failed: {e}")
         raise HTTPException(status_code=500, detail=f"ImprovementAgent error: {str(e)}")

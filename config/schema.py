@@ -16,8 +16,10 @@ class SignalGateConfig(BaseModel):
     exit: Optional[str] = None
     fast_sma_days: int = 20
     slow_sma_days: int = 50
-    finbert_above: Optional[float] = None
     earnings_revision_direction: Optional[Literal["up", "down", "flat"]] = None
+    vcl_pipeline: List[str] = Field(default_factory=list)
+
+
 
 
 class EarningsRevisionConfig(BaseModel):

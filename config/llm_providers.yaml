@@ -190,18 +190,19 @@ role_assignments:
     - local/qwen3:8b
     is_critical: true
   debate_bull:
-    primary: groq/gpt-oss-120b
+    primary: local/qwen3:8b
     fallback_chain:
+    - gemini-2.5-flash
+    - groq/gpt-oss-120b
     - groq/llama-3.3-70b-versatile
-    - groq/qwen3-32b
-    - local/qwen3:8b
     is_critical: false
   debate_bear:
-    primary: groq/qwen3-32b
+    primary: local/qwen3:8b
     fallback_chain:
+    - gemini-2.5-flash
+    - groq/qwen3-32b
     - groq/kimi-k2
     - groq/llama-4-scout
-    - local/qwen3:8b
     is_critical: false
   fast_eval:
     primary: groq/llama-4-scout

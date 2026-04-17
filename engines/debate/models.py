@@ -4,14 +4,18 @@ from pydantic import BaseModel, Field, model_validator
 
 class EvidenceType(str, Enum):
     BACKTEST_DATA      = "backtest_data"      # weight 1.0
+    STATISTICAL_TEST   = "statistical_test"   # weight 0.9
     HISTORICAL_ANALOGY = "historical_analogy" # weight 0.8
+    HISTORICAL_ANOMALY = "historical_anomaly" # weight 0.8
     CITED_SCENARIO     = "cited_scenario"     # weight 0.7
     GENERAL_PRINCIPLE  = "general_principle"  # weight 0.3
     ASSERTION_ONLY     = "assertion_only"     # weight 0.0
 
 EVIDENCE_WEIGHTS = {
     EvidenceType.BACKTEST_DATA:      1.0,
+    EvidenceType.STATISTICAL_TEST:   0.9,
     EvidenceType.HISTORICAL_ANALOGY: 0.8,
+    EvidenceType.HISTORICAL_ANOMALY: 0.8,
     EvidenceType.CITED_SCENARIO:     0.7,
     EvidenceType.GENERAL_PRINCIPLE:  0.3,
     EvidenceType.ASSERTION_ONLY:     0.0,

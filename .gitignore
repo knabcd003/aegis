@@ -60,5 +60,5 @@ chroma_db/
 data/
 mlruns/
 mlflow.db
-mlruns.db
+mlflow.db
 debug/

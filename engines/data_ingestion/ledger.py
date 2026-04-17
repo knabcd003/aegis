@@ -83,15 +83,10 @@ def read_prices(ticker: str, as_of_date: date) -> Optional[pd.DataFrame]:
     price_dir = _prices_dir()
     prefix = f"{ticker.upper()}_"
 
-    # Find all parquet files for this ticker with download_date <= as_of_date
+    # Find all parquet files for this ticker
     candidates: List[Path] = []
     for p in price_dir.glob(f"{prefix}*.parquet"):
-        try:
-            file_date = date.fromisoformat(p.stem[len(prefix):])
-            if file_date <= as_of_date:
-                candidates.append(p)
-        except ValueError:
-            continue
+        candidates.append(p)
 
     if not candidates:
         return None

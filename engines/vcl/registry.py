@@ -10,6 +10,11 @@ class GateResult:
         self.reason = reason
 
 
+class VCLRegistrationError(Exception):
+    """Raised when a VCL component fails any of the registration gates."""
+    pass
+
+
 class RegistrationResult:
     def __init__(self, success: bool, failed_gate: str = None, reason: str = None):
         self.success = success

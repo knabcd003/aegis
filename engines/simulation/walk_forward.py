@@ -132,6 +132,7 @@ class WalkForwardValidator:
         for ticker in tickers:
             df = yf.get_prices(ticker, days=total_days, as_of_date=end_date)
             if df is not None and not df.empty:
+                df["_date_obj"] = pd.to_datetime(df["date"]).dt.date
                 cache[ticker] = df
             else:
                 print(f"[WalkForward] Warning: no price data for {ticker}")

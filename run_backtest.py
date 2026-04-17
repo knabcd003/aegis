@@ -95,7 +95,7 @@ def main():
         gate_events=loop_results["gate_events"]
     )
     
-    print(f"Done! MLflow tracking URI: sqlite:///mlruns.db")
+    print(f"Done! MLflow tracking URI: sqlite:///mlflow.db")
 
 if __name__ == "__main__":
     main()

@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import date, timedelta
 import hashlib
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 import pandas as pd
 import numpy as np
@@ -48,27 +48,6 @@ class SimulationLoop:
         seed_int = int(hashlib.md5(self.run_id.encode('utf-8'), usedforsecurity=False).hexdigest(), 16) % (2**32)
         np.random.seed(seed_int)
         
-    def _get_price(self, ticker: str, as_of: date) -> float:
-        """Helper to get close price on a specific date using YFinance cache."""
-        df = self.yf.get_prices(ticker, days=5, as_of_date=as_of)
-        if df is None or df.empty:
-            return 0.0
-        # Return the last known close price
-        return float(df['close'].iloc[-1])
-        
-    def _get_open_price(self, ticker: str, as_of: date) -> float:
-        """Helper to get open price, used for next-day execution."""
-        df = self.yf.get_prices(ticker, days=5, as_of_date=as_of)
-        if df is None or df.empty:
-            return 0.0
-        return float(df['open'].iloc[-1])
-        
-    def _get_avg_volume(self, ticker: str, as_of: date) -> float:
-         df = self.yf.get_prices(ticker, days=10, as_of_date=as_of)
-         if df is None or df.empty:
-             return 1000000.0
-         return float(df['volume'].mean())
-
     def _calculate_slippage(self, signal_price: float, trade_price: float, shares: float, action: str) -> float:
         """
         Calculates slippage cost per share based on the blueprint constraints:
@@ -87,8 +66,8 @@ class SimulationLoop:
         
         return total_slippage_per_share
 
-    def compile_signals(self, ticker: str, as_of: date) -> Dict[str, Any]:
-        """Compile Phase 1 signals for a given day."""
+    def compile_signals(self, ticker: str, as_of: date, price_cache: Optional[Dict[str, pd.DataFrame]] = None) -> Dict[str, Any]:
+        """Compile Phase 1 signals for a given day. Optimized to use memory cache."""
         signals = {}
         
         if self.config.fundamental_engine.earnings_revision.enabled:
@@ -103,7 +82,18 @@ class SimulationLoop:
             fast = getattr(self.config.signal_gate, "fast_sma_days", 20)
             slow = getattr(self.config.signal_gate, "slow_sma_days", 50)
             
-            df = self.yf.get_prices(ticker, days=slow+10, as_of_date=as_of)
+            # --- OPTIMIZATION: Use pre-fetched price_cache if available ---
+            df = None
+            as_of_str = as_of.isoformat()
+            if price_cache and ticker in price_cache:
+                c_df = price_cache[ticker]
+                # df["date"] is expected to be string YYYY-MM-DD
+                mask = c_df["date"] <= as_of_str
+                df = c_df[mask].tail(slow + 5)
+            else:
+                # Fallback to slow disk read if no cache provided
+                df = self.yf.get_prices(ticker, days=slow+10, as_of_date=as_of)
+
             if df is not None and not df.empty and len(df) > slow:
                 closes = df["close"].values
                 signals["fast_sma"] = closes[-fast:].mean()
@@ -118,28 +108,6 @@ class SimulationLoop:
             
         return signals
 
-    # ── Price lookup from explicit cache ─────────────────────────────────
-
-    def _get_price_from_cache(
-        self, ticker: str, as_of: date, price_cache: Dict[str, Any], col: str = "close"
-    ) -> float:
-        """Look up a price from the pre-fetched cache. No network calls."""
-        df = price_cache.get(ticker)
-        if df is None or df.empty:
-            return 0.0
-        # Ensure date column is comparable
-        df_copy = df.copy()
-        if "date" in df_copy.columns:
-            df_copy["_date"] = pd.to_datetime(df_copy["date"]).dt.date
-        else:
-            return 0.0
-        mask = df_copy["_date"] <= as_of
-        if mask.sum() == 0:
-            return 0.0
-        return float(df_copy.loc[mask, col].iloc[-1])
-
-    # ── Fold-aware simulation for walk-forward ───────────────────────────
-
     def run_fold(
         self,
         trading_dates: List[date],
@@ -147,22 +115,7 @@ class SimulationLoop:
     ) -> Dict[str, Any]:
         """
         Run simulation over an explicit list of trading dates using pre-fetched prices.
-
-        Key differences from run():
-          - No holdout splitting (caller controls the partition).
-          - Prices come from price_cache, not YFinanceConnector.
-          - Fresh state: positions, cash, trade_log are initialized at method start.
-          - No MLflow logging (the caller handles aggregation).
-
-        Args:
-            trading_dates: Chronologically sorted list of business dates to simulate.
-            price_cache: Dict[ticker -> DataFrame] with columns [date, open, close, volume, ...].
-                         Pre-fetched by WalkForwardValidator._bulk_fetch_prices().
-
-        Returns:
-            Dict with nav_history and trade_log (same structure as run()).
         """
-        # Fresh state — no leakage from prior folds or the main run
         self.cash = self.config.position_sizing.capital
         self.positions = defaultdict(float)
         self.entry_dates = {}
@@ -171,7 +124,8 @@ class SimulationLoop:
         fold_nav_history: List[Dict[str, Any]] = []
         pending_orders: List[Dict[str, Any]] = []
 
-        for current_date in trading_dates:
+        for current_date_obj in trading_dates:
+            current_date = current_date_obj.isoformat()
             daily_nav = self.cash
 
             # Execute pending orders at OPEN
@@ -181,9 +135,13 @@ class SimulationLoop:
                 action = order["action"]
                 shares = order["shares"]
 
-                open_price = self._get_price_from_cache(
-                    ticker, current_date, price_cache, col="open"
-                )
+                open_price = 0.0
+                if ticker in price_cache:
+                    df = price_cache[ticker]
+                    mask = df["date"] == current_date
+                    if mask.any():
+                        open_price = float(df.loc[mask, "open"].iloc[0])
+                
                 if open_price <= 0:
                     continue
 
@@ -197,9 +155,10 @@ class SimulationLoop:
                     if cost <= self.cash:
                         self.cash -= cost
                         self.positions[ticker] += shares
-                        self.entry_dates[ticker] = current_date
+                        self.entry_dates[ticker] = current_date_obj
+                        self.entry_prices[ticker] = fill_price
                         order["fill_price"] = fill_price
-                        order["fill_date"] = current_date
+                        order["fill_date"] = current_date_obj
                         order["slippage_drag_usd"] = slippage_ps * shares
                         fold_trade_log.append(order)
                         executed_orders.append(order)
@@ -212,7 +171,7 @@ class SimulationLoop:
                             self.entry_prices.pop(ticker, None)
                         self.cash += fill_price * shares
                         order["fill_price"] = fill_price
-                        order["fill_date"] = current_date
+                        order["fill_date"] = current_date_obj
                         order["slippage_drag_usd"] = slippage_ps * shares
                         fold_trade_log.append(order)
                         executed_orders.append(order)
@@ -222,34 +181,58 @@ class SimulationLoop:
             # Mark to market
             for ticker, shares in self.positions.items():
                 if shares > 0:
-                    price = self._get_price_from_cache(
-                        ticker, current_date, price_cache, col="close"
-                    )
+                    price = 0.0
+                    if ticker in price_cache:
+                        df = price_cache[ticker]
+                        mask = df["date"] == current_date
+                        if mask.any():
+                            price = float(df.loc[mask, "close"].iloc[0])
                     daily_nav += shares * price
 
-            fold_nav_history.append({"date": current_date, "nav": daily_nav})
+            fold_nav_history.append({"date": current_date_obj, "nav": daily_nav})
 
-            # Signal generation & order placement (same logic as run())
+            # Signal generation & order placement
             for ticker in self.config.asset_universe.tickers:
-                price = self._get_price_from_cache(
-                    ticker, current_date, price_cache, col="close"
-                )
+                price = 0.0
+                if ticker in price_cache:
+                    df = price_cache[ticker]
+                    mask = df["date"] == current_date
+                    if mask.any():
+                        price = float(df.loc[mask, "close"].iloc[0])
+                
                 if price <= 0:
                     continue
 
-                signals = self.compile_signals(ticker, current_date)
+                signals = self.compile_signals(ticker, current_date_obj, price_cache=price_cache)
 
                 if not self.config.agent.enabled:
                     passed, sell_signal = SignalGate.evaluate(
                         signals,
                         self.config.signal_gate.model_dump(exclude_none=True),
                     )
+                    
+                    # FIX 3: VCL Pipeline Chaining & Metadata Propagation
+                    vcl_pipeline = getattr(self.config.signal_gate, "vcl_pipeline", [])
+                    vcl_metadata = {}
+                    if passed and vcl_pipeline:
+                        ticker_date = current_date_obj
+                        for component_id in vcl_pipeline:
+                            res = self._execute_vcl_gate(component_id, ticker, ticker_date, passed)
+                            passed = res["passed"]
+                            # Accumulate metadata (e.g., sentiment_score)
+                            vcl_metadata.update({k: v for k, v in res.items() if k != "passed"})
+                            
+                            if not passed:
+                                logger.info(f"Signal BLOCKED by VCL component {component_id} for {ticker} on {ticker_date}")
+                                vcl_metadata["gate_blocked"] = component_id
+                                break
+                    
                     conviction = 1.0
                 else:
-                    # Agents not supported in fold mode (too expensive)
                     passed = False
                     sell_signal = False
                     conviction = 0.0
+                    vcl_metadata = {}
 
                 current_holdings = self.positions[ticker]
 
@@ -261,16 +244,19 @@ class SimulationLoop:
                     )
                     shares_to_buy = int(max_alloc / price)
                     if shares_to_buy > 0:
-                        pending_orders.append({
+                        order = {
                             "ticker": ticker,
                             "action": "BUY",
                             "shares": shares_to_buy,
-                            "signal_date": current_date,
+                            "signal_date": current_date_obj,
                             "signal_price": price,
-                        })
+                        }
+                        # Attach VCL metadata for auditability
+                        order.update(vcl_metadata)
+                        pending_orders.append(order)
                 elif current_holdings > 0:
-                    entry_date = self.entry_dates.get(ticker, current_date)
-                    held_days = (current_date - entry_date).days
+                    entry_date = self.entry_dates.get(ticker, current_date_obj)
+                    held_days = (current_date_obj - entry_date).days
                     
                     stop_loss_pct = getattr(self.config.sandbox, "stop_loss_pct", None)
                     max_hold_days = getattr(self.config.sandbox, "max_hold_days", None)
@@ -290,7 +276,7 @@ class SimulationLoop:
                             "ticker": ticker,
                             "action": "SELL",
                             "shares": current_holdings,
-                            "signal_date": current_date,
+                            "signal_date": current_date_obj,
                             "signal_price": price,
                         })
 
@@ -300,13 +286,23 @@ class SimulationLoop:
         }
 
     def run(self, start_date: date, end_date: date) -> Dict[str, Any]:
-        """Run the daily vectorized simulation loop."""
+        """Run the daily vectorized simulation loop with optimized pre-fetching."""
         print(f"[{self.run_id}] Starting Phase 1 Simulation: {start_date} to {end_date}")
         
         # 1. Trading Calendar & Holdout sealing
         all_dates = pd.date_range(start_date, end_date, freq='B').date.tolist()
-        num_days = len(all_dates)
-        num_holdout = int(num_days * 0.2)
+        num_holdout = int(len(all_dates) * 0.2)
+
+        # 1b. Pre-fetch prices for the entire window to avoid O(N*T) disk I/O bottleneck
+        print(f"[{self.run_id}] Pre-fetching price history for {len(self.config.asset_universe.tickers)} tickers...")
+        price_cache: Dict[str, pd.DataFrame] = {}
+        # Correctly calculate calendar days for YFinance lookback
+        calendar_days = (end_date - start_date).days + 100
+        for ticker in self.config.asset_universe.tickers:
+            # Fetch entire history once
+            df = self.yf.get_prices(ticker, days=calendar_days, as_of_date=end_date)
+            if df is not None:
+                price_cache[ticker] = df
         
         # Reset RNG state using the distinct configured run ID
         import hashlib
@@ -321,7 +317,8 @@ class SimulationLoop:
         pending_orders = [] # [{ticker, action, shares, signal_date, signal_price}]
         
         # 2. Daily Loop
-        for current_date in all_dates:
+        for current_date_obj in all_dates:
+            current_date = current_date_obj.isoformat()
             daily_nav = self.cash
             
             # 2a. Execute pending orders at the OPEN of this new day
@@ -331,9 +328,17 @@ class SimulationLoop:
                 action = order["action"]
                 shares = order["shares"]
                 
-                open_price = self._get_open_price(ticker, current_date)
+                # Use cache instead of disk/network
+                open_price = 0.0
+                if ticker in price_cache:
+                    df = price_cache[ticker]
+                    # df["date"] is a string YYYY-MM-DD
+                    mask = df["date"] == current_date
+                    if mask.any():
+                        open_price = float(df.loc[mask, "open"].iloc[0])
+                
                 if open_price <= 0:
-                    continue # Try again tomorrow if no price
+                    continue 
                     
                 slippage_ps = self._calculate_slippage(order["signal_price"], open_price, shares, action)
                 
@@ -343,9 +348,10 @@ class SimulationLoop:
                     if cost <= self.cash:
                         self.cash -= cost
                         self.positions[ticker] += shares
-                        self.entry_dates[ticker] = current_date
+                        self.entry_dates[ticker] = current_date_obj
+                        self.entry_prices[ticker] = fill_price
                         order["fill_price"] = fill_price
-                        order["fill_date"] = current_date
+                        order["fill_date"] = current_date_obj
                         order["slippage_drag_usd"] = slippage_ps * shares
                         self.trade_log.append(order)
                         executed_orders.append(order)
@@ -359,7 +365,7 @@ class SimulationLoop:
                             self.entry_prices.pop(ticker, None)
                         self.cash += revenue
                         order["fill_price"] = fill_price
-                        order["fill_date"] = current_date
+                        order["fill_date"] = current_date_obj
                         order["slippage_drag_usd"] = slippage_ps * shares
                         self.trade_log.append(order)
                         executed_orders.append(order)
@@ -370,31 +376,59 @@ class SimulationLoop:
             # 2b. Mark to market currently held positions
             for ticker, shares in self.positions.items():
                 if shares > 0:
-                    price = self._get_price(ticker, current_date)
+                    # Use cache instead of disk/network
+                    price = 0.0
+                    if ticker in price_cache:
+                        df = price_cache[ticker]
+                        mask = df["date"] == current_date
+                        if mask.any():
+                            price = float(df.loc[mask, "close"].iloc[0])
                     daily_nav += (shares * price)
             
-            self.nav_history.append({"date": current_date, "nav": daily_nav})
+            self.nav_history.append({"date": current_date_obj, "nav": daily_nav})
             
             # 2c. Signal Generation & Gate Evaluation on Universe
             for ticker in self.config.asset_universe.tickers:
-                price = self._get_price(ticker, current_date)
+                # Use cache instead of disk/network
+                price = 0.0
+                if ticker in price_cache:
+                    df = price_cache[ticker]
+                    mask = df["date"] == current_date
+                    if mask.any():
+                        price = float(df.loc[mask, "close"].iloc[0])
+                
                 if price <= 0:
                     continue
                     
                 # Compile fundamental engine outputs
-                signals = self.compile_signals(ticker, current_date)
+                signals = self.compile_signals(ticker, current_date_obj, price_cache=price_cache)
                 
                 # Diagnostic: Log signals for first 10 days and any day where SMA is non-zero
-                if current_date <= (all_dates[10] if len(all_dates) > 10 else all_dates[-1]) or signals.get("fast_sma", 0) > 0:
+                if current_date_obj <= (all_dates[10] if len(all_dates) > 10 else all_dates[-1]) or signals.get("fast_sma", 0) > 0:
                      logger.debug(f"Signals for {ticker} on {current_date}: {signals}")
 
                 # If agents disabled, fallback to legacy Signal Gate
                 if not self.config.agent.enabled:
                     passed, sell_signal = SignalGate.evaluate(signals, self.config.signal_gate.model_dump(exclude_none=True))
+                    
+                    # FIX 3: VCL Pipeline Chaining
+                    # If tech signal passed, run it through the VCL pipeline (e.g., Sentiment Gate)
+                    vcl_pipeline = getattr(self.config.signal_gate, "vcl_pipeline", [])
+                    if passed and vcl_pipeline:
+                        ticker_date = current_date_obj
+                        for component_id in vcl_pipeline:
+                            # Lazy load and execute VCL component
+                            res = self._execute_vcl_gate(component_id, ticker, ticker_date, passed)
+                            passed = res["passed"]
+                            if not passed:
+                                logger.info(f"Signal BLOCKED by VCL component {component_id} for {ticker} on {ticker_date}")
+                                break
+                    
                     conviction = 1.0 # default scalar for legacy
+
                     
                     self.gate_events.append({
-                        "date": current_date, "ticker": ticker, 
+                        "date": current_date_obj, "ticker": ticker, 
                         "gate_result": passed, "margin_per_condition": signals.get("_gate_margin", {})
                     })
                     if passed:
@@ -411,11 +445,11 @@ class SimulationLoop:
                             edges=self.config.agent.edges
                         )
                         
-                    agent_result = self.supervisor.run(ticker, current_date, signals)
+                    agent_result = self.supervisor.run(ticker, current_date_obj, signals)
                     
                     # Log trace for debugging
                     self.trace_events.append({
-                        "date": str(current_date),
+                        "date": str(current_date_obj),
                         "ticker": ticker,
                         "action": agent_result["action"],
                         "conviction": agent_result["conviction"],
@@ -428,7 +462,7 @@ class SimulationLoop:
                     for node_name, lat in agent_result.get("node_latencies", {}).items():
                         self.node_latencies_log.append({
                             "ticker": ticker,
-                            "date": str(current_date),
+                            "date": str(current_date_obj),
                             "node": node_name,
                             "latency": lat
                         })
@@ -452,12 +486,12 @@ class SimulationLoop:
                             "ticker": ticker,
                             "action": "BUY",
                             "shares": shares_to_buy,
-                            "signal_date": current_date,
+                            "signal_date": current_date_obj,
                             "signal_price": price
                         })
                 elif current_holdings > 0:
-                    entry_date = self.entry_dates.get(ticker, current_date)
-                    held_days = (current_date - entry_date).days
+                    entry_date = self.entry_dates.get(ticker, current_date_obj)
+                    held_days = (current_date_obj - entry_date).days
                     
                     stop_loss_pct = getattr(self.config.sandbox, "stop_loss_pct", None)
                     max_hold_days = getattr(self.config.sandbox, "max_hold_days", None)
@@ -477,7 +511,7 @@ class SimulationLoop:
                             "ticker": ticker,
                             "action": "SELL",
                             "shares": current_holdings,
-                            "signal_date": current_date,
+                            "signal_date": current_date_obj,
                             "signal_price": price
                         })
 
@@ -502,22 +536,77 @@ class SimulationLoop:
             "node_latencies_log": self.node_latencies_log
         }
         
-        # 3. Wire MLflow Persistence [REMOVED FOR BRIDGE UNIFICATION - ORCHESTRATOR HANDLES LOGGING]
-        # try:
-        #     from engines.sandbox.mlflow_tracker import MLflowTracker
-        #     tracker = MLflowTracker()
-        #     config_dump = self.config.model_dump()
-        #     run_id = tracker.log_run(config_dump, loop_results)
-        #     print(f"[{self.run_id}] Logged simulation results to MLflow Run ID: {run_id}")
-        #     loop_results["mlflow_run_id"] = run_id
-        # except ImportError:
-        #     print(f"[{self.run_id}] Skipping MLflow log - mlflow_tracker not installed.")
-        # except Exception as e:
-        #     print(f"[{self.run_id}] Error logging to MLflow: {str(e)}")
-
-        # logger.info(f"Final NAV: {self.nav_series[-1] if self.nav_series else 'EMPTY'}")
         logger.info(f"Simulation complete. Total trades executed: {len(self.trade_log)}")
         logger.info(f"NAV series length: {len(self.nav_history)}")
         logger.info(f"Final NAV: {self.nav_history[-1]['nav'] if self.nav_history else 'EMPTY'}")
 
         return loop_results
+
+    def _execute_vcl_gate(self, component_id: str, ticker: str, date_obj: date, upstream_signal: bool) -> Dict[str, Any]:
+        """
+        Executes a single VCL gate component using its execute() method with auto-discovery.
+        """
+        if not hasattr(self, "_vcl_registry"):
+            from engines.vcl.registry import VCLRegistry, VCLRegistrationError
+            import importlib
+            import pkgutil
+            import engines.vcl.wrappers
+            from engines.vcl.component import VCLComponent
+
+            self._vcl_registry = VCLRegistry()
+            
+            # Auto-discovery: Scans wrappers/ and registers all VCLComponent subclasses
+            wrappers_pkg = engines.vcl.wrappers
+            for _, name, is_pkg in pkgutil.iter_modules(wrappers_pkg.__path__):
+                if is_pkg: continue
+                
+                module = importlib.import_module(f"engines.vcl.wrappers.{name}")
+                for attr_name in dir(module):
+                    attr = getattr(module, attr_name)
+                    if (isinstance(attr, type) and 
+                        issubclass(attr, VCLComponent) and 
+                        attr is not VCLComponent and
+                        attr.__module__ == module.__name__): # Only native definitions
+                        
+                        try:
+                            # Guarded registration: Run all 5 gates
+                            comp_instance = attr()
+                            result = self._vcl_registry.register(comp_instance)
+                            
+                            if not result.success:
+                                # Industrial Requirement: Raise startup error on broken components
+                                raise VCLRegistrationError(
+                                    f"VCL Component {attr.__name__} (ID: {comp_instance.component_id}) "
+                                    f"failed gate {result.failed_gate}: {result.reason}. "
+                                    "Industrialization requires all VCL components to be HEALTHY at startup."
+                                )
+                        except (TypeError, Exception) as e:
+                            # If it requires arguments and isn't a simple wrapper, skip or log
+                            if isinstance(e, VCLRegistrationError): raise
+                            logger.info(f"Skipping auto-discovery for {attr_name}: {e}")
+                            continue
+
+            logger.info(f"VCL Registry initialized with {len(self._vcl_registry._components)} components.")
+
+        component = self._vcl_registry._components.get(component_id)
+        if not component:
+            logger.error(f"VCL component {component_id} not found in registry")
+            return {"passed": upstream_signal, "reason": "component_not_found"}
+
+        try:
+            input_data = component.input_schema(
+                ticker=ticker,
+                date=date_obj,
+                upstream_signal=upstream_signal,
+                # For FinBERT gate specifically; others might need more mapping
+                min_sentiment_score=getattr(self.config.signal_gate, "min_sentiment_score", 0.0) 
+            )
+            output = component.execute(input_data)
+            out_dict = output.model_dump()
+            # Normalize 'signal' to 'passed' for internal loop logic
+            out_dict["passed"] = out_dict.get("signal", upstream_signal)
+            return out_dict
+        except Exception as e:
+            logger.error(f"Failed to execute VCL component {component_id}: {e}")
+            return {"passed": upstream_signal, "reason": str(e)}
+

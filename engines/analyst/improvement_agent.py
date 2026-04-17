@@ -1,6 +1,9 @@
 import json
 import os
+import logging
 from typing import Dict, Any, List
+
+logger = logging.getLogger(__name__)
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
 from langchain_core.output_parsers import JsonOutputParser
@@ -35,10 +38,12 @@ class ImprovementAgent:
             
         self.parser = JsonOutputParser(pydantic_object=ConfigMutationProposal)
 
-    def analyze_run(self, config_dump: Dict[str, Any], metrics: Dict[str, float], trace_path: str) -> ConfigMutationProposal:
+    def analyze_run(self, config_dump: Dict[str, Any], metrics: Dict[str, float], trace_path: str, run_id: str = None) -> ConfigMutationProposal:
         """
         Reads the run artifacts and proposes a mutation.
         """
+        import mlflow
+
         # Load the trace events (limit to last 50 to avoid prompt overflow during dev)
         traces = []
         if os.path.exists(trace_path):
@@ -99,8 +104,31 @@ Analyze the logs and output your proposed mutation.
             "traces_json": json.dumps(traces, indent=2)
         })
         
-        # Validate and return
-        return ConfigMutationProposal(**response)
+        # Validate
+        proposal = ConfigMutationProposal(**response)
+
+        # FIX 2: Durable Reasoning - Write rationale to MLflow
+        if run_id:
+            try:
+                # Reopen run if closed using nested=True to avoid active run conflicts
+                with mlflow.start_run(run_id=run_id, nested=True):
+                    mutation = proposal.mutation
+                    mlflow.set_tag("aegis_mutation_rationale", mutation.rationale)
+                    mlflow.set_tag("aegis_change_made", f"{mutation.target_parameter}: {mutation.current_value} -> {mutation.proposed_value}")
+                    mlflow.set_tag("aegis_change_field", mutation.target_parameter)
+                    mlflow.set_tag("aegis_change_value_before", str(mutation.current_value))
+                    mlflow.set_tag("aegis_change_value_after", str(mutation.proposed_value))
+                    
+                    # Track iteration if available in metadata, default to 1
+                    it_count = metrics.get("iteration_count", 1)
+                    mlflow.set_tag("aegis_iteration_num", str(int(it_count)))
+                    
+                logger.info(f"Durable rationale persisted to MLflow for run {run_id}")
+            except Exception as e:
+                logger.error(f"Failed to persist durable rationale to MLflow: {e}")
+
+        return proposal
+
 
     def apply_mutation(self, current_config: Dict[str, Any], proposal: ConfigMutationProposal) -> Dict[str, Any]:
         """

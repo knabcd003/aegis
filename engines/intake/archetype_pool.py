@@ -69,7 +69,13 @@ class StrategyArchetypePool:
     def __init__(self, persist_path: str = "data/archetype_pool.json"):
         self.persist_path = persist_path
         self._archetypes: List[StrategyArchetype] = []
-        self._load()
+        self.load()
+
+    def clear(self) -> None:
+        """Clear all archetypes and reset persistence."""
+        self._archetypes = []
+        self.save()
+        logger.info("Archetype pool cleared.")
 
     # ── CRUD ──────────────────────────────────────────────────────────────
 
@@ -79,7 +85,7 @@ class StrategyArchetypePool:
             archetype.promoted_at = datetime.utcnow().isoformat()
 
         self._archetypes.append(archetype)
-        self._save()
+        self.save()
         logger.info(f"Registered archetype: {archetype.name} ({archetype.category})")
 
     def list_all(self) -> List[StrategyArchetype]:
@@ -206,14 +212,14 @@ class StrategyArchetypePool:
 
     # ── Persistence ───────────────────────────────────────────────────────
 
-    def _save(self) -> None:
+    def save(self) -> None:
         """Persist to JSON. Feature vectors stored as plain lists."""
         os.makedirs(os.path.dirname(self.persist_path) or ".", exist_ok=True)
         data = [a.to_dict() for a in self._archetypes]
         with open(self.persist_path, "w") as f:
             json.dump(data, f, indent=2)
 
-    def _load(self) -> None:
+    def load(self) -> None:
         """Load from JSON if file exists."""
         if not os.path.exists(self.persist_path):
             return

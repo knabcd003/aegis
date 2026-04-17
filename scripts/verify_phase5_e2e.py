@@ -58,7 +58,7 @@ def verify_pipeline():
     print("=" * 60)
 
     import mlflow
-    mlflow.set_tracking_uri("sqlite:///mlruns.db")
+    mlflow.set_tracking_uri("sqlite:///mlflow.db")
     mlflow.set_experiment("Phase5_E2E_Trace")
 
     trace_id = f"trace_{int(datetime.datetime.now().timestamp())}"
@@ -510,7 +510,7 @@ def verify_pipeline():
         print(f"  ✅ PHASE 5 PIPELINE TRACE — ALL STEPS PASSED")
     print("=" * 60)
     print(f"\n  MLflow Run ID: {backend_run_id}")
-    print(f"  To view: mlflow ui --backend-store-uri sqlite:///mlruns.db")
+    print(f"  To view: mlflow ui --backend-store-uri sqlite:///mlflow.db")
 
 
 if __name__ == "__main__":

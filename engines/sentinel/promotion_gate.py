@@ -139,7 +139,55 @@ class PromotionGate(VCLComponent):
     # ========================
     # Stage 1 Evaluation
     # ========================
-    def evaluate_backtest(
+    def evaluate(
+        self,
+        run_id: str,
+        workflow_id: str = "default",
+        audit_token: Optional[str] = None,
+        config_hash: Optional[str] = None,
+        **kwargs
+    ) -> GateResult:
+        """
+        Unified evaluation entry point.
+        Routes to the correct stage based on MLflow run tags.
+        """
+        try:
+            run = mlflow.get_run(run_id)
+            current_stage = run.data.tags.get("aegis_workflow_stage", GateStage.BACKTEST.value)
+        except Exception as e:
+            logger.error(f"Failed to determine stage for run {run_id}: {e}")
+            current_stage = GateStage.BACKTEST.value
+
+        if current_stage == GateStage.BACKTEST.value:
+            return self._evaluate_backtest(
+                run_id=run_id,
+                session_quality=kwargs.get("session_quality", "nominal"),
+                scenario_pass_rate=kwargs.get("scenario_pass_rate"),
+                debate_confidence=kwargs.get("debate_confidence"),
+            )
+        elif current_stage == GateStage.PROVING_GROUND.value:
+            return self._evaluate_proving_ground(
+                sentinel_id=run_id,
+                observation_days=kwargs.get("observation_days", 0),
+                signals_generated=kwargs.get("signals_generated", 0),
+                backtest_win_rate=kwargs.get("backtest_win_rate", 0.0),
+                live_win_rate=kwargs.get("live_win_rate", 0.0),
+                backtest_max_drawdown=kwargs.get("backtest_max_drawdown", 0.0),
+                live_max_drawdown=kwargs.get("live_max_drawdown", 0.0),
+                backtest_signal_frequency=kwargs.get("backtest_signal_frequency", 0.0),
+                live_signal_frequency=kwargs.get("live_signal_frequency", 0.0),
+                user_signed_off=kwargs.get("user_signed_off", False)
+            )
+        else:
+            return self._evaluate_live_expansion(
+                sentinel_id=run_id,
+                live_days=kwargs.get("live_days", 0),
+                live_sharpe=kwargs.get("live_sharpe", 0.0),
+                circuit_breaker_triggers=kwargs.get("circuit_breaker_triggers", 0),
+                positive_months=kwargs.get("positive_months", 0)
+            )
+
+    def _evaluate_backtest(
         self,
         run_id: str,
         session_quality: str = "nominal",
@@ -217,12 +265,12 @@ class PromotionGate(VCLComponent):
             )
 
         # 4c. Trade count
-        trade_count = metrics.get("trade_count", 0)
+        trade_count = int(metrics.get("trade_count", 0))
         metrics_snapshot["trade_count"] = trade_count
         if trade_count < self.BACKTEST_GATE["min_trades"]:
-            failures.append(
-                f"TRADE_COUNT: {trade_count} < {self.BACKTEST_GATE['min_trades']}"
-            )
+            msg = f"TRADE_COUNT: {trade_count} < {self.BACKTEST_GATE['min_trades']}. Total trades must be at least 100."
+            logger.warning(f"[{run_id}] Gate Failure: {msg}")
+            failures.append(msg)
 
         # 4d. Profit factor
         profit_factor = metrics.get("profit_factor", 0.0)
@@ -232,13 +280,22 @@ class PromotionGate(VCLComponent):
                 f"PROFIT_FACTOR: {profit_factor:.3f} < {self.BACKTEST_GATE['min_profit_factor']}"
             )
 
-        # 4e. Walk-forward efficiency
+        # 4e. Walk-forward efficiency (WFE)
+        is_sharpe = metrics.get("optimization_sharpe", 0.0)
         wfe = metrics.get("walk_forward_efficiency", 0.0)
         metrics_snapshot["walk_forward_efficiency"] = wfe
-        if wfe < self.BACKTEST_GATE["min_walk_forward_efficiency"]:
+
+        if is_sharpe <= 0:
+            failures.append(
+                f"WFE_INVALID: IS Sharpe is {is_sharpe:.4f} (non-positive). "
+                f"WFE of {wfe:.3f} is mathematically meaningless when the strategy "
+                "loses money in-sample."
+            )
+        elif wfe < self.BACKTEST_GATE["min_walk_forward_efficiency"]:
             failures.append(
                 f"WALK_FORWARD: {wfe:.3f} < {self.BACKTEST_GATE['min_walk_forward_efficiency']}"
             )
+
 
         # 4f. Correlation with existing strategies
         corr = metrics.get("correlation_with_existing", 0.0)
@@ -305,21 +362,39 @@ class PromotionGate(VCLComponent):
 
         self._evaluated_runs[run_id] = result
 
-        # 6. If passed, generate promotion artifact
+        # 6. If passed, generate promotion artifact and maybe register as archetype
         if passed:
             self._generate_promotion_artifact(run_id, metrics_snapshot)
+            try:
+                # Load strategy config from run params to reconstruct for archetype registration
+                params = run.data.params
+                config_dict = {}
+                for k, v in params.items():
+                    try:
+                        config_dict[k] = json.loads(v)
+                    except (json.JSONDecodeError, TypeError):
+                        config_dict[k] = v
+                
+                # We need a minimal config object for feature extraction
+                # In a real system, we'd use ConfigManager.load_dict(config_dict)
+                from config.schema import AegisConfig
+                config = AegisConfig.model_construct(**config_dict)
+                self._maybe_register_archetype(config, metrics_snapshot)
+            except Exception as e:
+                logger.error(f"Failed to trigger autonomous archetype registration for run {run_id}: {e}")
 
         logger.info(
             f"Promotion Gate Stage 1 for run {run_id}: "
             f"{'PASSED' if passed else 'FAILED'} — {reason}"
         )
 
+
         return result
 
     # ========================
     # Stage 2 Evaluation
     # ========================
-    def evaluate_proving_ground(
+    def _evaluate_proving_ground(
         self,
         sentinel_id: str,
         observation_days: int,
@@ -381,7 +456,7 @@ class PromotionGate(VCLComponent):
     # ========================
     # Stage 3 Evaluation
     # ========================
-    def evaluate_live_expansion(
+    def _evaluate_live_expansion(
         self,
         sentinel_id: str,
         live_days: int,
@@ -467,3 +542,79 @@ class PromotionGate(VCLComponent):
             run_id: result.to_dict()
             for run_id, result in self._evaluated_runs.items()
         }
+    def _maybe_register_archetype(
+        self,
+        config: Any, # AegisConfig
+        metrics: dict
+    ) -> None:
+        """
+        FIX 4: Autonomous Archetype Registration.
+        Registers the promoted strategy as a new archetype if it is sufficiently diverse.
+        """
+        from engines.intake.archetype_pool import StrategyArchetypePool, StrategyArchetype
+        import numpy as np
+
+        pool = StrategyArchetypePool()
+        feature_vector = self._extract_feature_vector(config, metrics)
+
+        # Check for near-duplicates (Similarity budget 0.70)
+        if pool.is_too_similar(feature_vector, threshold=0.70):
+            mlflow.set_tag("archetype_registered", "false")
+            mlflow.set_tag("archetype_skip_reason", "cosine_similarity_above_0.70")
+            logger.info(f"Archetype registration skipped for {config.config_id}: too similar to existing pool.")
+            return
+
+        archetype = StrategyArchetype(
+            name=f"{config.config_id}_promoted",
+            category=self._infer_category(config),
+            feature_vector=feature_vector,
+            description=f"Autonomously registered: {config.config_id} (backtest promotion)",
+            config_template=config.model_dump()
+        )
+        pool.register(archetype)
+        mlflow.set_tag("archetype_registered", "true")
+        mlflow.set_tag("archetype_id", archetype.name)
+        logger.info(f"Autonomously registered new archetype: {archetype.name}")
+
+    def _extract_feature_vector(
+        self,
+        config: Any, # AegisConfig
+        metrics: dict
+    ) -> List[float]:
+        """
+        Encodes strategy characteristics as a 5-length vector for cosine similarity.
+        Consistency: [signal_type_idx, asset_class_idx, horizon, sharpe, drawdown]
+        """
+        # 1. Signal type index
+        signal_types = ["technical", "fundamental", "sentiment", "macro"]
+        sig_type = getattr(config.signal_gate, 'type', 'technical')
+        sig_idx = signal_types.index(sig_type) if sig_type in signal_types else 0.0
+
+        # 2. Asset class index (default 0 for equities)
+        asset_idx = 0.0
+
+        # 3. Time horizon (normalized 0-1)
+        min_hold = getattr(config.sandbox, 'min_hold_days', 5)
+        max_hold = getattr(config.sandbox, 'max_hold_days', 21) or 21
+        avg_hold = (min_hold + max_hold) / 2
+        horizon = min(avg_hold / 60.0, 1.0)
+
+        # 4. Performance (Sharpe / 3.0, capped 1.0)
+        sharpe = min(max(metrics.get("oos_sharpe", 0) / 3.0, 0), 1.0)
+
+        # 5. Drawdown (normalized against 30% mandate)
+        drawdown = min(abs(metrics.get("max_drawdown", 0)) / 0.30, 1.0)
+
+        return [float(sig_idx), float(asset_idx), horizon, sharpe, drawdown]
+
+
+    def _infer_category(self, config: Any) -> str:
+        """Infers a diversity category from the configuration."""
+        sig_type = getattr(config.signal_gate, 'type', 'technical')
+        categories = {
+            "technical": "momentum",
+            "fundamental": "fundamental_value",
+            "sentiment": "sentiment_driven",
+            "macro": "macro_driven"
+        }
+        return categories.get(sig_type, "uncategorized")
