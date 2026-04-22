@@ -281,7 +281,7 @@ async def validate_provider(body: ProviderValidationRequest):
             r = req_lib.post(
                 "http://localhost:11434/api/generate",
                 json={"model": body.model, "prompt": "OK", "stream": False},
-                timeout=10
+                timeout=45
             )
             if r.status_code != 200:
                 return {"valid": False, "error": f"Ollama returned {r.status_code}"}
@@ -289,14 +289,19 @@ async def validate_provider(body: ProviderValidationRequest):
             return {"valid": True, "latency_ms": latency, "model": body.model}
 
         elif body.provider_type == "openai_compatible":
-            response = litellm.completion(
-                model=f"openai/{body.model}",
-                messages=[{"role": "user", "content": "Reply with: OK"}],
-                api_key=api_key_to_use,
-                api_base=body.base_url,
-                max_tokens=5,
-                num_retries=0,
-            )
+            # Litellm handles openrouter natively better
+            model_prefix = "openrouter" if body.provider_name == "openrouter" else "openai"
+            kwargs = {
+                "model": f"{model_prefix}/{body.model}",
+                "messages": [{"role": "user", "content": "Reply with: OK"}],
+                "api_key": api_key_to_use,
+                "max_tokens": 5,
+                "num_retries": 0,
+            }
+            if body.provider_name != "openrouter":
+                kwargs["api_base"] = body.base_url
+                
+            response = litellm.completion(**kwargs)
 
         else:  # cloud provider
             model_string = build_litellm_model_string(body.provider_name, body.model)
