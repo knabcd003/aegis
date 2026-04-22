@@ -253,7 +253,12 @@ async def get_current_providers():
     return {
         "providers": result,
         "role_assignments": config.get("role_assignments", {}),
-        "has_finnhub": bool(UserProfileService().get_api_key("default", "finnhub")),
+        "data_connections": {
+            "finnhub": bool(UserProfileService().get_api_key("default", "finnhub")),
+            "alpaca": bool(UserProfileService().get_api_key("default", "alpaca_key")),
+            "fred": bool(UserProfileService().get_api_key("default", "fred")),
+            "sec_edgar": bool(UserProfileService().get_api_key("default", "sec_edgar"))
+        }
     }
 
 
@@ -263,6 +268,12 @@ async def validate_provider(body: ProviderValidationRequest):
     import litellm
 
     start = time.time()
+    
+    api_key_to_use = body.api_key
+    if not api_key_to_use and body.provider_type != "ollama":
+        api_key_to_use = UserProfileService().get_api_key("default", body.provider_name)
+        if not api_key_to_use:
+            return {"valid": False, "error": f"No API key provided or found for {body.provider_name}"}
 
     try:
         if body.provider_type == "ollama":
@@ -281,7 +292,7 @@ async def validate_provider(body: ProviderValidationRequest):
             response = litellm.completion(
                 model=f"openai/{body.model}",
                 messages=[{"role": "user", "content": "Reply with: OK"}],
-                api_key=body.api_key,
+                api_key=api_key_to_use,
                 api_base=body.base_url,
                 max_tokens=5,
                 num_retries=0,
@@ -292,7 +303,7 @@ async def validate_provider(body: ProviderValidationRequest):
             response = litellm.completion(
                 model=model_string,
                 messages=[{"role": "user", "content": "Reply with: OK"}],
-                api_key=body.api_key,
+                api_key=api_key_to_use,
                 max_tokens=5,
                 num_retries=0,
             )

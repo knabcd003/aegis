@@ -56,6 +56,7 @@ export function SetupPage() {
   const [finnhubKey, setFinnhubKey] = useState('');
   const [finnhubStatus, setFinnhubStatus] = useState<{ valid?: boolean; latency_ms?: number; aapl_price?: number; error?: string } | null>(null);
   const [finnhubValidating, setFinnhubValidating] = useState(false);
+  const [dataConnections, setDataConnections] = useState<any>({});
   const [modalOpen, setModalOpen] = useState(false);
   const [validatingId, setValidatingId] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, { valid: boolean; latency_ms?: number; error?: string }>>({});
@@ -71,6 +72,7 @@ export function SetupPage() {
       setProviders(provData.providers || []);
       setRoles(provData.role_assignments || {});
       setHasFinnhub(provData.has_finnhub || false);
+      setDataConnections(provData.data_connections || {});
       setReadiness(readyData);
     } catch (e) {
       console.error('Failed to load providers:', e);
@@ -274,7 +276,11 @@ export function SetupPage() {
                       Validate
                     </button>
                   </div>
-                  <div className="text-[0.6875rem] font-medium font-mono text-muted-foreground">⬜ Not configured</div>
+                  {dataConnections.alpaca ? (
+                    <div className="text-[0.6875rem] font-medium font-mono text-secondary">✅ Configured in Profile</div>
+                  ) : (
+                    <div className="text-[0.6875rem] font-medium font-mono text-muted-foreground">⬜ Not configured</div>
+                  )}
                 </div>
               </div>
 
@@ -293,7 +299,11 @@ export function SetupPage() {
                       Validate
                     </button>
                   </div>
-                  <div className="text-[0.6875rem] font-medium font-mono text-muted-foreground">⬜ Not configured</div>
+                  {dataConnections.fred ? (
+                    <div className="text-[0.6875rem] font-medium font-mono text-secondary">✅ Configured in Profile</div>
+                  ) : (
+                    <div className="text-[0.6875rem] font-medium font-mono text-muted-foreground">⬜ Not configured</div>
+                  )}
                 </div>
               </div>
             </div>
@@ -321,7 +331,11 @@ export function SetupPage() {
                     </button>
                   </div>
                   <p className="text-[0.625rem] text-muted-foreground italic">(required by SEC for API access)</p>
-                  <div className="text-[0.6875rem] font-medium font-mono text-muted-foreground">⬜ Not configured</div>
+                  {dataConnections.sec_edgar ? (
+                    <div className="text-[0.6875rem] font-medium font-mono text-secondary">✅ Configured in Profile</div>
+                  ) : (
+                    <div className="text-[0.6875rem] font-medium font-mono text-muted-foreground">⬜ Not configured</div>
+                  )}
                 </div>
               </div>
 

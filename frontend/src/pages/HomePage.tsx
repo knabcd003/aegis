@@ -7,6 +7,7 @@ const API = 'http://localhost:8000/api/setup';
 export function HomePage() {
   const [providers, setProviders] = useState<any[]>([]);
   const [readiness, setReadiness] = useState<any>(null);
+  const [dataConnections, setDataConnections] = useState<any>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,6 +20,7 @@ export function HomePage() {
         const provData = await provRes.json();
         const readyData = await readyRes.json();
         setProviders(provData.providers || []);
+        setDataConnections(provData.data_connections || {});
         setReadiness(readyData);
       } catch (e) {
         console.error('Failed to load profile data', e);
@@ -104,13 +106,15 @@ export function HomePage() {
             <div className="flex-1 space-y-3">
               <div className="flex justify-between items-center text-[0.8125rem]">
                 <span className="text-on-surface">Finnhub (Market Data)</span>
-                <span className={readiness?.has_price_feed ? "text-secondary font-medium" : "text-destructive font-medium"}>
-                  {readiness?.has_price_feed ? 'Active' : 'Missing'}
+                <span className={dataConnections.finnhub ? "text-secondary font-medium" : "text-destructive font-medium"}>
+                  {dataConnections.finnhub ? 'Active' : 'Missing'}
                 </span>
               </div>
               <div className="flex justify-between items-center text-[0.8125rem]">
                 <span className="text-on-surface">Alpaca (Execution)</span>
-                <span className="text-muted-foreground italic">Unverified</span>
+                <span className={dataConnections.alpaca ? "text-secondary font-medium" : "text-muted-foreground italic"}>
+                  {dataConnections.alpaca ? 'Active' : 'Unverified'}
+                </span>
               </div>
               <div className="flex justify-between items-center text-[0.8125rem]">
                 <span className="text-on-surface">Yahoo Finance</span>
