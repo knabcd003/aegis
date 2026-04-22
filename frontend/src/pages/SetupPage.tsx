@@ -401,13 +401,13 @@ export function SetupPage() {
         {/* Continue Button */}
         <button
           disabled={!readiness?.ready}
-          onClick={() => navigate('/intake')}
+          onClick={() => navigate('/')}
           className="w-full py-3 rounded-lg font-bold text-[0.8125rem] uppercase tracking-widest transition-all
             bg-primary-container text-on-primary-container shadow-sm
             hover:opacity-90 active:scale-[0.98]
             disabled:bg-surface-container disabled:text-muted-foreground disabled:shadow-none disabled:cursor-not-allowed"
         >
-          {readiness?.ready ? 'Continue to Intake →' : 'Complete setup to continue'}
+          {readiness?.ready ? 'Return to Home →' : 'Complete setup to continue'}
         </button>
       </div>
 
