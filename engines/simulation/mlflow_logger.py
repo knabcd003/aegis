@@ -73,12 +73,23 @@ class MLflowLogger:
                         f.write(json.dumps(self._serialize_dict(e)) + "\n")
                 mlflow.log_artifact(events_path)
                 
-                # Trade Log JSONL
-                trades_path = f"{run_dir}/trade_log.jsonl"
+                # Trade Log JSONL (Now Paired Round-Trips for Priority 1)
+                from engines.simulation.metrics import match_round_trip_trades
+                paired_trades = match_round_trip_trades(trade_log)
+                
+                trades_path = f"{run_dir}/paired_trade_log.jsonl"
                 with open(trades_path, "w") as f:
-                    for t in trade_log:
+                    for t in paired_trades:
                         f.write(json.dumps(self._serialize_dict(t)) + "\n")
                 mlflow.log_artifact(trades_path)
+                
+                # Optional: Log raw orders for deep debugging in debug mode
+                if self.depth == "debug":
+                    raw_orders_path = f"{run_dir}/raw_orders.jsonl"
+                    with open(raw_orders_path, "w") as f:
+                        for t in trade_log:
+                            f.write(json.dumps(self._serialize_dict(t)) + "\n")
+                    mlflow.log_artifact(raw_orders_path)
                 
             if self.depth == "debug":
                 # In Phase 4, this logs exact prompts/responses for LLMs.

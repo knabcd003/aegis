@@ -542,17 +542,32 @@ class PromotionGate(VCLComponent):
             run_id: result.to_dict()
             for run_id, result in self._evaluated_runs.items()
         }
-    def _maybe_register_archetype(
-        self,
-        config: Any, # AegisConfig
-        metrics: dict
-    ) -> None:
+
+    def _maybe_register_archetype(self, config: Any, metrics: dict, gate_result: GateResult):
         """
-        FIX 4: Autonomous Archetype Registration.
-        Registers the promoted strategy as a new archetype if it is sufficiently diverse.
+        FIX 4 & 5: Autonomous Archetype Registration with Strict Guards.
+        Registers the promoted strategy as a new archetype ONLY if it passes all hard thresholds.
+        Does not trust gate_result.passed alone (Priority 4).
         """
         from engines.intake.archetype_pool import StrategyArchetypePool, StrategyArchetype
         import numpy as np
+
+        # 1. Multi-metric Guard (Priority 4)
+        if not gate_result.passed:
+            logger.info("Archetype registration skipped: gate failed.")
+            return
+
+        if metrics.get("trade_count", 0) < self.BACKTEST_GATE["min_trades"]:
+            logger.warning(f"Archetype registration blocked: trade_count {metrics['trade_count']} < {self.BACKTEST_GATE['min_trades']}")
+            return
+
+        if metrics.get("optimization_sharpe", 0.0) <= 0:
+            logger.warning("Archetype registration blocked: non-positive optimization Sharpe.")
+            return
+
+        if metrics.get("walk_forward_efficiency", 0.0) < self.BACKTEST_GATE["min_walk_forward_efficiency"]:
+            logger.warning(f"Archetype registration blocked: WFE {metrics['walk_forward_efficiency']} < 0.50")
+            return
 
         pool = StrategyArchetypePool()
         feature_vector = self._extract_feature_vector(config, metrics)
@@ -584,11 +599,13 @@ class PromotionGate(VCLComponent):
         """
         Encodes strategy characteristics as a 5-length vector for cosine similarity.
         Consistency: [signal_type_idx, asset_class_idx, horizon, sharpe, drawdown]
+        All components are normalized 0-1.
         """
-        # 1. Signal type index
+        # 1. Signal type index (normalized by max index)
         signal_types = ["technical", "fundamental", "sentiment", "macro"]
         sig_type = getattr(config.signal_gate, 'type', 'technical')
         sig_idx = signal_types.index(sig_type) if sig_type in signal_types else 0.0
+        norm_sig_idx = sig_idx / (len(signal_types) - 1.0) if len(signal_types) > 1 else 0.0
 
         # 2. Asset class index (default 0 for equities)
         asset_idx = 0.0
@@ -597,15 +614,15 @@ class PromotionGate(VCLComponent):
         min_hold = getattr(config.sandbox, 'min_hold_days', 5)
         max_hold = getattr(config.sandbox, 'max_hold_days', 21) or 21
         avg_hold = (min_hold + max_hold) / 2
-        horizon = min(avg_hold / 60.0, 1.0)
+        horizon = min(max(avg_hold / 60.0, 0.0), 1.0)
 
-        # 4. Performance (Sharpe / 3.0, capped 1.0)
-        sharpe = min(max(metrics.get("oos_sharpe", 0) / 3.0, 0), 1.0)
+        # 4. Performance (Optimization Sharpe / 3.0, capped 1.0)
+        sharpe = min(max(metrics.get("optimization_sharpe", 0.0) / 3.0, 0.0), 1.0)
 
-        # 5. Drawdown (normalized against 30% mandate)
-        drawdown = min(abs(metrics.get("max_drawdown", 0)) / 0.30, 1.0)
+        # 5. Drawdown (normalized against 30% mandate limit, absolute value capped 1.0)
+        drawdown = min(abs(metrics.get("optimization_max_drawdown", 0.0)) / 0.30, 1.0)
 
-        return [float(sig_idx), float(asset_idx), horizon, sharpe, drawdown]
+        return [float(norm_sig_idx), float(asset_idx), horizon, float(sharpe), float(drawdown)]
 
 
     def _infer_category(self, config: Any) -> str:

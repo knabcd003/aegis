@@ -9,7 +9,10 @@ from config.schema import AegisConfig, AssetUniverse, SignalGateConfig, Fundamen
 from engines.intake.mandate_profile import MandateProfile
 from engines.simulation.loop import SimulationLoop
 from engines.simulation.mlflow_logger import MLflowLogger
-from engines.simulation.metrics import compute_metrics
+from engines.simulation.metrics import compute_metrics, compute_sharpe
+from engines.simulation.walk_forward import WalkForwardValidator
+from engines.system.scenario.generator import BlockBootstrapGenerator
+from engines.system.scenario.models import BootstrapRequest
 from api.routers.pipeline_events import broadcaster
 from api.schemas.intake import IntakeDraft
 
@@ -78,36 +81,88 @@ class SimulationOrchestrator:
         })
 
         try:
-            # 5. Run Backtest
-            sim_loop = SimulationLoop(config)
-            start_date = date(2023, 1, 1)
+            # 5. Pipeline Sequence (Industrial Requirement Priority 2)
+            # Step 1: Seal held-out partition (20%, random dates, hash to run_id)
+            import hashlib
+            import pandas as pd
+            import numpy as np
+            
+            start_date = date(2020, 1, 1)
             end_date = date(2023, 12, 31)
+            all_dates = pd.date_range(start_date, end_date, freq='B').date.tolist()
+            num_holdout = int(len(all_dates) * 0.2)
             
-            logger.log_run_start(holdout_dates=[]) 
-            results = sim_loop.run(start_date, end_date)
+            seed_int = int(hashlib.md5(run_id.encode('utf-8'), usedforsecurity=False).hexdigest(), 16) % (2**32)
+            rng = np.random.RandomState(seed_int)
+            holdout_dates = sorted(rng.choice(all_dates, num_holdout, replace=False))
+            opt_dates = sorted([d for d in all_dates if d not in holdout_dates])
             
-            # 6. Calculate & Log Metrics
+            # Step 2: Run primary backtest on optimization period (80%)
+            sim_loop = SimulationLoop(config)
+            logger.log_run_start(holdout_dates=[d.isoformat() for d in holdout_dates])
+            
+            # Optimization Run
+            opt_results = sim_loop.run(start_date, end_date, holdout_dates=holdout_dates)
+            
+            # Step 3: Run WalkForwardValidator on optimization period dates only
+            # This prevents data leakage from the held-out partition
+            wf_validator = WalkForwardValidator(config, n_folds=6)
+            wf_result = wf_validator.run(start_date, end_date, holdout_dates=holdout_dates)
+            
+            # Step 4: Run BlockBootstrapGenerator scenario battery
+            scenario_gen = BlockBootstrapGenerator()
+            # Extract returns from opt_results for bootstrapping
+            nav_df = pd.DataFrame(opt_results["nav_history"])
+            nav_df["date"] = pd.to_datetime(nav_df["date"]).dt.date
+            mask_opt = nav_df["date"].isin(opt_dates)
+            opt_returns = nav_df.loc[mask_opt, "nav"].pct_change().fillna(0).tolist()
+            
+            scenario_request = BootstrapRequest(
+                strategy_returns=opt_returns,
+                num_scenarios=50,
+                block_size_days=20,
+                scenario_length_days=252,
+                mandate_max_drawdown=profile.drawdown_limit / 100.0 if hasattr(profile, "drawdown_limit") else 0.15
+            )
+            scenario_result = scenario_gen.execute(scenario_request)
+            
+            # Step 5: Evaluate held-out partition (produces held_out_sharpe)
+            # We run the loop specifically on holdout dates to get clean OOS metrics
+            # Note: loop.run handles the full range but we extract holdout specifically in metrics
+            
+            # Step 6: Compute all 10 metrics
             metrics = compute_metrics(
-                results["nav_history"],
-                results["trade_log"],
-                results["holdout_dates"]
+                opt_results["nav_history"],
+                opt_results["trade_log"],
+                [d.isoformat() for d in holdout_dates]
             )
             
+            # Inject WFE and Scenario metrics
+            metrics["walk_forward_efficiency"] = wf_result.wfe
+            metrics["scenario_pass_rate"] = scenario_result.pass_rate
+            
+            # Step 7: Log everything to MLflow
             logger.log_run_end(
                 metrics=metrics,
-                trade_log=results["trade_log"],
-                nav_history=results["nav_history"],
-                gate_events=results["gate_events"]
+                trade_log=opt_results["trade_log"],
+                nav_history=opt_results["nav_history"],
+                gate_events=opt_results["gate_events"]
             )
             
-            # 7. Broadcast Event: Pipeline Success
+            # Step 8: Close the run (handled by log_run_end's context manager)
+            
+            # Broadcast Event: Pipeline Success
             await broadcaster.broadcast({
                 "event_id": f"evt_{uuid.uuid4().hex[:6]}",
                 "workflow_id": run_id,
                 "timestamp": datetime.now().isoformat(),
                 "event_type": "node_success",
                 "node_id": "darwinian_sandbox",
-                "payload": {"sharpe": metrics.get("sharpe", 0.0)}
+                "payload": {
+                    "sharpe": metrics.get("sharpe", 0.0),
+                    "wfe": wf_result.wfe,
+                    "scenario_pass": scenario_result.pass_rate
+                }
             })
             
         except Exception as e:

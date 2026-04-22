@@ -6,12 +6,15 @@ v6 update:
 - get_news() and get_insider_transactions() support as_of_date for point-in-time filtering.
 - get_earnings_estimates() returns revision history with published_ts per estimate.
 """
+import logging
 import os
 import requests
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta, date
 
 from engines.data_ingestion.base_connector import BaseConnector
+
+logger = logging.getLogger(__name__)
 
 
 FINNHUB_BASE = "https://finnhub.io/api/v1"
@@ -47,7 +50,7 @@ class FinnhubConnector(BaseConnector):
     def _request(self, endpoint: str, params: dict = None) -> Optional[Any]:
         """Make an authenticated request to Finnhub."""
         if not self._api_key:
-            print(f"[{self.name}] No API key set. Set FINNHUB_API_KEY in .env")
+            logger.debug(f"[{self.name}] No API key set. Set FINNHUB_API_KEY in .env")
             return None
         params = params or {}
         
@@ -65,7 +68,8 @@ class FinnhubConnector(BaseConnector):
             self._cache[cache_key] = data
             return data
         except Exception as e:
-            print(f"[{self.name}] Request error ({endpoint}): {e}")
+            logger.debug(f"[{self.name}] Request error ({endpoint}): {e}")
+            self._cache[cache_key] = None # Cache failure to avoid repeating timeouts
             return None
 
     # ── Earnings Estimates + Revisions ───────────────────────────────────
@@ -284,7 +288,7 @@ class FinnhubConnector(BaseConnector):
                 data = self._request("stock/transcript", {"symbol": ticker, "year": year - 1, "quarter": 4})
 
         if not data or not data.get("transcript"):
-            print(f"[{self.name}] No transcript found for {ticker} Q{quarter} {year}")
+            logger.debug(f"[{self.name}] No transcript found for {ticker} Q{quarter} {year}")
             return None
 
         full_text = ""
@@ -351,7 +355,7 @@ class FinnhubConnector(BaseConnector):
 
     def health_check(self) -> bool:
         if not self._api_key:
-            print(f"[{self.name}] No API key configured")
+            logger.debug(f"[{self.name}] No API key configured")
             return False
         data = self._request("stock/market-status", {"exchange": "US"})
         return data is not None

@@ -15,12 +15,15 @@ about Congressional trades before they were legally disclosed to the public.
 Data source: House Financial Disclosures API + Senate STOCK Act disclosures.
 Both sources are public, no API key required.
 """
+import logging
 import requests
 import os
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta, date
 
 from engines.data_ingestion.base_connector import BaseConnector
+
+logger = logging.getLogger(__name__)
 
 
 # House Financial Disclosures API (efts.house.gov)
@@ -192,9 +195,10 @@ class CongressionalConnector(BaseConnector):
             return disclosures
 
         except Exception as e:
-            print(f"[{self.name}] House disclosure fetch error for {ticker}: {e}")
+            # Moderate logging to avoid polluting audit trail
+            logger.debug(f"House disclosure fetch error for {ticker}: {e}")
             cache_key = f"house_{ticker}"
-            self._cache[cache_key] = []
+            self._cache[cache_key] = {} # Fix: initialize as dict to avoid get() errors later
             return []
 
     def _fetch_senate_disclosures(
@@ -216,7 +220,6 @@ class CongressionalConnector(BaseConnector):
                 "type": "ptr",
             }
 
-            cache_key = f"senate_{ticker}"
             if cache_key in self._cache:
                 data = self._cache[cache_key]
             else:
@@ -226,11 +229,18 @@ class CongressionalConnector(BaseConnector):
                 search_params["toDate"] = "2024-12-31"
                 resp = requests.get(SENATE_BASE, params=search_params, timeout=15)
                 if resp.status_code != 200:
+                    self._cache[cache_key] = {}
                     return []
                 data = resp.json()
                 self._cache[cache_key] = data
 
-            hits = data.get("hits", {}).get("hits", [])
+            # Handle case where EFTS might return a list or dict
+            if isinstance(data, list):
+                hits = data
+            elif isinstance(data, dict):
+                hits = data.get("hits", {}).get("hits", [])
+            else:
+                hits = []
 
             disclosures = []
             for hit in hits:
@@ -270,9 +280,10 @@ class CongressionalConnector(BaseConnector):
             return disclosures
 
         except Exception as e:
-            print(f"[{self.name}] Senate disclosure fetch error for {ticker}: {e}")
+            # Moderate logging to avoid polluting audit trail
+            logger.debug(f"Senate disclosure fetch error for {ticker}: {e}")
             cache_key = f"senate_{ticker}"
-            self._cache[cache_key] = []
+            self._cache[cache_key] = {}
             return []
 
     def get_cluster_buy_signal(

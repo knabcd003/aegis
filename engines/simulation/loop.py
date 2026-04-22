@@ -115,6 +115,7 @@ class SimulationLoop:
     ) -> Dict[str, Any]:
         """
         Run simulation over an explicit list of trading dates using pre-fetched prices.
+        Used primarily by WalkForwardValidator to avoid state pollution or logging side effects.
         """
         self.cash = self.config.position_sizing.capital
         self.positions = defaultdict(float)
@@ -128,7 +129,7 @@ class SimulationLoop:
             current_date = current_date_obj.isoformat()
             daily_nav = self.cash
 
-            # Execute pending orders at OPEN
+            # 1. Execute pending orders at OPEN
             executed_orders = []
             for order in pending_orders:
                 ticker = order["ticker"]
@@ -178,7 +179,7 @@ class SimulationLoop:
 
             pending_orders = [o for o in pending_orders if o not in executed_orders]
 
-            # Mark to market
+            # 2. Mark to market
             for ticker, shares in self.positions.items():
                 if shares > 0:
                     price = 0.0
@@ -191,7 +192,7 @@ class SimulationLoop:
 
             fold_nav_history.append({"date": current_date_obj, "nav": daily_nav})
 
-            # Signal generation & order placement
+            # 3. Signal generation & order placement
             for ticker in self.config.asset_universe.tickers:
                 price = 0.0
                 if ticker in price_cache:
@@ -211,28 +212,26 @@ class SimulationLoop:
                         self.config.signal_gate.model_dump(exclude_none=True),
                     )
                     
-                    # FIX 3: VCL Pipeline Chaining & Metadata Propagation
+                    # VCL Pipeline Chaining & Metadata Propagation
                     vcl_pipeline = getattr(self.config.signal_gate, "vcl_pipeline", [])
-                    vcl_metadata = {}
+                    vcl_metadata = {"sentiment_score": None, "gate_blocked": None} # Priority 3: Null safety
                     if passed and vcl_pipeline:
-                        ticker_date = current_date_obj
                         for component_id in vcl_pipeline:
-                            res = self._execute_vcl_gate(component_id, ticker, ticker_date, passed)
+                            res = self._execute_vcl_gate(component_id, ticker, current_date_obj, passed)
                             passed = res["passed"]
-                            # Accumulate metadata (e.g., sentiment_score)
                             vcl_metadata.update({k: v for k, v in res.items() if k != "passed"})
                             
                             if not passed:
-                                logger.info(f"Signal BLOCKED by VCL component {component_id} for {ticker} on {ticker_date}")
                                 vcl_metadata["gate_blocked"] = component_id
                                 break
                     
                     conviction = 1.0
                 else:
+                    # Agentic (Omitted for briefness, would normally follow similar pattern)
                     passed = False
                     sell_signal = False
                     conviction = 0.0
-                    vcl_metadata = {}
+                    vcl_metadata = {"sentiment_score": None, "gate_blocked": None}
 
                 current_holdings = self.positions[ticker]
 
@@ -245,13 +244,9 @@ class SimulationLoop:
                     shares_to_buy = int(max_alloc / price)
                     if shares_to_buy > 0:
                         order = {
-                            "ticker": ticker,
-                            "action": "BUY",
-                            "shares": shares_to_buy,
-                            "signal_date": current_date_obj,
-                            "signal_price": price,
+                            "ticker": ticker, "action": "BUY", "shares": shares_to_buy,
+                            "signal_date": current_date_obj, "signal_price": price,
                         }
-                        # Attach VCL metadata for auditability
                         order.update(vcl_metadata)
                         pending_orders.append(order)
                 elif current_holdings > 0:
@@ -272,46 +267,48 @@ class SimulationLoop:
                         mh_triggered = True
                         
                     if sl_triggered or mh_triggered or (sell_signal and held_days >= self.config.sandbox.min_hold_days):
-                        pending_orders.append({
-                            "ticker": ticker,
-                            "action": "SELL",
-                            "shares": current_holdings,
-                            "signal_date": current_date_obj,
-                            "signal_price": price,
-                        })
+                        order = {
+                            "ticker": ticker, "action": "SELL", "shares": current_holdings,
+                            "signal_date": current_date_obj, "signal_price": price,
+                        }
+                        order.update(vcl_metadata)
+                        pending_orders.append(order)
 
         return {
             "nav_history": fold_nav_history,
             "trade_log": fold_trade_log,
         }
 
-    def run(self, start_date: date, end_date: date) -> Dict[str, Any]:
-        """Run the daily vectorized simulation loop with optimized pre-fetching."""
+
+    def run(self, start_date: date, end_date: date, holdout_dates: Optional[List[date]] = None) -> Dict[str, Any]:
+        """
+        Run the daily vectorized simulation loop with optimized pre-fetching.
+        Now accepts explicit holdout_dates to obey orchestrator's deterministic sealing (Priority 2).
+        """
         print(f"[{self.run_id}] Starting Phase 1 Simulation: {start_date} to {end_date}")
         
         # 1. Trading Calendar & Holdout sealing
         all_dates = pd.date_range(start_date, end_date, freq='B').date.tolist()
-        num_holdout = int(len(all_dates) * 0.2)
+        
+        if holdout_dates is None:
+            # Fallback for standalone runs, but Orchestrator should normally provide these
+            num_holdout = int(len(all_dates) * 0.2)
+            import hashlib
+            seed_int = int(hashlib.md5(self.run_id.encode('utf-8'), usedforsecurity=False).hexdigest(), 16) % (2**32)
+            np.random.seed(seed_int)
+            holdout_dates = sorted(np.random.choice(all_dates, num_holdout, replace=False))
 
+        opt_dates = sorted([d for d in all_dates if d not in holdout_dates])
+        
         # 1b. Pre-fetch prices for the entire window to avoid O(N*T) disk I/O bottleneck
         print(f"[{self.run_id}] Pre-fetching price history for {len(self.config.asset_universe.tickers)} tickers...")
         price_cache: Dict[str, pd.DataFrame] = {}
         # Correctly calculate calendar days for YFinance lookback
         calendar_days = (end_date - start_date).days + 100
         for ticker in self.config.asset_universe.tickers:
-            # Fetch entire history once
             df = self.yf.get_prices(ticker, days=calendar_days, as_of_date=end_date)
             if df is not None:
                 price_cache[ticker] = df
-        
-        # Reset RNG state using the distinct configured run ID
-        import hashlib
-        seed_int = int(hashlib.md5(self.run_id.encode('utf-8'), usedforsecurity=False).hexdigest(), 16) % (2**32)
-        np.random.seed(seed_int)
-        
-        # Randomly select 20% holdout dates uniformly
-        holdout_dates = sorted(np.random.choice(all_dates, num_holdout, replace=False))
-        opt_dates = sorted([d for d in all_dates if d not in holdout_dates])
         
         # State tracking for execution
         pending_orders = [] # [{ticker, action, shares, signal_date, signal_price}]
@@ -411,17 +408,20 @@ class SimulationLoop:
                 if not self.config.agent.enabled:
                     passed, sell_signal = SignalGate.evaluate(signals, self.config.signal_gate.model_dump(exclude_none=True))
                     
-                    # FIX 3: VCL Pipeline Chaining
-                    # If tech signal passed, run it through the VCL pipeline (e.g., Sentiment Gate)
+                    # FIX 3: VCL Pipeline Chaining & Metadata Propagation
                     vcl_pipeline = getattr(self.config.signal_gate, "vcl_pipeline", [])
+                    vcl_metadata = {"sentiment_score": None, "gate_blocked": None} # Priority 3: Null safety
                     if passed and vcl_pipeline:
                         ticker_date = current_date_obj
                         for component_id in vcl_pipeline:
                             # Lazy load and execute VCL component
                             res = self._execute_vcl_gate(component_id, ticker, ticker_date, passed)
                             passed = res["passed"]
+                            vcl_metadata.update({k: v for k, v in res.items() if k != "passed"})
+                            
                             if not passed:
                                 logger.info(f"Signal BLOCKED by VCL component {component_id} for {ticker} on {ticker_date}")
+                                vcl_metadata["gate_blocked"] = component_id
                                 break
                     
                     conviction = 1.0 # default scalar for legacy
@@ -429,7 +429,8 @@ class SimulationLoop:
                     
                     self.gate_events.append({
                         "date": current_date_obj, "ticker": ticker, 
-                        "gate_result": passed, "margin_per_condition": signals.get("_gate_margin", {})
+                        "gate_result": passed, "margin_per_condition": signals.get("_gate_margin", {}),
+                        **vcl_metadata
                     })
                     if passed:
                         logger.info(f"BUY signal fired: {ticker} on {current_date}")

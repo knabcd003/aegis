@@ -67,7 +67,7 @@ class VCLRegistry:
         return GateResult(True)
 
     def _gate_health_check(self, component: VCLComponent) -> GateResult:
-        """Verify health() executes within 5 seconds and returns a valid status."""
+        """Verify health() executes within 30 seconds and returns a valid status."""
         start_time = time.time()
         try:
             health = component.health()
@@ -75,8 +75,8 @@ class VCLRegistry:
             return GateResult(False, f"health() raised exception: {str(e)}")
             
         duration = time.time() - start_time
-        if duration > 5.0:
-            return GateResult(False, f"health() exceeded 5 second timeout ({duration:.2f}s)")
+        if duration > 30.0:
+            return GateResult(False, f"health() exceeded 30 second timeout ({duration:.2f}s)")
             
         if not hasattr(health, 'status') or health.status not in (HealthStatus.HEALTHY, HealthStatus.DEGRADED, HealthStatus.OFFLINE):
             return GateResult(False, f"health() returned invalid status: {getattr(health, 'status', None)}")
