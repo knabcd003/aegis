@@ -1,18 +1,4 @@
 providers:
-- id: groq/llama-3.1-8b-instant
-  display_name: Llama 3.1 8B (Groq)
-  tier: groq_fast
-  type: openai_compatible
-  model: llama-3.1-8b-instant
-  litellm_model_string: groq/llama-3.1-8b-instant
-  api_key_env: GROQ_API_KEY
-  exclude: false
-  limits:
-    rpd: 1000
-    rpm: null
-    tpd: null
-  cost_per_1k_tokens: 0.0
-  base_url: https://api.groq.com/openai/v1
 - id: local/qwen3:8b
   display_name: Qwen3 8B (Local)
   tier: ollama
@@ -26,12 +12,118 @@ providers:
     rpm: null
     tpd: null
   cost_per_1k_tokens: 0.0
+- id: groq/llama-4-scout-17b-16e-instruct
+  display_name: Llama 4 Scout (Groq)
+  tier: groq_fast
+  type: openai_compatible
+  model: llama-4-scout-17b-16e-instruct
+  litellm_model_string: groq/llama-4-scout-17b-16e-instruct
+  api_key_env: GROQ_API_KEY
+  exclude: false
+  limits:
+    rpd: 1000
+    rpm: 30
+    tpd: 500000
+  cost_per_1k_tokens: 0.0
+  base_url: https://api.groq.com/openai/v1
+- id: groq/qwen3-32b
+  display_name: Qwen3 32B (Groq)
+  tier: groq_strong
+  type: openai_compatible
+  model: qwen3-32b
+  litellm_model_string: groq/qwen3-32b
+  api_key_env: GROQ_API_KEY
+  exclude: false
+  limits:
+    rpd: 1000
+    rpm: 60
+    tpd: 500000
+  cost_per_1k_tokens: 0.0
+  base_url: https://api.groq.com/openai/v1
+- id: groq/kimi-k2-instruct
+  display_name: Kimi K2 Instruct (Groq)
+  tier: groq_agentic
+  type: openai_compatible
+  model: kimi-k2-instruct
+  litellm_model_string: groq/kimi-k2-instruct
+  api_key_env: GROQ_API_KEY
+  exclude: false
+  limits:
+    rpd: 1000
+    rpm: 60
+    tpd: 300000
+  cost_per_1k_tokens: 0.0
+  base_url: https://api.groq.com/openai/v1
+- id: groq/gpt-oss-120b
+  display_name: GPT-OSS 120B (Groq)
+  tier: groq_frontier
+  type: openai_compatible
+  model: gpt-oss-120b
+  litellm_model_string: groq/gpt-oss-120b
+  api_key_env: GROQ_API_KEY
+  exclude: false
+  limits:
+    rpd: 1000
+    rpm: 30
+    tpd: 200000
+  cost_per_1k_tokens: 0.0
+  base_url: https://api.groq.com/openai/v1
+- id: gemini/gemini-2.5-flash
+  display_name: Gemini 2.5 Flash
+  tier: google
+  type: google
+  model: gemini-2.5-flash
+  litellm_model_string: gemini/gemini-2.5-flash
+  api_key_env: GEMINI_API_KEY
+  exclude: false
+  limits:
+    rpd: 250
+    rpm: null
+    tpd: null
+  cost_per_1k_tokens: 0.0
+- id: openrouter/qwen3-235b:free
+  display_name: Qwen3 235B Free (OpenRouter)
+  tier: openrouter
+  type: openai_compatible
+  model: qwen3-235b:free
+  litellm_model_string: openrouter/qwen3-235b:free
+  api_key_env: OPENROUTER_API_KEY
+  exclude: false
+  limits:
+    rpd: 200
+    rpm: 20
+    tpd: null
+  cost_per_1k_tokens: 0.0
+  base_url: https://openrouter.ai/api/v1
+- id: openrouter/llama-4-maverick:free
+  display_name: Llama 4 Maverick Free (OpenRouter)
+  tier: openrouter
+  type: openai_compatible
+  model: llama-4-maverick:free
+  litellm_model_string: openrouter/llama-4-maverick:free
+  api_key_env: OPENROUTER_API_KEY
+  exclude: false
+  limits:
+    rpd: 200
+    rpm: 20
+    tpd: null
+  cost_per_1k_tokens: 0.0
+  base_url: https://openrouter.ai/api/v1
+- id: anthropic/claude-sonnet-4-6
+  display_name: Claude Sonnet 4.6
+  tier: anthropic
+  type: anthropic
+  model: claude-sonnet-4-6
+  litellm_model_string: anthropic/claude-sonnet-4-6
+  api_key_env: ANTHROPIC_API_KEY
+  exclude: false
+  limits:
+    rpd: null
+    rpm: null
+    tpd: null
+  cost_per_1k_tokens: 0.021
 role_assignments:
-  terminal_fallback:
-    primary: local/qwen3:8b
-    fallback_chain: []
-    is_critical: false
-  debate_bull:
+  schema_routing:
     primary: local/qwen3:8b
     fallback_chain: []
     is_critical: false
@@ -39,38 +131,104 @@ role_assignments:
     primary: local/qwen3:8b
     fallback_chain: []
     is_critical: false
-  schema_routing:
-    primary: local/qwen3:8b
-    fallback_chain: []
-    is_critical: false
   nli_prefilter:
     primary: local/qwen3:8b
     fallback_chain: []
     is_critical: false
-  strategy_generation:
-    primary: groq/llama-3.1-8b-instant
-    fallback_chain: &id001
+  connector_health:
+    primary: local/qwen3:8b
+    fallback_chain: []
+    is_critical: false
+  plain_verdict:
+    primary: local/qwen3:8b
+    fallback_chain: []
+    is_critical: false
+  debate_bull:
+    primary: local/qwen3:8b
+    fallback_chain:
+    - groq/llama-4-scout-17b-16e-instruct
+    is_critical: false
+  semantic_validation:
+    primary: groq/llama-4-scout-17b-16e-instruct
+    fallback_chain:
     - local/qwen3:8b
-    is_critical: true
-  debate_moderator:
-    primary: groq/llama-3.1-8b-instant
-    fallback_chain: *id001
-    is_critical: true
-  debate_bear:
-    primary: groq/llama-3.1-8b-instant
-    fallback_chain: *id001
+    is_critical: false
+  structured_extraction:
+    primary: groq/llama-4-scout-17b-16e-instruct
+    fallback_chain:
+    - local/qwen3:8b
+    is_critical: false
+  debate_compression:
+    primary: groq/llama-4-scout-17b-16e-instruct
+    fallback_chain:
+    - local/qwen3:8b
+    is_critical: false
+  strategy_generation:
+    primary: groq/qwen3-32b
+    fallback_chain:
+    - groq/kimi-k2-instruct
     is_critical: true
   improvement_analyzer:
-    primary: groq/llama-3.1-8b-instant
-    fallback_chain: *id001
+    primary: groq/qwen3-32b
+    fallback_chain:
+    - groq/kimi-k2-instruct
+    is_critical: true
+  debate_bear:
+    primary: groq/qwen3-32b
+    fallback_chain:
+    - groq/kimi-k2-instruct
+    is_critical: false
+  auditor_agent:
+    primary: groq/kimi-k2-instruct
+    fallback_chain:
+    - groq/qwen3-32b
+    is_critical: false
+  adversarial_reasoning:
+    primary: groq/kimi-k2-instruct
+    fallback_chain:
+    - groq/gpt-oss-120b
+    is_critical: false
+  debate_moderator:
+    primary: groq/gpt-oss-120b
+    fallback_chain:
+    - groq/kimi-k2-instruct
     is_critical: true
   final_audit_score:
-    primary: groq/llama-3.1-8b-instant
-    fallback_chain: *id001
+    primary: groq/gpt-oss-120b
+    fallback_chain:
+    - groq/kimi-k2-instruct
+    is_critical: true
+  research_small:
+    primary: groq/qwen3-32b
+    fallback_chain:
+    - groq/gpt-oss-120b
+    is_critical: false
+  research_large:
+    primary: gemini/gemini-2.5-flash
+    fallback_chain:
+    - groq/qwen3-32b
+    is_critical: false
+  10k_ingestion:
+    primary: gemini/gemini-2.5-flash
+    fallback_chain: []
+    is_critical: false
+  news_synthesis:
+    primary: gemini/gemini-2.5-flash
+    fallback_chain:
+    - groq/qwen3-32b
+    is_critical: false
+  overflow:
+    primary: openrouter/qwen3-235b:free
+    fallback_chain:
+    - local/qwen3:8b
+    is_critical: false
+  emergency:
+    primary: anthropic/claude-sonnet-4-6
+    fallback_chain: []
     is_critical: true
 settings:
   context_size_threshold_tokens: 50000
-  context_override_provider: gemini-2.5-flash
+  context_override_provider: gemini/gemini-2.5-flash
   exclude_providers:
   - deepseek/*
   severely_degraded_fallback_depth: 2
