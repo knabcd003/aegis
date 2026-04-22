@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import { AddProviderModal } from '@/components/Setup/AddProviderModal';
 
 const API = 'http://localhost:8000/api/setup';
@@ -17,12 +17,7 @@ interface SavedProvider {
   api_key_env?: string;
 }
 
-interface ReadinessCheck {
-  ready: boolean;
-  missing_roles: string[];
-  has_price_feed: boolean;
-  provider_count: number;
-}
+
 
 interface RoleAssignments {
   [role: string]: { primary: string; fallback_chain: string[]; is_critical: boolean };
@@ -48,10 +43,8 @@ const ROLE_LABELS: Record<string, string> = {
 const REQUIRED_ROLES = ['strategy_generation', 'debate_moderator', 'terminal_fallback'];
 
 export function SetupPage() {
-  const navigate = useNavigate();
   const [providers, setProviders] = useState<SavedProvider[]>([]);
   const [roles, setRoles] = useState<RoleAssignments>({});
-  const [readiness, setReadiness] = useState<ReadinessCheck | null>(null);
   const [hasFinnhub, setHasFinnhub] = useState(false);
   const [finnhubKey, setFinnhubKey] = useState('');
   const [finnhubStatus, setFinnhubStatus] = useState<{ valid?: boolean; latency_ms?: number; aapl_price?: number; error?: string } | null>(null);
@@ -63,17 +56,12 @@ export function SetupPage() {
 
   const loadProviders = useCallback(async () => {
     try {
-      const [provRes, readyRes] = await Promise.all([
-        fetch(`${API}/current-providers`),
-        fetch(`${API}/readiness`),
-      ]);
+      const provRes = await fetch(`${API}/current-providers`);
       const provData = await provRes.json();
-      const readyData = await readyRes.json();
       setProviders(provData.providers || []);
       setRoles(provData.role_assignments || {});
       setHasFinnhub(provData.has_finnhub || false);
       setDataConnections(provData.data_connections || {});
-      setReadiness(readyData);
     } catch (e) {
       console.error('Failed to load providers:', e);
     }
@@ -144,9 +132,9 @@ export function SetupPage() {
       <div className="w-full max-w-2xl space-y-8">
         {/* Header */}
         <div className="text-center space-y-3">
-          <h1 className="text-4xl font-headline font-light tracking-tight text-on-surface">Provider Setup</h1>
+          <h1 className="text-4xl font-headline font-light tracking-tight text-on-surface">Command Center</h1>
           <p className="text-muted-foreground text-[0.8125rem] max-w-md mx-auto leading-relaxed">
-            Connect the AI models that will power your pipeline. Aegis assigns them to the right roles automatically. Your keys are stored locally only.
+            Connect the AI models and Data sources that will power your pipeline. Aegis assigns them to the right roles automatically. Your keys are stored locally.
           </p>
         </div>
 
@@ -412,17 +400,6 @@ export function SetupPage() {
           </div>
         </section>
 
-        {/* Continue Button */}
-        <button
-          disabled={!readiness?.ready}
-          onClick={() => navigate('/')}
-          className="w-full py-3 rounded-lg font-bold text-[0.8125rem] uppercase tracking-widest transition-all
-            bg-primary-container text-on-primary-container shadow-sm
-            hover:opacity-90 active:scale-[0.98]
-            disabled:bg-surface-container disabled:text-muted-foreground disabled:shadow-none disabled:cursor-not-allowed"
-        >
-          {readiness?.ready ? 'Return to Home →' : 'Complete setup to continue'}
-        </button>
       </div>
 
       {modalOpen && (
