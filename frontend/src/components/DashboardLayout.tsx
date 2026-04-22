@@ -20,35 +20,17 @@ interface NavSection {
 
 const sections: NavSection[] = [
     {
+        label: "Build",
+        items: [
+            { name: "Intake Mandate", path: "/intake", icon: PlusCircle },
+        ],
+    },
+    {
         label: "Observe",
         items: [
             { name: "Mission Control", path: "/command", icon: Activity },
-            { name: "Portfolio Tracker", path: "/portfolio", icon: DollarSign },
-            { name: "System Health", path: "/health", icon: HeartPulse },
-        ],
-    },
-    {
-        label: "Pipeline",
-        items: [
-            { name: "Visual Map", path: "/command", icon: Blocks },
-            { name: "Component Library", path: "/vcl", icon: Library },
-        ],
-    },
-    {
-        label: "Analyze",
-        items: [
-            { name: "Glass Box", path: "/glassbox", icon: Info },
             { name: "MLOps Arena", path: "/arena", icon: BarChart3 },
             { name: "Debate Theater", path: "/audit", icon: MessageSquare },
-            { name: "Budget Dashboard", path: "/budget", icon: DollarSign },
-        ],
-    },
-    {
-        label: "Settings",
-        items: [
-            { name: "Intake Mandate", path: "/intake", icon: PlusCircle },
-            { name: "Connectors", path: "/connectors", icon: ShieldCheck },
-            { name: "World Monitor", path: "/monitor", icon: Globe },
         ],
     },
 ];
@@ -82,7 +64,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         setCollapsed((prev) => ({ ...prev, [label]: !prev[label] }));
     };
 
-    return (
     return (
         <div className="flex h-screen w-screen overflow-hidden bg-surface text-on-surface selection:bg-primary-container selection:text-on-primary-container font-body">
             {/* Editorial Sidebar */}
@@ -176,11 +157,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                         </div>
                     </div>
                 </header>
-
-                <main className="flex-1 overflow-auto relative scrollbar-thin">
-                    {children}
-                </main>
-            </div>
 
                 <main className="flex-1 overflow-auto relative scrollbar-thin">
                     {children}

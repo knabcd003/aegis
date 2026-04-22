@@ -71,7 +71,7 @@ app = FastAPI(
 # Configure CORS so the React frontend can talk to this API from a different port
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"], # Common React/Vite ports
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -88,7 +88,7 @@ async def health_check() -> Dict[str, Any]:
         }
     }
 
-from api.routers import quant, analyst, mlops, stream, systems, audit, health, improvements, portfolio, openclaw, pipeline_events, intake, budget
+from api.routers import quant, analyst, mlops, stream, systems, audit, health, improvements, portfolio, openclaw, pipeline_events, intake, budget, setup
 
 # ============================================================
 # API Routers
@@ -106,3 +106,4 @@ app.include_router(openclaw.router, prefix="/api/openclaw", tags=["OpenClaw"])
 app.include_router(intake.router, prefix="/api/intake", tags=["Intake"])
 app.include_router(budget.router, prefix="/api/budget", tags=["Budget"])
 app.include_router(pipeline_events.router, prefix="/ws", tags=["Pipeline Events"])
+app.include_router(setup.router, prefix="/api/setup", tags=["Setup"])
