@@ -16,8 +16,8 @@ providers:
   display_name: Llama 4 Scout (Groq)
   tier: groq_fast
   type: openai_compatible
-  model: llama-4-scout-17b-16e-instruct
-  litellm_model_string: groq/llama-4-scout-17b-16e-instruct
+  model: meta-llama/llama-4-scout-17b-16e-instruct
+  litellm_model_string: groq/meta-llama/llama-4-scout-17b-16e-instruct
   api_key_env: GROQ_API_KEY
   exclude: false
   limits:
@@ -30,8 +30,8 @@ providers:
   display_name: Qwen3 32B (Groq)
   tier: groq_strong
   type: openai_compatible
-  model: qwen3-32b
-  litellm_model_string: groq/qwen3-32b
+  model: qwen/qwen3-32b
+  litellm_model_string: groq/qwen/qwen3-32b
   api_key_env: GROQ_API_KEY
   exclude: false
   limits:
@@ -44,8 +44,8 @@ providers:
   display_name: Kimi K2 Instruct (Groq)
   tier: groq_agentic
   type: openai_compatible
-  model: kimi-k2-instruct
-  litellm_model_string: groq/kimi-k2-instruct
+  model: llama-3.3-70b-versatile
+  litellm_model_string: groq/llama-3.3-70b-versatile
   api_key_env: GROQ_API_KEY
   exclude: false
   limits:
@@ -58,8 +58,8 @@ providers:
   display_name: GPT-OSS 120B (Groq)
   tier: groq_frontier
   type: openai_compatible
-  model: gpt-oss-120b
-  litellm_model_string: groq/gpt-oss-120b
+  model: openai/gpt-oss-120b
+  litellm_model_string: groq/openai/gpt-oss-120b
   api_key_env: GROQ_API_KEY
   exclude: false
   limits:
@@ -85,8 +85,8 @@ providers:
   display_name: Qwen3 235B Free (OpenRouter)
   tier: openrouter
   type: openai_compatible
-  model: qwen3-235b:free
-  litellm_model_string: openrouter/qwen3-235b:free
+  model: qwen/qwen3-next-80b-a3b-instruct:free
+  litellm_model_string: openrouter/qwen/qwen3-next-80b-a3b-instruct:free
   api_key_env: OPENROUTER_API_KEY
   exclude: false
   limits:
@@ -99,8 +99,8 @@ providers:
   display_name: Llama 4 Maverick Free (OpenRouter)
   tier: openrouter
   type: openai_compatible
-  model: llama-4-maverick:free
-  litellm_model_string: openrouter/llama-4-maverick:free
+  model: meta-llama/llama-3.3-70b-instruct:free
+  litellm_model_string: openrouter/meta-llama/llama-3.3-70b-instruct:free
   api_key_env: OPENROUTER_API_KEY
   exclude: false
   limits:
@@ -113,8 +113,8 @@ providers:
   display_name: Claude Sonnet 4.6
   tier: anthropic
   type: anthropic
-  model: claude-sonnet-4-6
-  litellm_model_string: anthropic/claude-sonnet-4-6
+  model: claude-3-5-sonnet-20241022
+  litellm_model_string: anthropic/claude-3-5-sonnet-20241022
   api_key_env: ANTHROPIC_API_KEY
   exclude: false
   limits:
