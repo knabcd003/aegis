@@ -26,16 +26,17 @@ class RoutingDecision:
     litellm_kwargs: Dict[str, Any] = None
 
 
+from api.services.user_profile import UserProfileService
+
 class ProviderRouter:
-    def __init__(self, config_path: str = "config/llm_providers.yaml", quota_tracker: Optional[QuotaTracker] = None):
-        self.config_path = config_path
+    def __init__(self, user_id: str = "default", quota_tracker: Optional[QuotaTracker] = None):
+        self.user_id = user_id
         self._load_config()
         self.quota = quota_tracker or QuotaTracker(providers=self.providers)
 
     def _load_config(self) -> None:
-        """Load and validate the YAML config."""
-        with open(self.config_path, "r") as f:
-            self.config = yaml.safe_load(f)
+        """Load and validate the configuration from the DB."""
+        self.config = UserProfileService().get_provider_config(self.user_id)
 
         # Build lookup tables
         self.providers = {p["id"]: p for p in self.config.get("providers", [])}

@@ -53,54 +53,23 @@ class RemoveProviderRequest(BaseModel):
     provider_id: str
 
 
-# ── YAML Helpers ─────────────────────────────────────────────────────────
+from api.services.user_profile import UserProfileService
+
+# ── User Profile Helpers ──────────────────────────────────────────────────
 
 def _load_yaml() -> dict:
-    if not YAML_PATH.exists():
-        return {"providers": [], "role_assignments": {}, "settings": {
-            "context_size_threshold_tokens": 50000,
-            "context_override_provider": "gemini-2.5-flash",
-            "exclude_providers": ["deepseek/*"],
-            "severely_degraded_fallback_depth": 2,
-        }}
-    with open(YAML_PATH, "r") as f:
-        data = yaml.safe_load(f) or {}
-    if "providers" not in data:
-        data["providers"] = []
-    if "role_assignments" not in data:
-        data["role_assignments"] = {}
-    if "settings" not in data:
-        data["settings"] = {}
-    return data
-
+    return UserProfileService().get_provider_config("default")
 
 def _save_yaml(config: dict) -> None:
-    YAML_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(YAML_PATH, "w") as f:
-        yaml.dump(config, f, default_flow_style=False, sort_keys=False)
-
-
-# ── .env Helpers ─────────────────────────────────────────────────────────
+    UserProfileService().save_provider_config("default", config)
 
 def _write_to_env(key: str, value: str) -> None:
-    """Write or update a key in the .env file."""
-    env_content = ""
-    if ENV_PATH.exists():
-        env_content = ENV_PATH.read_text()
-
-    # Check if key already exists
-    pattern = re.compile(rf"^{re.escape(key)}=.*$", re.MULTILINE)
-    if pattern.search(env_content):
-        env_content = pattern.sub(f"{key}={value}", env_content)
-    else:
-        if env_content and not env_content.endswith("\n"):
-            env_content += "\n"
-        env_content += f"{key}={value}\n"
-
-    ENV_PATH.write_text(env_content)
-    # Also set in current process
-    os.environ[key] = value
-
+    """We keep this name for compatibility in this file, but it saves to the DB."""
+    # Convert env var name (e.g. GROQ_API_KEY) to service name (e.g. groq)
+    # The frontend usually sends provider_name="groq", we will handle setting the key directly in the route,
+    # but for compatibility where this is called:
+    service = key.replace('_API_KEY', '').replace('_SECRET_KEY', '').lower()
+    UserProfileService().set_api_key("default", service, value)
 
 # ── LiteLLM Model String Builder ────────────────────────────────────────
 
@@ -269,8 +238,13 @@ async def get_current_providers():
 
     result = []
     for p in providers:
-        key_env = p.get("api_key_env")
-        has_key = bool(os.getenv(key_env, "")) if key_env else True
+        provider_name = p["id"].split("/")[0]
+        # Local ollama doesn't need a key
+        if p.get("type") == "ollama":
+            has_key = True
+        else:
+            has_key = bool(UserProfileService().get_api_key("default", provider_name))
+            
         result.append({
             **p,
             "key_configured": has_key,
@@ -279,7 +253,7 @@ async def get_current_providers():
     return {
         "providers": result,
         "role_assignments": config.get("role_assignments", {}),
-        "has_finnhub": bool(os.getenv("FINNHUB_API_KEY", "")),
+        "has_finnhub": bool(UserProfileService().get_api_key("default", "finnhub")),
     }
 
 
@@ -414,8 +388,8 @@ async def validate_finnhub(body: FinnhubValidationRequest):
         if "c" not in data or data["c"] == 0:
             return {"valid": False, "error": "Invalid key or no data returned"}
         latency = int((time.time() - start) * 1000)
-        # Write to .env on success
-        _write_to_env("FINNHUB_API_KEY", body.api_key)
+        # Write to DB on success
+        UserProfileService().set_api_key("default", "finnhub", body.api_key)
         return {
             "valid": True,
             "latency_ms": latency,
@@ -450,7 +424,7 @@ async def check_readiness():
         if primary and primary.get("limits", {}).get("rpd") is not None:
             missing_roles.append("terminal_fallback_must_be_unlimited")
 
-    finnhub_key = os.getenv("FINNHUB_API_KEY", "")
+    finnhub_key = UserProfileService().get_api_key("default", "finnhub")
     has_price_feed = bool(finnhub_key)
 
     return {

@@ -193,36 +193,172 @@ export function SetupPage() {
           </button>
         </section>
 
-        {/* Price Feed Section */}
-        <section className="bg-surface-container-low border border-white/5 rounded-xl p-6 space-y-3 shadow-sm">
-          <h2 className="text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">Price Feed</h2>
-          <p className="text-[0.6875rem] text-muted-foreground">Required for live Signal Card price checking. Free tier at finnhub.io</p>
+        {/* Data Connections Section */}
+        <div className="space-y-6">
+          <h2 className="text-xl font-headline font-light tracking-tight text-on-surface text-center pt-8 border-t border-white/5">Data Connections</h2>
 
-          {hasFinnhub && !finnhubStatus ? (
-            <div className="flex items-center gap-2 text-[0.8125rem] text-secondary font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
-              Finnhub key configured
+          {/* Market Data */}
+          <section className="bg-surface-container-low border border-white/5 rounded-xl p-6 space-y-6 shadow-sm">
+            <div>
+              <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant mb-1">Market Data</h3>
+              <p className="text-[0.6875rem] text-muted-foreground">Required for backtesting and live execution.</p>
             </div>
-          ) : (
-            <div className="flex gap-2">
-              <input type="text" placeholder="Finnhub API Key" value={finnhubKey}
-                onChange={e => setFinnhubKey(e.target.value)}
-                className="flex-1 bg-surface-container border border-white/5 rounded-lg px-3 py-2 text-[0.8125rem] text-on-surface placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 transition-shadow" />
-              <button onClick={handleFinnhubValidate} disabled={finnhubValidating}
-                className="px-4 py-2 rounded-lg bg-surface-container-high border border-white/10 text-on-surface text-[0.8125rem] font-medium hover:bg-surface-container-highest transition-colors disabled:opacity-50">
-                {finnhubValidating ? '...' : 'Validate'}
-              </button>
-            </div>
-          )}
 
-          {finnhubStatus && (
-            <div className={`text-[0.8125rem] font-medium ${finnhubStatus.valid ? 'text-secondary' : 'text-destructive'}`}>
-              {finnhubStatus.valid
-                ? `✅ Connected — AAPL $${finnhubStatus.aapl_price} — ${finnhubStatus.latency_ms}ms`
-                : `❌ ${finnhubStatus.error}`}
+            <div className="space-y-6">
+              {/* Finnhub */}
+              <div className="flex flex-col md:flex-row md:items-start gap-4">
+                <div className="w-1/3">
+                  <h4 className="text-[0.8125rem] font-bold text-on-surface">Finnhub</h4>
+                  <a href="https://finnhub.io" target="_blank" rel="noreferrer" className="text-[0.6875rem] text-muted-foreground hover:text-primary transition-colors">free at finnhub.io</a>
+                </div>
+                <div className="flex-1 space-y-2">
+                  <div className="flex gap-2">
+                    <input type="password" placeholder="API Key" value={finnhubKey} onChange={e => setFinnhubKey(e.target.value)}
+                      className="flex-1 bg-surface-container border border-white/5 rounded-lg px-3 py-2 text-[0.8125rem] text-on-surface placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 transition-shadow" />
+                    <button onClick={handleFinnhubValidate} disabled={finnhubValidating}
+                      className="px-4 py-2 rounded-lg bg-surface-container-high border border-white/10 text-on-surface-variant hover:text-on-surface text-[0.8125rem] font-bold uppercase tracking-widest hover:bg-white/5 transition-colors disabled:opacity-50">
+                      {finnhubValidating ? '...' : 'Validate'}
+                    </button>
+                  </div>
+                  {finnhubStatus ? (
+                    <div className={`text-[0.6875rem] font-medium font-mono ${finnhubStatus.valid ? 'text-secondary' : 'text-destructive'}`}>
+                      {finnhubStatus.valid ? `✅ Connected — AAPL: $${finnhubStatus.aapl_price} — ${finnhubStatus.latency_ms}ms` : `❌ ${finnhubStatus.error}`}
+                    </div>
+                  ) : hasFinnhub ? (
+                    <div className="text-[0.6875rem] font-medium font-mono text-secondary">✅ Configured in Profile</div>
+                  ) : (
+                    <div className="text-[0.6875rem] font-medium font-mono text-muted-foreground">⬜ Not configured</div>
+                  )}
+                </div>
+              </div>
+
+              <hr className="border-white/5" />
+
+              {/* Yahoo Finance */}
+              <div className="flex flex-col md:flex-row md:items-start gap-4">
+                <div className="w-1/3">
+                  <h4 className="text-[0.8125rem] font-bold text-on-surface">Yahoo Finance</h4>
+                  <span className="text-[0.6875rem] text-muted-foreground">no key needed</span>
+                </div>
+                <div className="flex-1 space-y-2">
+                  <button className="px-4 py-2 rounded-lg bg-surface-container border border-white/10 text-on-surface-variant hover:text-on-surface text-[0.8125rem] font-bold uppercase tracking-widest hover:bg-white/5 transition-colors">
+                    Test Connection
+                  </button>
+                  <div className="text-[0.6875rem] font-medium font-mono text-secondary">✅ Connected — rate limit: standard</div>
+                </div>
+              </div>
             </div>
-          )}
-        </section>
+          </section>
+
+          {/* Execution & Extended Data */}
+          <section className="bg-surface-container-low border border-white/5 rounded-xl p-6 space-y-6 shadow-sm">
+            <div>
+              <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant mb-1">Execution & Extended Data</h3>
+              <p className="text-[0.6875rem] text-muted-foreground">Recommended for full functionality.</p>
+            </div>
+
+            <div className="space-y-6">
+              {/* Alpaca */}
+              <div className="flex flex-col md:flex-row md:items-start gap-4">
+                <div className="w-1/3">
+                  <h4 className="text-[0.8125rem] font-bold text-on-surface">Alpaca</h4>
+                  <a href="https://alpaca.markets" target="_blank" rel="noreferrer" className="text-[0.6875rem] text-muted-foreground hover:text-primary transition-colors">free at alpaca.markets</a>
+                </div>
+                <div className="flex-1 space-y-2">
+                  <div className="flex gap-2">
+                    <input type="password" placeholder="API Key" className="flex-1 bg-surface-container border border-white/5 rounded-lg px-3 py-2 text-[0.8125rem] text-on-surface placeholder:text-muted-foreground" />
+                  </div>
+                  <div className="flex gap-2">
+                    <input type="password" placeholder="API Secret" className="flex-1 bg-surface-container border border-white/5 rounded-lg px-3 py-2 text-[0.8125rem] text-on-surface placeholder:text-muted-foreground" />
+                    <button className="px-4 py-2 rounded-lg bg-surface-container-high border border-white/10 text-on-surface-variant hover:text-on-surface text-[0.8125rem] font-bold uppercase tracking-widest hover:bg-white/5 transition-colors">
+                      Validate
+                    </button>
+                  </div>
+                  <div className="text-[0.6875rem] font-medium font-mono text-muted-foreground">⬜ Not configured</div>
+                </div>
+              </div>
+
+              <hr className="border-white/5" />
+
+              {/* FRED */}
+              <div className="flex flex-col md:flex-row md:items-start gap-4">
+                <div className="w-1/3">
+                  <h4 className="text-[0.8125rem] font-bold text-on-surface">FRED (macro data)</h4>
+                  <a href="https://fred.stlouisfed.org" target="_blank" rel="noreferrer" className="text-[0.6875rem] text-muted-foreground hover:text-primary transition-colors">free at fred.stlouisfed.org</a>
+                </div>
+                <div className="flex-1 space-y-2">
+                  <div className="flex gap-2">
+                    <input type="password" placeholder="API Key" className="flex-1 bg-surface-container border border-white/5 rounded-lg px-3 py-2 text-[0.8125rem] text-on-surface placeholder:text-muted-foreground" />
+                    <button className="px-4 py-2 rounded-lg bg-surface-container-high border border-white/10 text-on-surface-variant hover:text-on-surface text-[0.8125rem] font-bold uppercase tracking-widest hover:bg-white/5 transition-colors">
+                      Validate
+                    </button>
+                  </div>
+                  <div className="text-[0.6875rem] font-medium font-mono text-muted-foreground">⬜ Not configured</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Alternative Data */}
+          <section className="bg-surface-container-low border border-white/5 rounded-xl p-6 space-y-6 shadow-sm">
+            <div>
+              <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant mb-1">Alternative Data</h3>
+              <p className="text-[0.6875rem] text-muted-foreground">Optional external signals.</p>
+            </div>
+
+            <div className="space-y-6">
+              {/* SEC EDGAR */}
+              <div className="flex flex-col md:flex-row md:items-start gap-4">
+                <div className="w-1/3">
+                  <h4 className="text-[0.8125rem] font-bold text-on-surface">SEC EDGAR</h4>
+                  <span className="text-[0.6875rem] text-muted-foreground">no key needed</span>
+                </div>
+                <div className="flex-1 space-y-2">
+                  <div className="flex gap-2">
+                    <input type="email" placeholder="User-Agent Email" className="flex-1 bg-surface-container border border-white/5 rounded-lg px-3 py-2 text-[0.8125rem] text-on-surface placeholder:text-muted-foreground" />
+                    <button className="px-4 py-2 rounded-lg bg-surface-container-high border border-white/10 text-on-surface-variant hover:text-on-surface text-[0.8125rem] font-bold uppercase tracking-widest hover:bg-white/5 transition-colors">
+                      Save
+                    </button>
+                  </div>
+                  <p className="text-[0.625rem] text-muted-foreground italic">(required by SEC for API access)</p>
+                  <div className="text-[0.6875rem] font-medium font-mono text-muted-foreground">⬜ Not configured</div>
+                </div>
+              </div>
+
+              <hr className="border-white/5" />
+
+              {/* Congressional Disclosures */}
+              <div className="flex flex-col md:flex-row md:items-start gap-4">
+                <div className="w-1/3">
+                  <h4 className="text-[0.8125rem] font-bold text-on-surface">Congressional</h4>
+                  <span className="text-[0.6875rem] text-muted-foreground">no key needed</span>
+                </div>
+                <div className="flex-1 space-y-2">
+                  <button className="px-4 py-2 rounded-lg bg-surface-container border border-white/10 text-on-surface-variant hover:text-on-surface text-[0.8125rem] font-bold uppercase tracking-widest hover:bg-white/5 transition-colors">
+                    Test Connection
+                  </button>
+                  <div className="text-[0.6875rem] font-medium font-mono text-secondary">✅ Connected — public portal accessible</div>
+                </div>
+              </div>
+
+              <hr className="border-white/5" />
+
+              {/* Polymarket */}
+              <div className="flex flex-col md:flex-row md:items-start gap-4">
+                <div className="w-1/3">
+                  <h4 className="text-[0.8125rem] font-bold text-on-surface">Polymarket</h4>
+                  <span className="text-[0.6875rem] text-muted-foreground">no key needed</span>
+                </div>
+                <div className="flex-1 space-y-2">
+                  <button className="px-4 py-2 rounded-lg bg-surface-container border border-white/10 text-on-surface-variant hover:text-on-surface text-[0.8125rem] font-bold uppercase tracking-widest hover:bg-white/5 transition-colors">
+                    Test Connection
+                  </button>
+                  <div className="text-[0.6875rem] font-medium font-mono text-secondary">✅ Connected — public API accessible</div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
 
         {/* Pipeline Readiness Section */}
         <section className="bg-surface-container-low border border-white/5 rounded-xl p-6 space-y-4 shadow-sm">

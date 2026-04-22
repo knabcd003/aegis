@@ -28,6 +28,8 @@ class AppState:
 
 state = AppState()
 
+from api.services.user_profile import create_default_user
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -36,6 +38,10 @@ async def lifespan(app: FastAPI):
     and cleanly tears them down when the server shuts down.
     """
     logger.info("Initializing Aegis AI Engines...")
+    
+    # Initialize DB and seed default user profile from .env
+    logger.info("Initializing User Profiles and Secrets...")
+    create_default_user()
     
     # Initialize Data Engine
     state.data_engine = DataEngine(data_dir="./data")
