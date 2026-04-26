@@ -60,8 +60,8 @@ export function SetupPage() {
       const provData = await provRes.json();
       setProviders(provData.providers || []);
       setRoles(provData.role_assignments || {});
-      setHasFinnhub(provData.has_finnhub || false);
       setDataConnections(provData.data_connections || {});
+      setHasFinnhub(provData.data_connections?.finnhub || false);
     } catch (e) {
       console.error('Failed to load providers:', e);
     }
