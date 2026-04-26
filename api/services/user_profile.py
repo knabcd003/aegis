@@ -150,6 +150,7 @@ def create_default_user():
         ("anthropic",   "ANTHROPIC_API_KEY"),
         ("openrouter",  "OPENROUTER_API_KEY"),
         ("openai",      "OPENAI_API_KEY"),
+        ("cerebras",    "CEREBRAS_API_KEY"),
     ]:
         key = os.getenv(env_var)
         if key:

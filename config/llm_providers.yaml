@@ -122,6 +122,34 @@ providers:
     rpm: null
     tpd: null
   cost_per_1k_tokens: 0.021
+- id: cerebras/qwen-3-235b
+  display_name: Qwen3 235B (Cerebras)
+  tier: cerebras
+  type: openai_compatible
+  model: qwen-3-235b-a22b-instruct-2507
+  litellm_model_string: cerebras/qwen-3-235b-a22b-instruct-2507
+  api_key_env: CEREBRAS_API_KEY
+  exclude: false
+  limits:
+    rpd: 14400
+    rpm: 30
+    tpd: 1000000
+  cost_per_1k_tokens: 0.0
+  base_url: https://api.cerebras.ai/v1
+- id: cerebras/llama3.1-8b
+  display_name: Llama 3.1 8B (Cerebras)
+  tier: cerebras
+  type: openai_compatible
+  model: llama3.1-8b
+  litellm_model_string: cerebras/llama3.1-8b
+  api_key_env: CEREBRAS_API_KEY
+  exclude: false
+  limits:
+    rpd: 14400
+    rpm: 30
+    tpd: 1000000
+  cost_per_1k_tokens: 0.0
+  base_url: https://api.cerebras.ai/v1
 role_assignments:
   schema_routing:
     primary: local/qwen3:8b
@@ -166,11 +194,13 @@ role_assignments:
   strategy_generation:
     primary: groq/qwen3-32b
     fallback_chain:
+    - cerebras/qwen-3-235b
     - groq/kimi-k2-instruct
     is_critical: true
   improvement_analyzer:
     primary: groq/qwen3-32b
     fallback_chain:
+    - cerebras/qwen-3-235b
     - groq/kimi-k2-instruct
     is_critical: true
   debate_bear:
@@ -186,16 +216,19 @@ role_assignments:
   adversarial_reasoning:
     primary: groq/kimi-k2-instruct
     fallback_chain:
+    - cerebras/qwen-3-235b
     - groq/gpt-oss-120b
     is_critical: false
   debate_moderator:
     primary: groq/gpt-oss-120b
     fallback_chain:
+    - cerebras/qwen-3-235b
     - groq/kimi-k2-instruct
     is_critical: true
   final_audit_score:
     primary: groq/gpt-oss-120b
     fallback_chain:
+    - cerebras/qwen-3-235b
     - groq/kimi-k2-instruct
     is_critical: true
   research_small:
@@ -218,8 +251,9 @@ role_assignments:
     - groq/qwen3-32b
     is_critical: false
   overflow:
-    primary: openrouter/qwen3-235b:free
+    primary: cerebras/qwen-3-235b
     fallback_chain:
+    - openrouter/qwen3-235b:free
     - local/qwen3:8b
     is_critical: false
   emergency:

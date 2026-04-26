@@ -79,6 +79,7 @@ def build_litellm_model_string(provider: str, model: str) -> str:
         "anthropic": "anthropic",
         "gemini": "gemini",
         "openrouter": "openrouter",
+        "cerebras": "cerebras",
         "mistral": "mistral",
         "together": "together_ai",
     }
@@ -95,6 +96,7 @@ def _infer_tier(provider_name: str) -> str:
         "anthropic": "anthropic",
         "gemini": "gemini",
         "openrouter": "openrouter_free",
+        "cerebras": "cerebras",
         "mistral": "mistral",
         "together": "together",
     }
@@ -289,8 +291,13 @@ async def validate_provider(body: ProviderValidationRequest):
             return {"valid": True, "latency_ms": latency, "model": body.model}
 
         elif body.provider_type == "openai_compatible":
-            # Litellm handles openrouter natively better
-            model_prefix = "openrouter" if body.provider_name == "openrouter" else "openai"
+            # Litellm handles openrouter and cerebras natively
+            if body.provider_name == "openrouter":
+                model_prefix = "openrouter"
+            elif body.provider_name == "cerebras":
+                model_prefix = "cerebras"
+            else:
+                model_prefix = "openai"
             kwargs = {
                 "model": f"{model_prefix}/{body.model}",
                 "messages": [{"role": "user", "content": "Reply with: OK"}],
@@ -298,7 +305,7 @@ async def validate_provider(body: ProviderValidationRequest):
                 "max_tokens": 5,
                 "num_retries": 0,
             }
-            if body.provider_name != "openrouter":
+            if body.provider_name not in ("openrouter", "cerebras"):
                 kwargs["api_base"] = body.base_url
                 
             response = litellm.completion(**kwargs)
