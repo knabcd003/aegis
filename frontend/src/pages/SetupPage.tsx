@@ -203,21 +203,20 @@ export function SetupPage() {
                 </div>
                 <div className="flex-1 space-y-2">
                   <div className="flex gap-2">
-                    <input type="password" placeholder="API Key" value={finnhubKey} onChange={e => setFinnhubKey(e.target.value)}
+                    <input type="password" 
+                      placeholder={hasFinnhub ? "••••••••••••••••••••••••" : "API Key"} 
+                      value={finnhubKey} 
+                      onChange={e => setFinnhubKey(e.target.value)}
                       className="flex-1 bg-surface-container border border-white/5 rounded-lg px-3 py-2 text-[0.8125rem] text-on-surface placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 transition-shadow" />
-                    <button onClick={handleFinnhubValidate} disabled={finnhubValidating}
+                    <button onClick={handleFinnhubValidate} disabled={finnhubValidating || (!finnhubKey.trim() && !hasFinnhub)}
                       className="px-4 py-2 rounded-lg bg-surface-container-high border border-white/10 text-on-surface-variant hover:text-on-surface text-[0.8125rem] font-bold uppercase tracking-widest hover:bg-white/5 transition-colors disabled:opacity-50">
-                      {finnhubValidating ? '...' : 'Validate'}
+                      {finnhubValidating ? '...' : finnhubKey.trim() ? 'Update' : hasFinnhub ? 'Validate' : 'Save'}
                     </button>
                   </div>
-                  {finnhubStatus ? (
+                  {finnhubStatus && (
                     <div className={`text-[0.6875rem] font-medium font-mono ${finnhubStatus.valid ? 'text-secondary' : 'text-destructive'}`}>
-                      {finnhubStatus.valid ? `✅ Connected — AAPL: $${finnhubStatus.aapl_price} — ${finnhubStatus.latency_ms}ms` : `❌ ${finnhubStatus.error}`}
+                      {finnhubStatus.valid ? `Connected — AAPL: $${finnhubStatus.aapl_price} — ${finnhubStatus.latency_ms}ms` : `Error: ${finnhubStatus.error}`}
                     </div>
-                  ) : hasFinnhub ? (
-                    <div className="text-[0.6875rem] font-medium font-mono text-secondary">✅ Configured in Profile</div>
-                  ) : (
-                    <div className="text-[0.6875rem] font-medium font-mono text-muted-foreground">⬜ Not configured</div>
                   )}
                 </div>
               </div>
@@ -234,7 +233,7 @@ export function SetupPage() {
                   <button className="px-4 py-2 rounded-lg bg-surface-container border border-white/10 text-on-surface-variant hover:text-on-surface text-[0.8125rem] font-bold uppercase tracking-widest hover:bg-white/5 transition-colors">
                     Test Connection
                   </button>
-                  <div className="text-[0.6875rem] font-medium font-mono text-secondary">✅ Connected — rate limit: standard</div>
+                  <div className="text-[0.6875rem] font-medium font-mono text-secondary">Connected — rate limit: standard</div>
                 </div>
               </div>
             </div>
@@ -256,19 +255,14 @@ export function SetupPage() {
                 </div>
                 <div className="flex-1 space-y-2">
                   <div className="flex gap-2">
-                    <input type="password" placeholder="API Key" className="flex-1 bg-surface-container border border-white/5 rounded-lg px-3 py-2 text-[0.8125rem] text-on-surface placeholder:text-muted-foreground" />
+                    <input type="password" placeholder={dataConnections.alpaca ? "••••••••••••••••••••••••" : "API Key"} className="flex-1 bg-surface-container border border-white/5 rounded-lg px-3 py-2 text-[0.8125rem] text-on-surface placeholder:text-muted-foreground" />
                   </div>
                   <div className="flex gap-2">
-                    <input type="password" placeholder="API Secret" className="flex-1 bg-surface-container border border-white/5 rounded-lg px-3 py-2 text-[0.8125rem] text-on-surface placeholder:text-muted-foreground" />
+                    <input type="password" placeholder={dataConnections.alpaca ? "••••••••••••••••••••••••" : "API Secret"} className="flex-1 bg-surface-container border border-white/5 rounded-lg px-3 py-2 text-[0.8125rem] text-on-surface placeholder:text-muted-foreground" />
                     <button className="px-4 py-2 rounded-lg bg-surface-container-high border border-white/10 text-on-surface-variant hover:text-on-surface text-[0.8125rem] font-bold uppercase tracking-widest hover:bg-white/5 transition-colors">
-                      Validate
+                      {dataConnections.alpaca ? 'Update' : 'Save'}
                     </button>
                   </div>
-                  {dataConnections.alpaca ? (
-                    <div className="text-[0.6875rem] font-medium font-mono text-secondary">✅ Configured in Profile</div>
-                  ) : (
-                    <div className="text-[0.6875rem] font-medium font-mono text-muted-foreground">⬜ Not configured</div>
-                  )}
                 </div>
               </div>
 
@@ -282,16 +276,11 @@ export function SetupPage() {
                 </div>
                 <div className="flex-1 space-y-2">
                   <div className="flex gap-2">
-                    <input type="password" placeholder="API Key" className="flex-1 bg-surface-container border border-white/5 rounded-lg px-3 py-2 text-[0.8125rem] text-on-surface placeholder:text-muted-foreground" />
+                    <input type="password" placeholder={dataConnections.fred ? "••••••••••••••••••••••••" : "API Key"} className="flex-1 bg-surface-container border border-white/5 rounded-lg px-3 py-2 text-[0.8125rem] text-on-surface placeholder:text-muted-foreground" />
                     <button className="px-4 py-2 rounded-lg bg-surface-container-high border border-white/10 text-on-surface-variant hover:text-on-surface text-[0.8125rem] font-bold uppercase tracking-widest hover:bg-white/5 transition-colors">
-                      Validate
+                      {dataConnections.fred ? 'Update' : 'Save'}
                     </button>
                   </div>
-                  {dataConnections.fred ? (
-                    <div className="text-[0.6875rem] font-medium font-mono text-secondary">✅ Configured in Profile</div>
-                  ) : (
-                    <div className="text-[0.6875rem] font-medium font-mono text-muted-foreground">⬜ Not configured</div>
-                  )}
                 </div>
               </div>
             </div>
@@ -313,17 +302,12 @@ export function SetupPage() {
                 </div>
                 <div className="flex-1 space-y-2">
                   <div className="flex gap-2">
-                    <input type="email" placeholder="User-Agent Email" className="flex-1 bg-surface-container border border-white/5 rounded-lg px-3 py-2 text-[0.8125rem] text-on-surface placeholder:text-muted-foreground" />
+                    <input type="email" placeholder={dataConnections.sec_edgar ? "••••••••••••••••••••••••" : "User-Agent Email"} className="flex-1 bg-surface-container border border-white/5 rounded-lg px-3 py-2 text-[0.8125rem] text-on-surface placeholder:text-muted-foreground" />
                     <button className="px-4 py-2 rounded-lg bg-surface-container-high border border-white/10 text-on-surface-variant hover:text-on-surface text-[0.8125rem] font-bold uppercase tracking-widest hover:bg-white/5 transition-colors">
-                      Save
+                      {dataConnections.sec_edgar ? 'Update' : 'Save'}
                     </button>
                   </div>
-                  <p className="text-[0.625rem] text-muted-foreground italic">(required by SEC for API access)</p>
-                  {dataConnections.sec_edgar ? (
-                    <div className="text-[0.6875rem] font-medium font-mono text-secondary">✅ Configured in Profile</div>
-                  ) : (
-                    <div className="text-[0.6875rem] font-medium font-mono text-muted-foreground">⬜ Not configured</div>
-                  )}
+                  <p className="text-[0.625rem] text-muted-foreground italic mt-2">(required by SEC for API access)</p>
                 </div>
               </div>
 
@@ -339,7 +323,7 @@ export function SetupPage() {
                   <button className="px-4 py-2 rounded-lg bg-surface-container border border-white/10 text-on-surface-variant hover:text-on-surface text-[0.8125rem] font-bold uppercase tracking-widest hover:bg-white/5 transition-colors">
                     Test Connection
                   </button>
-                  <div className="text-[0.6875rem] font-medium font-mono text-secondary">✅ Connected — public portal accessible</div>
+                  <div className="text-[0.6875rem] font-medium font-mono text-secondary">Connected — public portal accessible</div>
                 </div>
               </div>
 
@@ -355,7 +339,7 @@ export function SetupPage() {
                   <button className="px-4 py-2 rounded-lg bg-surface-container border border-white/10 text-on-surface-variant hover:text-on-surface text-[0.8125rem] font-bold uppercase tracking-widest hover:bg-white/5 transition-colors">
                     Test Connection
                   </button>
-                  <div className="text-[0.6875rem] font-medium font-mono text-secondary">✅ Connected — public API accessible</div>
+                  <div className="text-[0.6875rem] font-medium font-mono text-secondary">Connected — public API accessible</div>
                 </div>
               </div>
             </div>

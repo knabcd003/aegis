@@ -2,51 +2,78 @@
 
 *This document serves as the active memory for the state of the codebase. It tracks what has been built, where it lives, and its current status, enabling rapid context resumption.*
 
+*Last updated: 2026-05-02 after v6 cleanup.*
+
 ## 1. Directory Structure Map
 
-The backend is structurally mature and follows the segmented engine pattern.
+The backend is structurally mature and follows the segmented engine pattern. The v6 analyst engine and its dependent scripts/tests have been archived to `_v6_archive/`.
 
 ```text
 Aegis_AI/
-├── config/                  # Static configuration files
-│   ├── llm_providers.yaml   # Contains the 7-tier static routing table (Groq, Google, Local, Anthropic)
-│   └── templates/           # Baseline strategy templates
-├── engines/                 # Core V7 Pipeline Engines
-│   ├── analyst/             # The Intelligence Layer
-│   │   ├── findebate/       # Adversarial audit protocol (Bull, Bear, Moderator)
-│   │   └── scenario/        # Block bootstrap generator & stress testing
-│   ├── data_ingestion/      # Point-in-time data gathering
-│   │   ├── connectors/      # Source APIs (YFinance, FRED)
-│   │   └── sanitization.py  # `public_disclosure_ts` enforcement logic
-│   ├── simulation/          # The Mathematical Foundation
-│   │   ├── loop.py          # Deterministic vectorized math looping
-│   │   ├── metrics.py       # Sharpe, Sortino, basic metric computation
-│   │   └── walk_forward.py  # anchored K-fold Walk-Forward Validator (WFE)
-│   ├── system/              # Framework runtime logic
-│   │   └── llm_router/      # Token tracking, quota management, and fallback execution
-│   └── sentinel/            # Live execution & API
-│       ├── health.py        # Connector Health Monitor & resource bounds
-│       └── promotion_gate.py# Mathematical logic for rejecting/accepting strategies
-├── scripts/                 # Independent runner paths
-│   └── verify_phase5_e2e.py # Verification script containing our completed trace
-└── ui/                      # (Pending Phase 5A)
+├── _v6_archive/            # Archived v6 code (analyst, reflexion, episodic memory, etc.)
+├── api/                    # FastAPI backend (14 routers)
+│   ├── routers/            # Endpoint handlers
+│   ├── schemas/            # Pydantic request/response models
+│   └── services/           # Business logic (user profiles, crypto)
+├── config/                 # Static configuration files
+│   ├── llm_providers.yaml  # 11-provider static routing table with 21 role assignments
+│   └── templates/          # Baseline strategy templates
+├── engines/                # Core V7 Pipeline Engines (15 subdirectories)
+│   ├── data_ingestion/     # Point-in-time data gathering (7 connectors)
+│   ├── debate/             # FinDebate adversarial audit (Bull, Bear, Moderator)
+│   ├── fundamental/        # Signal engines (SegmentAnchor, SignalGate, Earnings, Insider, Macro)
+│   ├── intake/             # V7 Intake System (MandateProfile, UserIntent, ArchetypePool)
+│   ├── models/             # Pydantic data models
+│   ├── monitoring/         # Connector Health Monitor
+│   ├── nli/                # DeBERTa NLI segment classifier
+│   ├── plugins/            # Plugin layer
+│   ├── quant/              # Quant models (HMM, Chronos, VPIN, Portfolio) — v7 integration pending
+│   ├── sandbox/            # Subprocess isolation orchestrator
+│   ├── sentinel/           # Live execution (PromotionGate, StateMgr, CloseSignal, Freshness, Mirror)
+│   ├── simulation/         # Math foundation (Loop, Metrics, WalkForward, MLflow Logger)
+│   ├── system/             # Runtime (LLM Router, Token Messenger, Scenario Generator, Telemetry)
+│   └── vcl/                # Verified Component Library (Registry, 7 wrappers)
+├── frontend/               # React + Vite + TailwindCSS
+│   └── src/                # SetupPage (Command Center) — only page built so far
+├── scripts/                # Independent runner scripts & verification suite
+│   └── verify/             # 16 step-by-step verification scripts
+├── tests/                  # Unit & integration tests
+│   ├── unit/               # 19 test files (simulation, sentinel, intake, debate, etc.)
+│   └── integration/        # 2 test files
+└── docs_v7/                # Documentation & design references
+    └── design_references/  # Archived stitch HTML prototypes
 ```
 
 ## 2. Completed Backend Mechanics (Phase 1-5)
 
-We have verified the entire backend pipeline via `scripts/verify_phase5_e2e.py`. The fundamental mechanics are locked:
+Verified via `scripts/verify_phase5_e2e.py` and `scripts/verify/` suite:
 
-*   ✅ **LLM Routing & Fallback:** Handled cleanly in `config/llm_providers.yaml`. Tiering is active (Qwen for local/basic, Llama for extraction, Kimi/Qwen32B/GPT-120B for deep reasoning). Degraded sessions are flagged.
-*   ✅ **Simulation & Walk-Forward (WFE):** The `simulation/walk_forward.py` operates on K-fold chronological anchoring, explicitly replacing hardcoded stub values with live ML backtests. 
-*   ✅ **Promotion Gate:** Evaluates constraints (WFE > 0.5, Target Max Drawdown, etc.) deterministically.
-*   ✅ **FinDebate Protocol:** Agents engage adversarially without leaking limits.
-*   ✅ **Data Pipeline:** Strict separation isolating future leakage, enforcing `public_disclosure_ts`.
+*   ✅ **LLM Routing & Fallback:** `config/llm_providers.yaml` — 11 providers, 21 roles, Cerebras integrated.
+*   ✅ **Simulation & Walk-Forward (WFE):** Vectorized backtest + anchored K-fold WFE.
+*   ✅ **Promotion Gate:** 3-stage deterministic gate (Backtest → Proving Ground → Live).
+*   ✅ **FinDebate Protocol:** Evidentiary rubric, Bear win rate monitoring, anti-rubber-stamp.
+*   ✅ **Data Pipeline:** 7 connectors with strict `public_disclosure_ts` enforcement.
+*   ✅ **VCL SDK:** 5-gate import verification, 7 wrappers registered.
+*   ✅ **Token Messenger:** Cryptographic chaining across pipeline stages.
+*   ✅ **Scenario Battery:** Block bootstrap generator with pass rate gating.
+*   ✅ **Intake System:** MandateProfile, UserIntent, Contradiction detection, ArchetypePool.
+*   ✅ **Signal Freshness:** Live price validator with volatility-bucketed thresholds.
 
-## 3. Pending & Immediate Horizon (Phase 5A)
+## 3. Archived v6 Code (`_v6_archive/`)
 
-The backend runs silently and correctly. The user has no way to interact with it under the V7 paradigm. 
+The following v6 components have been archived — they conflict with v7's autonomous pipeline design:
 
-**Next Up: Phase 5A — Frontend Architecture (The Glass Box & Visual Pipeline Map)**
+*   `analyst/` — AgenticSupervisor, AnalystNode, RiskManager, Reflexion, EpisodicMemory, LocalWorker, ImprovementAgent
+*   `scripts/` — 7 v6-specific test/demo scripts
+*   `tests/` — 8 v6-specific unit/integration tests
+
+**Key risk removed:** `reflexion.py` was importing `ChatAnthropic` directly, which would burn the $20 Claude budget on every autopsy call.
+
+## 4. Pending & Immediate Horizon (Phase 5A)
+
+**Next Up: Phase 5A — Frontend Architecture**
 *   Build the *Intake Interface* (Path A & Path B Schema).
-*   Construct the *Monitoring Canvas* (Connecting WebSockets to view the LangGraph execution flow live).
-*   Develop the *Signal Card UI* for final binary ACCEPT/DECLINE.
+*   Construct the *Mission Control* canvas (WebSocket → live pipeline events).
+*   Develop the *Glass Box* (audit trail as product).
+*   Build the *Signal Card UI* for ACCEPT/DECLINE.
+*   Create *Debate Theater*, *Budget Dashboard*, *Arena*, *Pipeline Map*.

@@ -435,44 +435,14 @@ class SimulationLoop:
                     if passed:
                         logger.info(f"BUY signal fired: {ticker} on {current_date}")
                 else:
-                    # Agentic Mesh Routing
-                    if not hasattr(self, "supervisor"):
-                        from engines.analyst.supervisor import AgenticSupervisor
-                        print(f"[{self.run_id}] Initializing LangGraph Supervisor ({self.config.agent.provider}/{self.config.agent.model})...")
-                        self.supervisor = AgenticSupervisor(
-                            provider=self.config.agent.provider, 
-                            model=self.config.agent.model,
-                            pipeline=self.config.agent.pipeline,
-                            edges=self.config.agent.edges
-                        )
-                        
-                    agent_result = self.supervisor.run(ticker, current_date_obj, signals)
-                    
-                    # Log trace for debugging
-                    self.trace_events.append({
-                        "date": str(current_date_obj),
-                        "ticker": ticker,
-                        "action": agent_result["action"],
-                        "conviction": agent_result["conviction"],
-                        "reasoning_trace": agent_result["reasoning_trace"],
-                        "directional_mismatch": agent_result.get("directional_mismatch", False),
-                        "fundamental_signals": signals
-                    })
-                    
-                    # Log raw latencies for distribution analysis
-                    for node_name, lat in agent_result.get("node_latencies", {}).items():
-                        self.node_latencies_log.append({
-                            "ticker": ticker,
-                            "date": str(current_date_obj),
-                            "node": node_name,
-                            "latency": lat
-                        })
-                    
-                    action = agent_result["action"]
-                    conviction = agent_result["conviction"]
-                    
-                    passed = (action == "BUY" and conviction >= 0.3)
-                    sell_signal = (action == "SELL" and conviction >= 0.3)
+                    # v6 Agentic Mesh Routing — ARCHIVED
+                    # The v6 AgenticSupervisor has been moved to _v6_archive/analyst/.
+                    # v7 uses the autonomous pipeline (Builder → Validator → Backtest → FinDebate → Promotion Gate)
+                    # via AegisState and Token Messenger, not per-ticker agent routing.
+                    raise RuntimeError(
+                        "config.agent.enabled=True uses the v6 AgenticSupervisor which has been archived. "
+                        "v7 uses the autonomous pipeline. Set agent.enabled=False or migrate to v7 pipeline."
+                    )
                 
                 # Generate Buy/Sell Signals
                 current_holdings = self.positions[ticker]

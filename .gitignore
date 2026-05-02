@@ -60,6 +60,12 @@ chroma_db/
 data/
 mlruns/
 mlflow.db
-mlflow.db
+mlruns.db
+*.bak
+.coverage
 debug/
 *.log
+_v6_archive/
+audit_sessions/
+prompt_patches/
+logs/

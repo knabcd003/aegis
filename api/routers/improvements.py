@@ -87,6 +87,12 @@ async def generate_proposal(request: ProposalRequest) -> Dict[str, Any]:
         agent = ImprovementAgent(model=request.model)
         proposal = agent.analyze_run(config_dump, metrics, trace_path, run_id=request.run_id)
 
+    except ImportError:
+        raise HTTPException(
+            status_code=410,
+            detail="v6 ImprovementAgent has been archived to _v6_archive/analyst/. "
+                   "v7 uses the autonomous pipeline for strategy improvement."
+        )
     except Exception as e:
         logger.error(f"ImprovementAgent failed: {e}")
         raise HTTPException(status_code=500, detail=f"ImprovementAgent error: {str(e)}")

@@ -162,6 +162,7 @@ def create_default_user():
         ("alpaca_key",  "ALPACA_API_KEY"),
         ("alpaca_secret", "ALPACA_SECRET_KEY"),
         ("fred",        "FRED_API_KEY"),
+        ("sec_edgar",   "SEC_EDGAR_EMAIL"),
     ]:
         key = os.getenv(env_var)
         if key:
