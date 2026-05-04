@@ -456,3 +456,50 @@ async def check_readiness():
         "has_price_feed": has_price_feed,
         "provider_count": len(config.get("providers", [])),
     }
+
+
+@router.get("/profile")
+async def get_profile():
+    """Return user account summary — no secrets exposed."""
+    import sqlite3
+    from api.services.user_profile import DB_PATH
+
+    service = UserProfileService()
+
+    # Get created_at from DB
+    created_at = None
+    try:
+        with sqlite3.connect(str(DB_PATH)) as conn:
+            row = conn.execute(
+                "SELECT created_at FROM user_profiles WHERE user_id = ?",
+                ("default",),
+            ).fetchone()
+            if row:
+                created_at = row[0]
+    except Exception:
+        pass
+
+    # Count connected services (keys that exist)
+    connected_services = []
+    for svc in [
+        "groq", "gemini", "anthropic", "openrouter", "cerebras",
+        "finnhub", "alpaca_key", "fred", "sec_edgar",
+    ]:
+        if service.get_api_key("default", svc):
+            label = svc.replace("_key", "").replace("_", " ").title()
+            connected_services.append(label)
+
+    config = service.get_provider_config("default") or {}
+    providers = config.get("providers", [])
+    roles = config.get("role_assignments", {})
+
+    return {
+        "user_id": "default",
+        "created_at": created_at,
+        "connected_services": connected_services,
+        "connected_count": len(connected_services),
+        "provider_count": len(providers),
+        "roles_assigned": len(roles),
+        "roles_total": len(ROLE_LABELS) if 'ROLE_LABELS' in dir() else 14,
+    }
+

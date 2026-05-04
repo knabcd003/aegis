@@ -128,8 +128,7 @@ export function SetupPage() {
   const allRoles = Object.keys(ROLE_LABELS);
 
   return (
-    <div className="min-h-screen bg-surface text-on-surface flex items-center justify-center p-6 font-body selection:bg-primary-container selection:text-on-primary-container">
-      <div className="w-full max-w-2xl space-y-8">
+    <div className="w-full max-w-2xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-3">
           <h1 className="text-4xl font-headline font-light tracking-tight text-on-surface">Command Center</h1>
@@ -383,8 +382,6 @@ export function SetupPage() {
             </div>
           </div>
         </section>
-
-      </div>
 
       {modalOpen && (
         <AddProviderModal onClose={() => setModalOpen(false)} onSaved={handleProviderSaved} />
