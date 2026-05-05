@@ -1,0 +1,277 @@
+{
+  "_schema_version": "v9.0",
+  "_path": null,
+  "_path_note": "A = Aegis conversational intake (aegis_conversational_intake_v9.md). B = External LLM intake (aegis_llm_intake_v9.md). Both paths produce this schema. The Builder cannot distinguish which path was used.",
+  "_for_llm": "Read aegis_llm_intake_v9.md fully before populating any field. This schema feeds an autonomous AI trading pipeline. What you write here directly determines what strategies are built and deployed with real capital.",
+  "_builder_note": "Tier 1 (mandate_hard_constraints) fields are mathematical gates enforced by pipeline code. All other fields are investment policy context — read as a portfolio manager reads a client brief. mandate_priority_hierarchy is the conflict resolution profile — consult it whenever preferences trade off against each other.",
+
+  "mandate_hard_constraints": {
+    "_tier": 1,
+    "_note": "All fields enforced mechanically. No AI agent can override. Populate only from explicit user statements. Conservative interpretation always.",
+
+    "investable_capital": null,
+
+    "max_portfolio_drawdown_pct": null,
+
+    "max_single_position_pct": null,
+
+    "max_concurrent_live_strategies": null,
+
+    "leverage_permitted": false,
+
+    "account_type": null,
+
+    "horizon_allocation": [
+      {
+        "label": null,
+        "min_days": null,
+        "max_days": null,
+        "capital_weight": null
+      }
+    ],
+
+    "universe_hard_filters": {
+      "asset_classes_permitted": [],
+      "market_cap_range": null,
+      "min_avg_daily_volume_usd": null,
+      "price_range": null,
+      "geographies_permitted": [],
+      "sectors_of_interest": [],
+      "sectors_to_avoid": [],
+      "esg_exclusions": [],
+      "specific_tickers_focus": [],
+      "specific_tickers_exclude": [],
+      "tickers_never_touch": []
+    }
+  },
+
+  "mandate_priority_hierarchy": {
+    "_tier": 2,
+    "_builder_note": "This section governs all trade-off decisions. When preferences conflict, the ordered_priorities ranking determines which preference yields. preference_flexibility tags tell you how hard each preference is — immovable preferences hold even at significant cost to other dimensions. trade_off_philosophy is the catch-all for conflicts the structured fields don't cover. Read this section before making any strategy generation decision that requires choosing between preferences.",
+
+    "ordered_priorities": [
+      {
+        "rank": null,
+        "dimension": null,
+        "rationale": null
+      }
+    ],
+
+    "preference_flexibility": [
+      {
+        "preference": null,
+        "flexibility": null,
+        "rationale": null
+      }
+    ],
+
+    "trade_off_philosophy": null,
+
+    "conflict_notes": null
+  },
+
+  "investor_profile": {
+    "_tier": 2,
+    "_builder_note": "Read this section first. It calibrates how to interpret all subsequent fields — the user's sophistication, their relationship with markets, and what role this pipeline plays in their total investment picture.",
+
+    "summary": null,
+
+    "investment_experience": null,
+
+    "portfolio_context": null,
+
+    "time_availability": null,
+
+    "behavioral_history": null
+  },
+
+  "risk_profile": {
+    "_tier": 2,
+    "_builder_note": "Risk is multi-dimensional. Do not reduce this section to a single label when building strategies. Each sub-field may produce different calibration decisions for different strategy types. regret_asymmetry has the largest single impact on exit rule design — weight it heavily.",
+
+    "summary": null,
+
+    "volatility_tolerance": null,
+
+    "gap_risk_tolerance": null,
+
+    "concentration_tolerance": null,
+
+    "tail_risk_tolerance": null,
+
+    "time_risk_tolerance": null,
+
+    "correlation_risk": null,
+
+    "regret_asymmetry": null,
+
+    "loss_aversion_context": null
+  },
+
+  "performance_targets": {
+    "_tier": 2,
+    "_builder_note": "Use primary_objective as the anchor. Prose fields explain what the numbers mean to this user — a 20% return target from a consistency-prioritizing user is a fundamentally different mandate than the same target from one comfortable with drawdowns to achieve it. success_definition and failure_definition are the most actionable fields — they tell you what the user will actually do in real situations.",
+
+    "primary_objective": null,
+
+    "target_annual_return_pct": null,
+
+    "target_annual_return_context": null,
+
+    "benchmark": null,
+
+    "benchmark_context": null,
+
+    "return_character": null,
+
+    "min_acceptable_sharpe": null,
+
+    "target_win_rate_pct": null,
+
+    "max_acceptable_consecutive_losses": null,
+
+    "target_monthly_income_usd": null,
+
+    "target_return_horizon_months": null,
+
+    "success_definition": null,
+
+    "failure_definition": null
+  },
+
+  "universe_mandate": {
+    "_tier": 2,
+    "_builder_note": "raw_desire is the primary signal — always read it first. universe_description gives dimensional context behind the hard filters. fundamental_screens is new in v9 — it captures financial characteristic requirements and interacts directly with the priority system. A fundamental_screens preference marked immovable in preference_flexibility is a hard filter even if it isn't in mandate_hard_constraints.",
+
+    "raw_desire": null,
+
+    "universe_description": null,
+
+    "sector_reasoning": null,
+
+    "asset_class_preferences": null,
+
+    "liquidity_and_price_character": null,
+
+    "equity_character": null,
+
+    "fundamental_screens": null,
+
+    "options_context": null,
+
+    "etf_preferences": null,
+
+    "existing_holdings": []
+  },
+
+  "strategy_intent": {
+    "_tier": 2,
+    "_builder_note": "regime_universe_pairs are the most specific strategy generation signal — only create them from explicitly linked user preferences. regime_preferences describes the broader character without that specificity. exit_philosophy and entry_philosophy are high-signal — experienced investors often have strong views here that should be respected over system defaults.",
+
+    "regime_preferences": null,
+
+    "regime_universe_pairs": [],
+
+    "catalyst_preferences": null,
+
+    "entry_philosophy": null,
+
+    "exit_philosophy": null,
+
+    "holding_philosophy": null,
+
+    "signal_type_preferences": null,
+
+    "complexity_preference": null,
+
+    "strategy_types_to_avoid": null
+  },
+
+  "horizon_mandate": {
+    "_tier": 2,
+    "_builder_note": "The hard horizon_allocation provides weights. This section explains the reasoning behind each bucket and what success looks like within each time frame. intraday_tolerance and overnight_tolerance are operationally critical — they determine what execution the user can actually perform.",
+
+    "description": null,
+
+    "horizon_details": [],
+
+    "intraday_tolerance": null,
+
+    "overnight_tolerance": null
+  },
+
+  "portfolio_scope": {
+    "_tier": 2,
+    "_builder_note": "ambition_description calibrates how wide to cast the exploratory net. A narrow focused mandate and a broad diversified mandate require fundamentally different generation approaches. market_beta_intent interacts with portfolio_beta_existing — together they define what kind of exposure Aegis should add.",
+
+    "ambition_description": null,
+
+    "diversification_intent": null,
+
+    "correlation_intent": null,
+
+    "market_beta_intent": null,
+
+    "portfolio_beta_existing": null,
+
+    "pipeline_growth_intent": null
+  },
+
+  "market_context": {
+    "_tier": 2,
+    "_builder_note": "macro_views bias regime and sector selection. strategy_implication within each view is Builder-actionable language — use it directly. current_regime_beliefs tells you what environment the user thinks the pipeline is being deployed into, which affects scenario selection for backtesting and validation.",
+
+    "macro_views": [],
+
+    "current_regime_beliefs": null,
+
+    "regime_adaptivity_intent": null,
+
+    "sectors_with_tailwinds": null,
+
+    "sectors_with_headwinds": null
+  },
+
+  "execution_profile": {
+    "_tier": 2,
+    "_builder_note": "available_windows is a hard operational filter on strategy types — not a soft preference. A strategy that requires execution outside the user's windows will never be acted on and should not be generated. execution_latency_context affects entry range design — a user with 2-hour latency needs wider entry windows than one who can act in 10 minutes.",
+
+    "available_windows": null,
+
+    "pre_post_market_capable": false,
+
+    "execution_latency_context": null,
+
+    "order_type_philosophy": null,
+
+    "brokerage_constraints": null
+  },
+
+  "exclusions_and_constraints": {
+    "_tier": 2,
+    "_builder_note": "strategy_type_exclusions and tax_considerations are often the most actionable fields here. Always include the reason for each exclusion — the reason tells the Builder how firm the exclusion is and whether edge cases should be surfaced to the user.",
+
+    "strategy_type_exclusions": null,
+
+    "instrument_exclusions": null,
+
+    "concentration_constraints": null,
+
+    "tax_considerations": null
+  },
+
+  "filing_notes": {
+    "_tier": 2,
+    "_builder_note": "Read this section last, after reading the full schema. contradictions and expectation_corrections are surfaced to the user at confirmation. open_questions flag areas where conservative defaults should apply. conversation_quality_note tells you how much weight to give the full context vs. applying defaults.",
+
+    "explicit_vs_inferred_summary": null,
+
+    "contradictions": [],
+
+    "expectation_corrections": [],
+
+    "open_questions": [],
+
+    "conversation_quality_note": null
+  }
+}

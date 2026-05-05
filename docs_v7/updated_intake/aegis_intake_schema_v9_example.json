@@ -1,0 +1,414 @@
+{
+  "_schema_version": "v9.0",
+  "_path": "A",
+  "_path_note": "Generated via Aegis conversational intake. User: 38yo tech PM, $75K, taxable Schwab account.",
+
+  "mandate_hard_constraints": {
+    "_tier": 1,
+
+    "investable_capital": 75000,
+    "max_portfolio_drawdown_pct": 15,
+    "max_single_position_pct": null,
+    "max_concurrent_live_strategies": 5,
+    "leverage_permitted": false,
+    "account_type": "taxable",
+
+    "horizon_allocation": [
+      {
+        "label": "swing",
+        "min_days": 5,
+        "max_days": 21,
+        "capital_weight": 0.65
+      },
+      {
+        "label": "position",
+        "min_days": 21,
+        "max_days": 60,
+        "capital_weight": 0.35
+      }
+    ],
+
+    "universe_hard_filters": {
+      "asset_classes_permitted": ["equities"],
+      "market_cap_range": [50, 500000],
+      "min_avg_daily_volume_usd": 1000000,
+      "price_range": null,
+      "geographies_permitted": ["US"],
+      "sectors_of_interest": ["Healthcare", "Technology"],
+      "sectors_to_avoid": [],
+      "esg_exclusions": [],
+      "specific_tickers_focus": [],
+      "specific_tickers_exclude": [],
+      "tickers_never_touch": ["AAPL", "GOOGL", "NVDA"]
+    }
+  },
+
+  "mandate_priority_hierarchy": {
+    "_tier": 2,
+
+    "ordered_priorities": [
+      {
+        "rank": 1,
+        "dimension": "risk_control",
+        "rationale": "User set 15% drawdown explicitly and said 'I've thought about this' — rare phrasing that signals a considered, non-casual limit. [EXPLICIT] His 2022 ARKK loss is the anchoring experience and he has built his investment approach around not repeating it. Risk control is the foundation everything else is built on for this user."
+      },
+      {
+        "rank": 2,
+        "dimension": "universe_specificity",
+        "rationale": "User's biotech interest is thesis-driven and domain-knowledge-backed — he works adjacent to healthcare tech, follows PDUFA calendars, and has a formed view on the 2025 pipeline. [EXPLICIT] When asked to prioritize, he described biotech as 'the reason I'm doing this.' This is not casual sector preference — it is the core of the mandate. Staying in this universe outranks diversification."
+      },
+      {
+        "rank": 3,
+        "dimension": "return_target",
+        "rationale": "User gave a specific target (15-18% annually) and framed it as 'I'd be happy' — aspirational but meaningful. [EXPLICIT] He explicitly subordinated it to risk control: when asked which gives way if they conflict, he said 'the risk limit holds.' [EXPLICIT] Return ranks 3 because it is the goal but not the constraint."
+      },
+      {
+        "rank": 4,
+        "dimension": "strategy_type_adherence",
+        "rationale": "User has specific strategy preferences (post-FDA momentum, post-earnings mean reversion in large-cap tech) backed by domain knowledge and successful manual executions. [EXPLICIT] He wants the system to operate within these strategy types — not wander into approaches he doesn't understand or has rejected. Ranks above diversification because quality within his preferred styles is more important to him than breadth across styles he doesn't know."
+      },
+      {
+        "rank": 5,
+        "dimension": "diversification",
+        "rationale": "User wants 3-5 strategies and expressed general preference for not being over-concentrated. [EXPLICIT] But when pressed on universe vs. diversification, he prioritized staying in his domain. [EXPLICIT] Diversification is a risk management tool for him, not an end in itself — it ranks below universe specificity and strategy type adherence."
+      },
+      {
+        "rank": 6,
+        "dimension": "fundamental_quality",
+        "rationale": "User expressed a preference for companies with positive earnings — 'I don't want to be in something that's burning cash with no end in sight.' [EXPLICIT] However, he acknowledged that small biotech 'doesn't always fit that box' and said he'd make exceptions for the right FDA setup. [EXPLICIT] Ranks 6 because it is a genuine preference but explicitly flexible in the context of the primary universe."
+      },
+      {
+        "rank": 7,
+        "dimension": "execution_feasibility",
+        "rationale": "User has defined execution windows (open + close only) and cannot act intraday. [EXPLICIT] Strategies must be compatible with these windows — it is a filter, not a preference. Ranks last because it is a binary constraint rather than something to trade off: either a strategy is executable within his windows or it isn't generated."
+      }
+    ],
+
+    "preference_flexibility": [
+      {
+        "preference": "mandate_hard_constraints.max_portfolio_drawdown_pct",
+        "flexibility": "immovable",
+        "rationale": "Explicitly set with the phrase 'I've thought about this.' [EXPLICIT] Anchored by 2022 ARKK loss. The 15% limit is a considered hard stop, not a casual preference."
+      },
+      {
+        "preference": "mandate_hard_constraints.leverage_permitted",
+        "flexibility": "immovable",
+        "rationale": "Explicitly rejected any leverage — 'I'm not using borrowed money.' [EXPLICIT]"
+      },
+      {
+        "preference": "strategy_intent.strategy_types_to_avoid — options",
+        "flexibility": "immovable",
+        "rationale": "Explicitly rejected options: 'I tried once and lost money on theta decay — not for me.' [EXPLICIT] Rejection is experience-backed and emphatic."
+      },
+      {
+        "preference": "strategy_intent.strategy_types_to_avoid — thematic ETFs",
+        "flexibility": "immovable",
+        "rationale": "Explicitly banned thematic ETFs post-ARKK. [EXPLICIT] Loss-history-backed. The avoidance is categorical, not conditional."
+      },
+      {
+        "preference": "universe_mandate.fundamental_screens — profitability preference",
+        "flexibility": "medium_priority",
+        "rationale": "Expressed preference for profitable companies [EXPLICIT] but explicitly acknowledged this conflicts with his primary universe (small biotech often pre-revenue) and said he would make exceptions for the right FDA setup. [EXPLICIT] Not immovable — contextually flexible within the primary universe."
+      },
+      {
+        "preference": "universe_mandate.universe_description — biotech primary",
+        "flexibility": "high_priority",
+        "rationale": "Described as 'the reason I'm doing this.' [EXPLICIT] Domain-knowledge-backed. The Builder should exhaust all options within this universe before branching outside it."
+      },
+      {
+        "preference": "portfolio_scope.diversification_intent",
+        "flexibility": "medium_priority",
+        "rationale": "User wants diversification as a risk tool, not a mandate. [INFERRED] Explicitly subordinated to universe specificity when asked directly. Can flex if the universe doesn't support it."
+      },
+      {
+        "preference": "execution_profile.available_windows",
+        "flexibility": "immovable",
+        "rationale": "Not a preference — an operational reality. User cannot physically execute outside open + close windows due to full-time job. [EXPLICIT] Non-negotiable as a strategy filter."
+      },
+      {
+        "preference": "performance_targets.return_character — consistency over magnitude",
+        "flexibility": "high_priority",
+        "rationale": "Explicitly framed as 'I want it to work more than it doesn't' — not 'I want the biggest possible return.' [EXPLICIT] User has actively deprioritized magnitude in favor of reliability. The Builder should not sacrifice consistency for return upside."
+      }
+    ],
+
+    "trade_off_philosophy": "Risk first, always. User has internalized this from the 2022 loss and it governs every trade-off. Within the risk constraint, the primary universe (biotech) wins over diversification — he would rather have two highly validated, deeply understood biotech strategies than five mediocre strategies spread across sectors he doesn't follow. 'Fewer things done well' is the operating philosophy. Return target is real but secondary — if the system hits 12% consistently within the risk constraints, he would not abandon it in favor of a more aggressive approach.",
+
+    "conflict_notes": "Key conflict flagged: User's profitability preference conflicts with his primary universe. Small-cap biotech is predominantly pre-revenue. When this conflict was raised during intake, user explicitly resolved it in favor of the universe: 'If the FDA setup is right, the earnings don't matter as much.' Builder should: (1) apply profitability preference as a positive signal (companies that ARE profitable within the biotech universe get higher confidence weighting) rather than a hard exclusion, and (2) note in Signal Cards when a signal involves a pre-revenue company so user is informed."
+  },
+
+  "investor_profile": {
+    "_tier": 2,
+
+    "summary": "38-year-old product manager at a technology company. Approximately one year of active self-directed trading, longer background in passive investing. [EXPLICIT] Deploying $75K into Aegis to generate alpha uncorrelated to his existing ~1.1 beta passive index exposure. His defining characteristic as an investor: genuine domain knowledge in biotech from professional proximity, which he correctly identifies as his edge. He is not trying to become a full-time trader — he is trying to add a specifically selected, autonomous alpha source on top of his existing passive core.",
+
+    "investment_experience": "One year of active self-directed trading, primarily individual equities. [EXPLICIT] Longer passive investing background. Follows FDA PDUFA calendars actively and understands binary catalyst mechanics — can explain the post-announcement price behavior of biotech names, which is above-average retail sophistication in this domain. [EXPLICIT] Has successfully executed two manual post-earnings mean reversion trades in large-cap tech — conceptual understanding of the setup is demonstrated, not just theoretical. [EXPLICIT] Options: attempted once, lost money on theta decay, explicitly rejected going forward — shallow understanding of mechanics, no interest in developing further. [EXPLICIT] Short selling: not mentioned, no demonstrated understanding. [ASSUMED no short selling capability or interest] Technical analysis: conversational rather than systematic — uses terms like 'support levels' and 'breaking out' without demonstrating knowledge of specific indicators. [INFERRED]",
+
+    "portfolio_context": "~85% passive index (S&P 500 / total market), ~15% individual tech stocks (AAPL, GOOGL, NVDA). [EXPLICIT] Estimated overall beta: ~1.1 by user's own calculation. [EXPLICIT] AAPL, GOOGL, NVDA are existing holdings that must never be Aegis signal targets. [EXPLICIT] Total portfolio size unstated — $75K is the Aegis allocation. [ASSUMED this is a meaningful but not total fraction of his investable assets] Aegis mandate: add uncorrelated alpha on top of the index core. The user explicitly framed this as wanting something that 'behaves differently from the index portfolio.' [EXPLICIT]",
+
+    "time_availability": "Available at market open (9:30–10:00 ET) and close (3:30–4:00 ET) on weekdays only. [EXPLICIT] Works full-time — no intraday monitoring possible. Cannot engage pre- or post-market. [INFERRED from constraints, not explicitly tested] Any strategy requiring intraday management or non-open/close execution is operationally unavailable.",
+
+    "behavioral_history": "Lost ~$18K in 2022 on concentrated ARKK ETF position. [EXPLICIT] This was the formative investment loss and it has shaped every risk preference he subsequently expressed: the 15% drawdown limit, the concentration aversion, the thematic ETF ban, the consistency-over-magnitude orientation. [EXPLICIT plus INFERRED causal linkage] Has done active trading for one year with inconsistent results — his self-description: 'sometimes I'm genius, sometimes I blow it.' [EXPLICIT] Self-identified worst habit: holding losers too long hoping they recover. [EXPLICIT self-diagnosis] Two successful manual post-earnings mean reversion trades in large-cap tech — has a demonstrated ability to identify specific setups and execute on them. [EXPLICIT]"
+  },
+
+  "risk_profile": {
+    "_tier": 2,
+
+    "summary": "Moderate risk taker anchored strongly by the 2022 ARKK loss. His risk tolerance is contextual rather than uniform: higher in his domain of expertise (biotech, where he understands the risk he's taking) and lower in domains where he's reacting to information rather than following a thesis. The 15% portfolio drawdown limit is a considered hard stop, not a casual answer. His most actionable behavioral signal: self-diagnosed tendency to hold losers too long, which exit rule design should explicitly counteract.",
+
+    "volatility_tolerance": "Moderate-to-high in biotech catalyst plays where he has domain knowledge and has pre-modeled the risk. [INFERRED from domain sophistication] He expects binary events to produce large price swings and has sized for it mentally. Lower in positions outside his domain where volatility represents uncertainty rather than an understood feature of the setup. [INFERRED from the specificity of his universe focus] Does not monitor intraday — which means he needs to be comfortable with positions moving without his observation during market hours. His decision not to watch intraday implies he is not a panic-seller driven by noise, but this should be validated with defined exit conditions so his 'holding too long' habit doesn't dominate. [INFERRED from window structure; EXPLICIT on holding habit]",
+
+    "gap_risk_tolerance": "Asymmetric. Accepts gap risk in biotech catalyst plays where the overnight move is part of the thesis — he understands PDUFA mechanics and has mentally accounted for the possibility of a 40%+ gap in a binary event position. [INFERRED from demonstrated PDUFA knowledge] Does not want unexpected gap risk in non-catalyst positions where he isn't tracking overnight events. [INFERRED — not explicitly tested; apply conservative default] Cannot respond to after-hours catalyst announcements until next market open due to no pre/post-market capability — Builder should flag in Signal Cards when an open position has a pending overnight binary event.",
+
+    "concentration_tolerance": "Low-to-moderate. ARKK loss was a concentration event — all capital in a single theme, which amplified the loss. [EXPLICIT causal link] His 3-5 strategy target and his desire for Aegis to be uncorrelated to his index portfolio both reflect distributed-risk thinking. [INFERRED from stated preferences] Individual position sizing should be conservative — multiple smaller positions preferred over fewer larger ones.",
+
+    "tail_risk_tolerance": "Low. The ARKK experience was psychologically significant beyond the dollar amount — $18K in the context of a PM salary is meaningful but not catastrophic, yet it remains the defining reference point two years later. [EXPLICIT weight given to it in conversation] A catastrophic single-position loss — even if bounded by portfolio-level constraints — would damage his trust in the pipeline. Apply conservative individual position sizing as a trust-preservation measure.",
+
+    "time_risk_tolerance": "Moderate on paper (can hold 1–3 weeks), worse in practice. His self-identified worst habit (holding losers too long) indicates his actual time tolerance on losing positions exceeds what is optimal. [EXPLICIT self-diagnosis] Builder must implement explicit time-based exit rules — if a position has not performed in the direction of the thesis within a defined period, close it regardless of thesis conviction. This is a behavioral guard, not a preference: the user knows he needs it.",
+
+    "correlation_risk": "High sensitivity. His entire mandate is premised on adding uncorrelated alpha — he explicitly wants Aegis to 'behave differently from the index portfolio.' [EXPLICIT] Simultaneous failure of all Aegis strategies during a broad market drawdown would represent a failure mode in his view — he would conclude the system added risk without diversification. Builder must track strategy-to-SPY correlation as a portfolio-level metric and avoid generating strategies that are highly SPY-correlated.",
+
+    "regret_asymmetry": "More afraid of holding losers too long than missing winners. [EXPLICIT self-diagnosis] This is the most actionable single signal in this intake. Exit rules must be designed with this asymmetry as the design principle: defined exit triggers, time-based backstops, no open-ended 'let it run' logic without clear momentum signals. A missed winner is an acceptable outcome; a turned-winner-into-loser is the outcome he most wants to avoid.",
+
+    "loss_aversion_context": "2022 ARKK loss ($18K) is the primary reference point. [EXPLICIT] Three behavioral changes clearly traceable to it: (1) categorical ban on thematic ETFs, (2) increased concentration aversion — 15% single-strategy limit where previously he had no limit, (3) explicit drawdown limit of 15% as a pre-committed hard stop. His self-described 'sometimes I'm genius, sometimes I blow it' framing also reflects that the ARKK experience exposed inconsistency in his own judgment, which is part of why he is seeking an autonomous systematic approach. [INFERRED from overall framing]"
+  },
+
+  "performance_targets": {
+    "_tier": 2,
+
+    "primary_objective": "capital_growth",
+
+    "target_annual_return_pct": 16,
+
+    "target_annual_return_context": "User stated '15-18% per year' explicitly and described this as 'I'd be happy' — aspirational but meaningful. [EXPLICIT] 16% used as midpoint. This is above typical passive index returns and represents the premium he is seeking for the additional complexity and active approach. He did not frame it as a minimum requirement or a hard deadline. [INFERRED] Critically: when asked whether the return target or the risk limit gives way if they conflict, he said the risk limit holds. [EXPLICIT] The return target is a goal, not a constraint — risk_control is the constraint. Builder should optimize for Sharpe ratio within the 15% drawdown limit and be transparent if the target appears unachievable within those bounds.",
+
+    "benchmark": "SPY (S&P 500 index)",
+
+    "benchmark_context": "User's existing portfolio is ~85% passive index — functionally SPY-equivalent. Aegis is being asked to outperform this benchmark on a risk-adjusted basis. 15-18% annual target implies approximately 5-10 percentage points of alpha over recent SPY performance, depending on market year. The benchmark question is also implicitly: if Aegis returns 10% and SPY returns 8%, is that success? Based on his consistency focus, likely yes. [INFERRED]",
+
+    "return_character": "Consistency strongly preferred over magnitude. User's framing — 'I want it to work more than it doesn't' — is explicit and unambiguous. [EXPLICIT] He is not seeking a few big wins that drive the annual number. He wants a strategy that produces positive results most months, reliably. Implication for Builder: optimize win rate and Sharpe ratio as primary metrics. A 12% annual return delivered consistently across 10 months of positive results is more aligned with his goals than an 18% return delivered through 3 large wins and 9 flat-to-negative months.",
+
+    "min_acceptable_sharpe": null,
+
+    "target_win_rate_pct": null,
+
+    "max_acceptable_consecutive_losses": null,
+
+    "target_monthly_income_usd": null,
+
+    "target_return_horizon_months": 12,
+
+    "success_definition": "After 12 months, the pipeline has made money more often than it lost across rolling quarters, and the cumulative return is positive and above his passive index return. He does not need every month to be positive — he needs the pattern to be clearly positive over time. He should be able to look at a performance summary and see that the system is working. Operationally: 6 months of net negative returns with no clear recoverable explanation would erode his confidence, even if the cumulative drawdown hasn't hit 15%. [INFERRED from consistency priority and 'I want it to work more than it doesn't' framing]",
+
+    "failure_definition": "Two scenarios: (1) Hitting the 15% portfolio drawdown limit — automatic hard stop regardless of market conditions or explanations. [EXPLICIT] (2) A sustained pattern of losing months (4-6 consecutive) with no clear explanation. He can accept individual bad months if they make sense — a bad FDA outcome in a known binary play, for example. He cannot accept a pattern of losses he can't attribute to understandable causes. [INFERRED from emphasis on explainability in conversation] Transparency in Signal Cards and performance reporting is therefore load-bearing for his trust in the system."
+  },
+
+  "universe_mandate": {
+    "_tier": 2,
+
+    "raw_desire": "Small biotech FDA plays because I actually follow this space. Post-earnings mean reversion on large-cap tech when something good gets crushed on guidance. Clean entries. Not more than 4-5 strategies at once.",
+
+    "universe_description": "Two distinct sub-universes with fundamentally different characteristics that should inform different strategy architectures. Primary: small-to-mid cap biotech/healthcare equities, $50M–$2B market cap, US markets. [INFERRED market cap range from 'small biotech' framing] User follows this space professionally, tracks PDUFA calendars, and has a thesis on 2025 biotech pipeline strength. This is the edge-based universe — where his information advantage lives. Secondary: large-cap technology equities, $10B+, US markets. [INFERRED from 'large-cap tech' framing] Opportunistic, setup-specific, not a fundamental tech bull thesis. He is looking for a recurring price dislocation pattern (quality names oversold on guidance misses), not broad tech exposure. These two universes are not interchangeable — applying momentum to large-cap tech or mean reversion to small biotech would both be misaligned with user intent.",
+
+    "sector_reasoning": "Healthcare/Biotech: thesis-driven, domain-backed, confidence-weighted. User works adjacent to healthcare tech, follows the space actively, and has a formed view on the 2025 pipeline. [EXPLICIT] This is not casual sector interest — it carries genuine information advantage for him. The Builder should explore this sub-universe deeply and specifically. Technology: opportunistic, setup-specific, not domain-driven. User owns tech passively (AAPL, GOOGL, NVDA) and was not expressing a desire for additional tech directional exposure. He identified one specific recurring setup — large-cap quality names oversold on guidance — and wants systematic access to it. Do not generate broad tech momentum strategies: they would misrepresent his intent.",
+
+    "asset_class_preferences": "Equities only. [EXPLICIT by inclusion — only mentioned stocks throughout conversation] Options explicitly rejected. [EXPLICIT] ETFs excluded as trading vehicles (ARKK was an investment mistake, not a failed trading strategy). No crypto, commodities, futures, or bonds mentioned. [ASSUMED no interest in non-equity instruments]",
+
+    "liquidity_and_price_character": "Minimum $1M/day average daily volume applied as a hard filter. [INFERRED from domain knowledge about small-cap biotech illiquidity risk — not explicitly stated by user, flag at confirmation] Small-cap biotech names below this threshold present unacceptable exit risk during adverse binary event moves — illiquidity amplifies downside in exactly the high-volatility situations these strategies are designed to capture. User did not express a price floor preference. [ASSUMED no price floor] The 'small biotech' framing implies comfort with lower-priced names typical of this space.",
+
+    "equity_character": "Biotech sub-universe: speculative, pre-revenue or early-revenue, high-volatility, binary-event-driven. Volatility is a feature, not a bug — the asymmetric return profile of FDA catalyst plays is the point. [INFERRED from domain knowledge and setup focus] Tech sub-universe: established, highly liquid, fundamentals-driven quality names temporarily dislocated. The equity character here is stability + temporary dislocation — the opposite profile from the biotech sub-universe. Builder should not apply the same strategy architecture to both.",
+
+    "fundamental_screens": "User expressed preference for companies with positive earnings: 'I don't want to be in something that's burning cash with no end in sight.' [EXPLICIT] However, he explicitly acknowledged this conflicts with his primary universe — most small-cap biotech companies are pre-revenue — and said he would prioritize the FDA setup over the earnings criterion: 'If the setup is right, the earnings don't matter as much.' [EXPLICIT conflict resolution] Builder interpretation: apply profitability as a positive weighting signal within the biotech universe (companies that ARE profitable get higher confidence scores) rather than a hard exclusion. For the tech mean reversion sub-universe, profitability is a genuine filter — large-cap tech names that are profitable are the target; distressed tech names being oversold are not the same setup. Note in Signal Cards when a biotech signal involves a pre-revenue company. See mandate_priority_hierarchy.conflict_notes for priority resolution.",
+
+    "options_context": "Not applicable. Explicitly rejected.",
+
+    "etf_preferences": "Thematic ETFs explicitly excluded. Not applicable as trading vehicles.",
+
+    "existing_holdings": ["AAPL", "GOOGL", "NVDA"]
+  },
+
+  "strategy_intent": {
+    "_tier": 2,
+
+    "regime_preferences": "Two clearly distinct regimes, asymmetric in importance and character. Primary: post-catalyst momentum in small biotech. User understands that FDA events produce durable momentum signals in the days and weeks after a positive ruling — the post-announcement follow-through is where retail can realistically participate without competing against HFT on the announcement tick. [INFERRED from PDUFA knowledge] Secondary: mean reversion in large-cap tech, specifically post-earnings selloffs where the company is fundamentally sound but has disappointed on guidance. User has successfully executed this setup twice manually — demonstrated setup recognition, not just theoretical interest. [EXPLICIT] These two regimes are not interchangeable and should produce meaningfully different strategy architectures.",
+
+    "regime_universe_pairs": [
+      {
+        "regime": "momentum",
+        "sectors": ["Healthcare"],
+        "asset_classes": ["equities"],
+        "market_cap_tier": "small",
+        "market_cap_override_millions": [50, 2000],
+        "catalyst_types": ["fda_pdufa_date", "fda_phase3_readout", "fda_advisory_committee", "fda_label_expansion"],
+        "capital_weight_hint": 0.65,
+        "user_rationale": "User's primary mandate and stated area of edge. He explicitly described biotech FDA plays as 'the reason I'm doing this.' [EXPLICIT] Works adjacent to healthcare tech, tracks PDUFA calendars, has thesis on 2025 pipeline. Confidence-weighted — strategies in this pair should be developed with more specificity and depth than the secondary pair."
+      },
+      {
+        "regime": "mean_reversion",
+        "sectors": ["Technology"],
+        "asset_classes": ["equities"],
+        "market_cap_tier": "large",
+        "market_cap_override_millions": [10000, null],
+        "catalyst_types": ["earnings_miss_reversal", "earnings_guidance_revision_down"],
+        "capital_weight_hint": 0.35,
+        "user_rationale": "Opportunistic secondary interest. User has manually executed this setup twice with success — fundamentally strong large-cap tech name oversold on guidance miss. Not a broad tech bull thesis. The setup specificity (quality name + guidance disappointment + oversold) should be preserved in strategy construction — this is not a generic large-cap tech mean reversion strategy."
+      }
+    ],
+
+    "catalyst_preferences": "Strongly catalyst-driven across both pairs. User does not want pure technical or sentiment strategies — the catalyst is the foundation in both cases. Biotech: FDA binary event types (PDUFA, Phase 3, adcom) are the primary catalyst class. User understands that these events produce information-driven price movements where domain knowledge creates an edge in reading setup quality. [INFERRED from demonstrated knowledge] Tech: earnings guidance misses in fundamentally sound companies are the catalyst — a specific fundamental dislocation, not a random technical pattern. No macro event catalyst interest stated. [ASSUMED no macro catalyst exposure desired]",
+
+    "entry_philosophy": "Confirmed entries over anticipatory entries. User's 'clean entries' comment [EXPLICIT] and his self-identified weakness of holding losers too long (often associated with entering before confirmation) both point to the same direction: wait for the move to be established before entering, even at the cost of missing the first portion of it. For the biotech pair: post-catalyst entry after price direction is confirmed, not pre-catalyst positioning. For the tech pair: entry after the selloff has shown stabilization signals, not catching the falling knife on the way down. Higher entry thresholds reduce the frequency of positions that require his bad habit of 'holding and hoping.'",
+
+    "exit_philosophy": "Rule-based exits are essential for this user — his self-identified holding-losers-too-long habit means open-ended exits will be gamed by his own behavioral pattern. [EXPLICIT self-diagnosis] The exit system must do what he knows he won't: close losing positions on schedule. Specific guidance: (1) Time-based exit backstop — if a position has not performed in the direction of the thesis within a defined window (e.g., 7 trading days for swing positions), close it regardless of thesis conviction. (2) Momentum exhaustion exits for biotech momentum plays — close when the signal degrades, not at a fixed price target, to allow positions to run. (3) Fixed mean reversion targets for tech positions — the thesis has a defined endpoint (recovery to pre-selloff level), close when reached. (4) Stop-losses calibrated to strategy volatility, not portfolio drawdown limit — the strategy-level stop should trigger well before portfolio-level circuit breakers are relevant.",
+
+    "holding_philosophy": "Twice-daily engagement (open + close) is the monitoring pattern. [EXPLICIT] No intraday management available. Strategies must be fully manageable with GTC orders set at entry and reviewed at open/close. User did not mention adding to winners or averaging down into losers — apply conservative defaults: no pyramiding, no averaging down. [ASSUMED] The GTC order structure means exit conditions must be pre-specified at entry, not managed dynamically.",
+
+    "signal_type_preferences": "Fundamental catalyst + technical confirmation. Both of his stated setups are fundamentally triggered (FDA approval, earnings guidance) with technical timing for entry. Pure technical momentum (moving average crossovers, chart patterns without catalyst context) does not align with how he thinks about trading. [INFERRED from setup specificity] Sentiment-driven strategies should be used cautiously — his ARKK experience was partially a narrative/sentiment-driven investment that went wrong. [INFERRED]",
+
+    "complexity_preference": "Moderate. One year of active experience with demonstrated domain knowledge in biotech. Not a beginner, but describes his own trading as inconsistent — suggesting he is not fully systematic yet. Signal Cards should be explainable in plain language. Strategies can use multi-factor confirmation signals but should not require active management of complex multi-leg positions.",
+
+    "strategy_types_to_avoid": "Thematic ETF strategies — explicitly banned, ARKK-experience-backed, categorical. [EXPLICIT] Options strategies — explicitly rejected, experience-backed. [EXPLICIT] Short selling — not mentioned and inconsistent with his risk profile (concern about unlimited loss in shorts, no mentioned interest in directional short plays). [ASSUMED exclusion, apply conservative default] Pre-catalyst binary event positioning — conflicts with Aegis post-catalyst model and with user's risk profile (gap risk on wrong-direction binary events is acceptable in post-catalyst momentum but not in pre-announcement anticipatory positions). [INFERRED from product boundary + risk profile]"
+  },
+
+  "horizon_mandate": {
+    "_tier": 2,
+
+    "description": "Naturally mixed time horizon expressed without prompting. Primary biotech catalyst plays suggest shorter swing duration — post-FDA momentum typically plays out over 5–21 days before either exhausting or establishing a new base. Secondary tech mean reversion plays suggest longer hold — recovery of a quality large-cap name after an oversold earnings reaction may take 3–8 weeks. User's comment 'sometimes longer if it's working' indicates genuine patience for positions that are developing positively within the thesis. The 65/35 capital split is inferred from the emphasis placed on each pair — flag at confirmation. [INFERRED split]",
+
+    "horizon_details": [
+      {
+        "label": "swing",
+        "min_days": 5,
+        "max_days": 21,
+        "capital_weight": 0.65,
+        "context": "Primary holding period for biotech FDA catalyst momentum plays. Post-approval momentum is typically front-loaded — the strongest signal is in the first 1–3 weeks after the event. User's open/close-only engagement pattern is well-suited to swing duration — he checks in at the right frequency for this trade type. [INFERRED from domain knowledge and window structure]",
+        "inferred": true
+      },
+      {
+        "label": "position",
+        "min_days": 21,
+        "max_days": 60,
+        "capital_weight": 0.35,
+        "context": "Secondary holding period for large-cap tech mean reversion plays. Recovery in established companies after guidance-miss selloffs typically takes 3–8 weeks, driven by stabilization of sentiment and analyst revision cycles. User's 'sometimes longer if it's working' comment supports patience in this bucket. GTC order structure accommodates this holding period without intraday management requirements. [INFERRED from setup type and user framing]",
+        "inferred": true
+      }
+    ],
+
+    "intraday_tolerance": "No intraday engagement possible. Full-time job during market hours. Strategies must be fully manageable on open/close check-ins using GTC orders set at entry. Any strategy requiring intraday management, intraday entry timing, or intraday stop adjustments is incompatible with this user.",
+
+    "overnight_tolerance": "Moderate-to-high in catalyst plays where overnight exposure is inherent and pre-modeled. For biotech plays: overnight exposure before and after FDA events is part of the thesis — user understands this and has sized for it. [INFERRED from domain sophistication] For tech mean reversion plays: overnight exposure is acceptable given high liquidity and fundamental quality of large-cap names. Builder should flag in Signal Cards when an open position has a scheduled overnight binary event (earnings, FDA, Fed decision) that falls outside the original catalyst thesis."
+  },
+
+  "portfolio_scope": {
+    "_tier": 2,
+
+    "ambition_description": "Focused two-regime pipeline, not a comprehensive multi-strategy system. User is deploying $75K into a clearly defined mandate built around two areas of identified edge and opportunity. He is not trying to build an all-weather automated trading system — he is trying to systematize two specific plays he either understands deeply (biotech FDA catalyst) or has identified and manually validated (large-cap tech mean reversion). The Builder should explore deeply within these two pairs rather than generating breadth across a wide strategy space. Three to five highly validated strategies that the user understands and trusts are worth more than ten mediocre ones spanning sectors he doesn't follow.",
+
+    "diversification_intent": "Moderate within the two defined pairs. Within biotech: diversify across catalyst sub-types (PDUFA, Phase 3, adcom) to avoid all strategies depending on the same FDA approval month. Within tech mean reversion: diversify across different trigger magnitudes and holding periods. Across the two pairs: the pairs are structurally uncorrelated by design (FDA approval momentum vs. post-earnings price recovery are different market dynamics). User does not want forced diversification into sectors or strategy types outside his mandate — authentic diversification within the mandate is preferred over superficial breadth outside it.",
+
+    "correlation_intent": "Inter-strategy correlation should be low within each pair and very low across pairs. The mandate is explicitly designed to be uncorrelated to SPY — strategies that have high SPY correlation defeat the purpose of the Aegis allocation. Within biotech: strategies should not all be triggered by the same catalyst type in the same month (e.g., avoid a scenario where all 3-4 biotech strategies depend on a strong FDA approval month). Within tech: strategies should not all require the same market condition (e.g., all depending on a tech selloff quarter).",
+
+    "market_beta_intent": "Low. Explicit mandate to generate returns uncorrelated to the existing 1.1 beta portfolio. [EXPLICIT] Target aggregate Aegis portfolio beta: approximately 0.0–0.4. Biotech catalyst plays should be largely idiosyncratic — FDA outcomes are not meaningfully correlated to broad market direction. Large-cap tech mean reversion plays will have some SPY correlation by nature — this is acceptable but should be weighted as the minority of the portfolio (35% capital weight) and noted in performance reporting.",
+
+    "portfolio_beta_existing": 1.1,
+
+    "pipeline_growth_intent": "Start focused, grow with performance. User is approaching this as a disciplined initial deployment, not a comprehensive build. If the pipeline performs well over 6–12 months, expansion is plausible — potentially adding a third regime/universe pair or increasing concurrent strategy count. Initial build should optimize for the stated mandate rather than leaving slots for future expansion."
+  },
+
+  "market_context": {
+    "_tier": 2,
+
+    "macro_views": [
+      {
+        "topic": "biotech and drug approval pipeline",
+        "direction": "bullish",
+        "conviction": 3,
+        "horizon": "12m",
+        "user_reasoning": "User stated biotech has 'strong tailwinds in 2025' based on professional proximity to the space and his reading of the current drug pipeline. He tracks specific therapeutic areas and upcoming approval candidates. Did not elaborate on specific drugs. [EXPLICIT view, INFERRED reasoning from professional context]",
+        "strategy_implication": "Increase weighting toward FDA catalyst momentum setups in Healthcare. A strong pipeline view means more binary events worth trading across 2025 — supports generating 2-3 biotech catalyst strategies rather than limiting to 1. Do not infer specific company picks from this view — it is a sector-level tailwind thesis.",
+        "confidence_in_capture": "explicit"
+      },
+      {
+        "topic": "large-cap technology valuations",
+        "direction": "bearish",
+        "conviction": 3,
+        "horizon": "6m",
+        "user_reasoning": "User expressed concern about tech valuations at 'current multiples.' Did not specify valuation metrics. Coexists with continued ownership of AAPL, GOOGL, NVDA — suggesting this is a near-term cautionary view, not a fundamental short thesis. [EXPLICIT concern, INFERRED nuance from continued ownership]",
+        "strategy_implication": "Reinforces mean reversion framing for tech exposure — avoid generating momentum-long strategies in large-cap tech. Valuation concern makes the post-earnings-miss mean reversion setup more compelling (names may overreact more severely to guidance misses when already perceived as expensive). Does not support shorting tech — user has no short thesis.",
+        "confidence_in_capture": "explicit"
+      }
+    ],
+
+    "current_regime_beliefs": "User did not explicitly characterize the current market regime. [ASSUMED] His biotech bullishness and tech valuation concern suggest he sees a selective, sector-differentiated environment — not a broad bull or bear market. Pipeline should be validated against both trending and choppy market scenarios.",
+
+    "regime_adaptivity_intent": "Fixed mandate, no automatic regime-switching. [ASSUMED conservative default — user did not mention wanting the pipeline to adapt to market conditions] Apply the stated mandate consistently. If Builder includes regime-adaptive elements, they should be conservative and explained in Signal Cards.",
+
+    "sectors_with_tailwinds": "Healthcare/biotech — explicit user view based on professional proximity. 2025 drug approval pipeline viewed as unusually strong. Conviction: moderate (3/5). [EXPLICIT]",
+
+    "sectors_with_headwinds": "Large-cap technology — valuation concern creates near-term headwind for momentum strategies. Reinforces mean reversion framing for the secondary pair. Does not exclude tech — contextualizes the setup type that is appropriate within tech. [EXPLICIT concern, INFERRED headwind characterization]"
+  },
+
+  "execution_profile": {
+    "_tier": 2,
+
+    "available_windows": "Market open: 9:30–10:00 ET weekdays. Market close: 3:30–4:00 ET weekdays. These are the only windows for Signal Card execution. [EXPLICIT] Strategies requiring entry at specific intraday times are operationally unavailable. Signal Cards must be structured for GTC order setup at open and position review/close at close. Any strategy generating signals at 11am requiring immediate execution is incompatible with this user.",
+
+    "pre_post_market_capable": false,
+
+    "execution_latency_context": "Platform: Schwab (desktop and/or mobile). [EXPLICIT] Manual entry using standard order interface — no algorithmic execution tools. Realistic execution latency within windows: 3–7 minutes from Signal Card review to order filled. [INFERRED from platform type and manual execution] Given highest volatility at market open, Signal Cards should recommend limit orders near market rather than market orders to reduce open-price slippage. GTC stop-loss and target orders allow exit management without intraday monitoring.",
+
+    "order_type_philosophy": "Limit orders strongly recommended given twice-daily engagement pattern. [ASSUMED based on execution structure — not explicitly stated] GTC orders for stops and targets are the practical execution model: set at entry, managed at open/close check-ins. Signal Cards should include specific limit order levels rather than directing the user to use market orders.",
+
+    "brokerage_constraints": "Schwab taxable account. [EXPLICIT] No options approval indicated (consistent with options rejection). No margin account. Standard cash equity trading. No PDT concerns given swing/position time horizons — no same-day round trips anticipated."
+  },
+
+  "exclusions_and_constraints": {
+    "_tier": 2,
+
+    "strategy_type_exclusions": "Thematic ETFs: categorically excluded, ARKK-experience-backed. [EXPLICIT, immovable] Applies to both universe (no thematic ETF long positions) and strategy type (no ETF momentum strategies). Options: explicitly rejected, theta decay experience-backed. [EXPLICIT, immovable] Short selling: not mentioned, inconsistent with risk profile (tail risk aversion, no mentioned short experience), excluded by conservative default. [ASSUMED] Pre-catalyst binary event anticipatory positioning: excluded per Aegis post-catalyst product boundary and user risk profile. [INFERRED from product design + risk context] Macro event trading (CPI, Fed decisions): user has not expressed interest or knowledge of macro setups. [ASSUMED exclusion]",
+
+    "instrument_exclusions": "Thematic ETFs explicitly excluded. [EXPLICIT] Options excluded. [EXPLICIT] Existing holdings (AAPL, GOOGL, NVDA) excluded from signal generation. [EXPLICIT]",
+
+    "concentration_constraints": "3-5 concurrent strategies reflects both his stated preference [EXPLICIT] and a practical constraint: $75K across 5 strategies = ~$15K per strategy. Position sizing must ensure individual strategy losses do not cascade to portfolio drawdown limit breach — careful sizing math required given the strategy count and capital amount.",
+
+    "tax_considerations": "TAXABLE ACCOUNT — material for performance reporting. Every realized gain from swing trading (positions held under 1 year) is taxed as ordinary income. At a tech PM income level, marginal rate is likely 32-37%. [INFERRED from income context — not explicit] This does not change strategy selection (user has accepted this tradeoff) but should be: (1) noted in performance reporting alongside pre-tax return figures, (2) considered in strategy selection when two equivalent-return strategies have materially different tax profiles. Wash sale rule: if a strategy closes at a loss and re-enters the same position within 30 days, the loss is disallowed. Builder should implement wash sale awareness in exit logic for all strategies in this account."
+  },
+
+  "filing_notes": {
+    "_tier": 2,
+
+    "explicit_vs_inferred_summary": "High-quality intake conversation with strong signal across all major dimensions. Risk parameters were quantified and anchored to specific experience. Universe and strategy preferences were specific and domain-knowledge-backed. The priority hierarchy was surfaced explicitly through direct questions and the user gave clear, consistent answers. Primary gaps: (1) horizon allocation weights (65/35) are inferred from emphasis, not stated — flag at confirmation. (2) Minimum liquidity requirement ($1M/day) is applied from domain knowledge, not user request — flag at confirmation. (3) Profitability screen conflict with biotech universe was identified and resolved by user in conversation — resolution captured in mandate_priority_hierarchy.conflict_notes. Overall: sufficient context for the Builder to generate specifically calibrated strategies rather than generic defaults.",
+
+    "contradictions": [
+      {
+        "type": "CONTRADICTION",
+        "description": "User expressed preference for profitable companies but his primary universe (small-cap biotech) is predominantly pre-revenue. These cannot both be fully satisfied simultaneously.",
+        "resolution_hint": "User explicitly resolved this in conversation: FDA setup quality takes priority over earnings criterion for the biotech universe. Apply profitability as a positive weighting signal, not a hard exclusion. For the tech mean reversion pair, profitability is a genuine filter. See mandate_priority_hierarchy.conflict_notes."
+      },
+      {
+        "type": "CONTRADICTION",
+        "description": "User wants low portfolio correlation to SPY (market_beta_target: 0.0–0.4) but the tech mean reversion pair will have non-trivial SPY correlation by nature — large-cap tech names move with the market.",
+        "resolution_hint": "Tech pair is weighted at 35% of capital. Overall portfolio beta target is achievable if biotech pair (65% weight) maintains low market correlation, which is expected for idiosyncratic FDA catalyst plays. Monitor aggregate beta as a portfolio-level metric and note in performance reporting."
+      }
+    ],
+
+    "expectation_corrections": [
+      {
+        "type": "EXPECTATION_CORRECTION",
+        "topic": "FDA catalyst entry timing",
+        "what_user_seems_to_expect": "User follows PDUFA calendars closely — this may imply expectation of pre-event positioning to capture the announcement gap.",
+        "what_aegis_actually_does": "Aegis captures post-catalyst signal only. Entry after direction is confirmed, not before the binary event.",
+        "corrective_message": "Aegis strategies enter after FDA catalyst moves are confirmed — the days and weeks following the event, not anticipatory positioning before it. The system will not enter biotech positions before a PDUFA date to capture the announcement gap. This is by design: post-catalyst momentum captures a more reliable signal than the binary pre-announcement bet."
+      }
+    ],
+
+    "open_questions": [
+      "Horizon allocation split (65/35 swing/position) is inferred from conversation emphasis — user should confirm at the confirmation screen.",
+      "Minimum daily volume floor ($1M) is applied from domain knowledge, not explicit user request — user should confirm this is acceptable or adjust.",
+      "User did not address what happens when a Signal Card arrives outside his available windows — should it be queued for next window or discarded? Recommend flagging this at confirmation and implementing a configurable 'signal expiry' setting.",
+      "Profitability preference: user resolved the conflict in biotech's favor during intake, but did not explicitly address whether profitable biotech companies should get higher allocation weighting vs. pre-revenue ones. Flag for clarification."
+    ],
+
+    "conversation_quality_note": "High quality. User engaged seriously with all stages, gave specific and consistent answers, demonstrated genuine domain knowledge that improved the quality of the intake significantly beyond what a casual user conversation would produce. Priority ranking was elicited explicitly and the user's answers were clear and internally consistent. The primary limitation is a few inferred quantitative values (horizon split, liquidity floor) that should be confirmed before the mandate locks."
+  }
+}

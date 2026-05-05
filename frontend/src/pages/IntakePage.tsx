@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ConversationalChat } from '../components/Intake/ConversationalChat';
 
 const API = 'http://localhost:8000/api/intake';
 
@@ -8,7 +9,9 @@ type Path = 'A' | 'B';
 
 interface ValidationResult {
   mandate_summary: Record<string, string>;
-  contradictions: string[];
+  hard_errors: string[];
+  soft_contradictions: string[];
+  inferred_flags: string[];
   is_valid: boolean;
 }
 
@@ -17,39 +20,21 @@ interface ConfirmResult {
   status: string;
 }
 
-const RISK_OPTIONS = [
-  { value: 'conservative', label: 'Conservative', desc: 'Capital preservation first. Lower volatility, smaller positions.' },
-  { value: 'moderate', label: 'Moderate', desc: 'Balanced risk/reward. Standard position sizing.' },
-  { value: 'aggressive', label: 'Aggressive', desc: 'Growth-oriented. Higher volatility tolerance, larger bets.' },
-];
-
-const HORIZON_OPTIONS = [
-  { value: 'short', label: 'Short', desc: '1–30 days' },
-  { value: 'medium', label: 'Medium', desc: '1–6 months' },
-  { value: 'long', label: 'Long', desc: '6+ months' },
-];
-
-const DRAWDOWN_PRESETS = [
-  { value: 0.05, label: '5%', severity: 'Strict' },
-  { value: 0.10, label: '10%', severity: 'Moderate' },
-  { value: 0.15, label: '15%', severity: 'Standard' },
-  { value: 0.20, label: '20%', severity: 'Relaxed' },
-  { value: 0.30, label: '30%', severity: 'Aggressive' },
-];
-
 const SAMPLE_SCHEMA = JSON.stringify({
-  _schema_version: 'v7.0',
+  _schema_version: 'v9.0',
   _path: 'B',
-  required: {
-    risk_tolerance: 'moderate',
-    max_drawdown_pct: 0.15,
-    time_horizon: 'medium',
-    raw_desire: 'Find momentum plays in tech and biotech after earnings catalysts',
+  mandate_hard_constraints: {
+    investable_capital: 100000,
+    max_portfolio_drawdown_pct: 0.15,
+    max_concurrent_live_strategies: 5,
+    horizon_allocation: [
+      { label: "swing", min_days: 5, max_days: 21, capital_weight: 0.65 },
+      { label: "position", min_days: 21, max_days: 60, capital_weight: 0.35 }
+    ]
   },
-  portfolio: { investable_capital: 50000, existing_holdings: [], account_type: 'margin' },
-  universe: { asset_classes: ['equity'], sectors_of_interest: ['technology', 'biotech'], market_cap_range: 'mid-large' },
-  strategy_character: { catalyst_types: ['earnings', 'fda'], holding_period_days: 14 },
-  constraints: { leverage: false, max_single_position_pct: 5 },
+  universe_mandate: {
+    raw_desire: "Find momentum plays in tech and biotech after earnings catalysts"
+  }
 }, null, 2);
 
 export function IntakePage() {
@@ -57,48 +42,34 @@ export function IntakePage() {
   const [step, setStep] = useState<Step>('input');
   const [path, setPath] = useState<Path>('A');
 
-  // Path A fields
-  const [desire, setDesire] = useState('');
-  const [risk, setRisk] = useState('moderate');
-  const [horizon, setHorizon] = useState('medium');
-  const [drawdown, setDrawdown] = useState(0.15);
-  const [tickers, setTickers] = useState('');
-
-  // Path B
+  // Path A state
+  const [stage, setStage] = useState(0);
+  const [schemaWip, setSchemaWip] = useState<any>(null);
+  
+  // Path B state
   const [schemaJson, setSchemaJson] = useState('');
 
-  // State
+  // Review & Confirm state
   const [validating, setValidating] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [confirmResult, setConfirmResult] = useState<ConfirmResult | null>(null);
   const [error, setError] = useState('');
+  
+  // Acknowledgment required for soft warnings
+  const [acknowledged, setAcknowledged] = useState(false);
 
-  const handleValidate = async () => {
+  const handleValidate = async (schemaToValidate?: any) => {
     setValidating(true);
     setError('');
     try {
       let body: any;
       if (path === 'A') {
-        body = {
-          risk_tolerance: risk,
-          time_horizon: horizon,
-          max_drawdown_target: drawdown,
-          raw_desire: desire || '',
-          is_path_b: false,
-          tickers: tickers ? tickers.split(',').map((t) => t.trim().toUpperCase()).filter(Boolean) : null,
-        };
+        body = schemaToValidate || schemaWip;
       } else {
-        const parsed = JSON.parse(schemaJson);
-        body = {
-          risk_tolerance: parsed.required?.risk_tolerance || 'moderate',
-          time_horizon: parsed.required?.time_horizon || 'medium',
-          max_drawdown_target: parsed.required?.max_drawdown_pct || 0.15,
-          raw_desire: parsed.required?.raw_desire || '',
-          is_path_b: true,
-          tickers: parsed.universe?.specific_tickers || null,
-        };
+        body = JSON.parse(schemaJson);
       }
+      
       const res = await fetch(`${API}/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -107,6 +78,7 @@ export function IntakePage() {
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
       const data = await res.json();
       setValidation(data);
+      setAcknowledged(false); // Reset ack
       setStep('review');
     } catch (e: any) {
       setError(e.message || 'Validation failed');
@@ -118,15 +90,17 @@ export function IntakePage() {
     setConfirming(true);
     setError('');
     try {
-      const body = {
-        risk_tolerance: risk,
-        time_horizon: horizon,
-        max_drawdown_target: drawdown,
-        raw_desire: desire || '',
-        is_path_b: path === 'B',
-        tickers: tickers ? tickers.split(',').map((t) => t.trim().toUpperCase()).filter(Boolean) : null,
-      };
-      const res = await fetch(`${API}/confirm`, {
+      let body: any;
+      if (path === 'A') {
+        body = schemaWip;
+      } else {
+        body = JSON.parse(schemaJson);
+      }
+      
+      const sessionId = sessionStorage.getItem('aegis_intake_session');
+      const url = sessionId && path === 'A' ? `${API}/confirm?session_id=${sessionId}` : `${API}/confirm`;
+      
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -141,21 +115,29 @@ export function IntakePage() {
     setConfirming(false);
   };
 
+  const renderTextWithBadges = (text: string) => {
+    if (!text) return null;
+    return text.split(/(\[EXPLICIT\]|\[INFERRED\]|\[ASSUMED\])/g).map((part, i) => {
+      if (part === '[EXPLICIT]') return <span key={i} className="bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-widest ml-1 align-middle">EXPLICIT</span>;
+      if (part === '[INFERRED]') return <span key={i} className="bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-widest ml-1 align-middle">INFERRED</span>;
+      if (part === '[ASSUMED]') return <span key={i} className="bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-widest ml-1 align-middle">ASSUMED</span>;
+      return <span key={i}>{part}</span>;
+    });
+  };
+
   // ─── Step: Input ─────────────────────────────────────────
   if (step === 'input') {
     return (
-      <div className="max-w-3xl mx-auto space-y-8">
-        {/* Header */}
+      <div className="max-w-4xl mx-auto space-y-8">
         <div>
           <h1 className="font-headline text-4xl font-light tracking-tight text-on-surface">
             Define Your Mandate
           </h1>
-          <p className="text-[#8e8e88] mt-2 max-w-xl leading-relaxed">
-            Tell Aegis what to trade and how. Your constraints become hard limits — the system will never exceed them.
+          <p className="text-[#8e8e88] mt-2 max-w-2xl leading-relaxed">
+            Aegis needs context to build strategies. Choose a guided conversation or import a predefined v9 schema.
           </p>
         </div>
 
-        {/* Path Selector */}
         <div className="flex gap-2 bg-surface-container-low rounded-lg p-1 border border-white/5 w-fit">
           <button
             onClick={() => setPath('A')}
@@ -165,7 +147,7 @@ export function IntakePage() {
                 : 'text-[#8e8e88] hover:text-on-surface hover:bg-white/5'
             }`}
           >
-            Quick Setup
+            Guided Conversation
           </button>
           <button
             onClick={() => setPath('B')}
@@ -180,220 +162,92 @@ export function IntakePage() {
         </div>
 
         {path === 'A' ? (
-          <div className="space-y-8">
-            {/* Desire */}
-            <section className="bg-surface-container-low border border-white/5 rounded-xl p-6 space-y-4">
-              <div>
-                <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant mb-1">
-                  Investment Desire
-                </h3>
-                <p className="text-[0.6875rem] text-[#8e8e88]">
-                  What do you want the system to find? Leave blank for autonomous discovery.
-                </p>
-              </div>
-              <textarea
-                value={desire}
-                onChange={(e) => setDesire(e.target.value)}
-                placeholder="e.g., Find momentum plays in tech stocks after earnings beats"
-                rows={3}
-                className="w-full bg-surface-container border border-white/5 rounded-lg px-4 py-3 text-sm text-on-surface placeholder:text-[#8e8e88]/50 focus:outline-none focus:ring-1 focus:ring-primary/50 resize-none transition-shadow"
-              />
-            </section>
-
-            {/* Risk Tolerance */}
-            <section className="bg-surface-container-low border border-white/5 rounded-xl p-6 space-y-4">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
               <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
-                Risk Tolerance
+                Aegis Advisory Link
               </h3>
-              <div className="grid grid-cols-3 gap-3">
-                {RISK_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setRisk(opt.value)}
-                    className={`text-left p-4 rounded-lg border transition-all ${
-                      risk === opt.value
-                        ? 'border-primary-container bg-primary-container/10 ring-1 ring-primary-container/30'
-                        : 'border-white/5 bg-surface-container hover:border-white/10'
-                    }`}
-                  >
-                    <p className={`text-sm font-medium ${risk === opt.value ? 'text-primary' : 'text-on-surface'}`}>
-                      {opt.label}
-                    </p>
-                    <p className="text-[0.6875rem] text-[#8e8e88] mt-1">{opt.desc}</p>
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            {/* Time Horizon */}
-            <section className="bg-surface-container-low border border-white/5 rounded-xl p-6 space-y-4">
-              <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
-                Time Horizon
-              </h3>
-              <div className="grid grid-cols-3 gap-3">
-                {HORIZON_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setHorizon(opt.value)}
-                    className={`text-left p-4 rounded-lg border transition-all ${
-                      horizon === opt.value
-                        ? 'border-primary-container bg-primary-container/10 ring-1 ring-primary-container/30'
-                        : 'border-white/5 bg-surface-container hover:border-white/10'
-                    }`}
-                  >
-                    <p className={`text-sm font-medium ${horizon === opt.value ? 'text-primary' : 'text-on-surface'}`}>
-                      {opt.label}
-                    </p>
-                    <p className="text-[0.6875rem] text-[#8e8e88] mt-1">{opt.desc}</p>
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            {/* Max Drawdown */}
-            <section className="bg-surface-container-low border border-white/5 rounded-xl p-6 space-y-4">
-              <div>
-                <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant mb-1">
-                  Maximum Drawdown
-                </h3>
-                <p className="text-[0.6875rem] text-[#8e8e88]">
-                  The system will never let your portfolio drop below this threshold.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                {DRAWDOWN_PRESETS.map((preset) => (
-                  <button
-                    key={preset.value}
-                    onClick={() => setDrawdown(preset.value)}
-                    className={`flex-1 py-3 rounded-lg border text-center transition-all ${
-                      drawdown === preset.value
-                        ? 'border-primary-container bg-primary-container/10 ring-1 ring-primary-container/30'
-                        : 'border-white/5 bg-surface-container hover:border-white/10'
-                    }`}
-                  >
-                    <p className={`text-lg font-headline font-medium ${drawdown === preset.value ? 'text-primary' : 'text-on-surface'}`}>
-                      {preset.label}
-                    </p>
-                    <p className="text-[0.625rem] text-[#8e8e88]">{preset.severity}</p>
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            {/* Optional Tickers */}
-            <section className="bg-surface-container-low border border-white/5 rounded-xl p-6 space-y-4">
-              <div>
-                <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant mb-1">
-                  Focus Tickers <span className="text-[#8e8e88] font-normal">(optional)</span>
-                </h3>
-                <p className="text-[0.6875rem] text-[#8e8e88]">
-                  Comma-separated symbols to prioritize. Leave blank for broad discovery.
-                </p>
-              </div>
-              <input
-                type="text"
-                value={tickers}
-                onChange={(e) => setTickers(e.target.value)}
-                placeholder="AAPL, NVDA, TSLA"
-                className="w-full bg-surface-container border border-white/5 rounded-lg px-4 py-3 text-sm text-on-surface placeholder:text-[#8e8e88]/50 focus:outline-none focus:ring-1 focus:ring-primary/50 transition-shadow font-mono"
-              />
-            </section>
+              <span className="text-[0.625rem] bg-secondary/20 text-secondary px-2 py-0.5 rounded font-mono uppercase tracking-widest flex items-center gap-1">
+                <span className="w-1.5 h-1.5 bg-secondary rounded-full animate-pulse" />
+                Live
+              </span>
+            </div>
+            <ConversationalChat 
+              onStageChange={setStage} 
+              onSchemaUpdate={setSchemaWip} 
+              onComplete={() => handleValidate(schemaWip)} 
+            />
+            <div className="flex justify-between items-center text-[0.6875rem] text-[#8e8e88]">
+              <span>Stage: {stage}/7</span>
+              {stage === 7 && (
+                <button 
+                  onClick={() => handleValidate()}
+                  className="text-primary hover:underline"
+                >
+                  Proceed to Review
+                </button>
+              )}
+            </div>
           </div>
         ) : (
-          /* Path B — Schema Import */
           <section className="bg-surface-container-low border border-white/5 rounded-xl p-6 space-y-4">
-            <div>
-              <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant mb-1">
-                Paste Intake Schema
-              </h3>
-              <p className="text-[0.6875rem] text-[#8e8e88]">
-                Use{' '}
-                <code className="px-1.5 py-0.5 bg-surface-container rounded text-primary text-[0.625rem]">
-                  aegis_intake_schema.json
-                </code>{' '}
-                +{' '}
-                <code className="px-1.5 py-0.5 bg-surface-container rounded text-primary text-[0.625rem]">
-                  aegis_llm_intake.md
-                </code>{' '}
-                with your preferred LLM, then paste the result.
-              </p>
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant mb-1">
+                  Paste v9 Intake Schema
+                </h3>
+                <p className="text-[0.6875rem] text-[#8e8e88] max-w-xl">
+                  Use an external LLM to populate the schema, then paste it here.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(SAMPLE_SCHEMA);
+                }}
+                className="text-[0.6875rem] bg-surface-container hover:bg-white/5 border border-white/10 px-3 py-1.5 rounded transition-colors flex items-center gap-1.5"
+              >
+                <span className="material-symbols-outlined text-[14px]">content_copy</span>
+                Copy Blank Schema
+              </button>
             </div>
             <textarea
               value={schemaJson}
               onChange={(e) => setSchemaJson(e.target.value)}
-              placeholder={SAMPLE_SCHEMA}
+              placeholder="Paste JSON here..."
               rows={16}
-              className="w-full bg-surface-container border border-white/5 rounded-lg px-4 py-3 text-[0.8125rem] text-on-surface placeholder:text-[#8e8e88]/30 focus:outline-none focus:ring-1 focus:ring-primary/50 resize-none transition-shadow font-mono leading-relaxed"
+              className="w-full bg-surface-container border border-white/5 rounded-lg px-4 py-3 text-[0.8125rem] text-on-surface placeholder:text-[#8e8e88]/30 focus:outline-none focus:ring-1 focus:ring-primary/50 resize-none font-mono"
             />
-            <button
-              onClick={() => setSchemaJson(SAMPLE_SCHEMA)}
-              className="text-[0.6875rem] text-primary hover:text-primary/80 transition-colors underline underline-offset-4"
-            >
-              Load sample schema
-            </button>
+            {error && <div className="text-destructive text-sm">{error}</div>}
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => handleValidate()}
+                disabled={validating || !schemaJson.trim()}
+                className="px-6 py-2.5 bg-primary-container text-on-primary-container text-[0.8125rem] font-semibold rounded-lg hover:brightness-110 disabled:opacity-50 transition-all"
+              >
+                {validating ? 'Validating...' : 'Review Mandate'}
+              </button>
+            </div>
           </section>
         )}
-
-        {/* Error */}
-        {error && (
-          <div className="bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-3 text-sm text-destructive">
-            {error}
-          </div>
-        )}
-
-        {/* Submit */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
-          <button
-            onClick={handleValidate}
-            disabled={validating}
-            className="px-8 py-3 bg-primary-container text-on-primary-container text-[0.8125rem] font-semibold rounded-lg hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {validating ? (
-              <>
-                <span className="w-4 h-4 border-2 border-on-primary-container/30 border-t-on-primary-container rounded-full animate-spin" />
-                Validating…
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'wght' 500" }}>
-                  check_circle
-                </span>
-                Review Mandate
-              </>
-            )}
-          </button>
-        </div>
       </div>
     );
   }
 
   // ─── Step: Review ────────────────────────────────────────
   if (step === 'review' && validation) {
+    const hasWarnings = validation.soft_contradictions.length > 0 || validation.inferred_flags.length > 0;
+    const canConfirm = validation.is_valid && (!hasWarnings || acknowledged);
+
     return (
       <div className="max-w-3xl mx-auto space-y-8">
         <div>
           <h1 className="font-headline text-4xl font-light tracking-tight text-on-surface">
             Confirm Your Mandate
           </h1>
-          <p className="text-[#8e8e88] mt-2 max-w-xl leading-relaxed">
-            Review your constraints before the system begins. Hard limits below can never be exceeded.
+          <p className="text-[#8e8e88] mt-2 leading-relaxed">
+            Review the final parameters. Once locked, Aegis begins autonomous execution.
           </p>
         </div>
-
-        {/* Summary Cards */}
-        <section className="bg-surface-container-low border border-white/5 rounded-xl p-6 space-y-5">
-          <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
-            Mandate Summary
-          </h3>
-          <div className="space-y-0">
-            {Object.entries(validation.mandate_summary).map(([key, value]) => (
-              <div key={key} className="flex justify-between items-center py-3 border-b border-white/5 last:border-0">
-                <span className="text-sm text-[#8e8e88]">{key}</span>
-                <span className="text-sm font-medium text-on-surface font-mono">{value}</span>
-              </div>
-            ))}
-          </div>
-        </section>
 
         {/* Hard Constraints Box */}
         <section className="bg-surface-container-low border border-primary-container/30 rounded-xl p-6 space-y-4">
@@ -402,75 +256,110 @@ export function IntakePage() {
               lock
             </span>
             <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-primary">
-              Hard Constraints — The System Will Never Exceed These
+              Tier 1: Hard Constraints
             </h3>
           </div>
           <div className="bg-surface-container rounded-lg border border-white/5 p-4 font-mono text-sm space-y-2 text-on-surface">
-            <div className="flex justify-between">
-              <span className="text-[#8e8e88]">Max portfolio drawdown</span>
-              <span className="font-semibold">{(drawdown * 100).toFixed(0)}%</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[#8e8e88]">Risk profile</span>
-              <span className="font-semibold capitalize">{risk}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[#8e8e88]">Holding period</span>
-              <span className="font-semibold capitalize">{horizon}</span>
-            </div>
+            {Object.entries(validation.mandate_summary).map(([key, value]) => (
+              <div key={key} className="flex justify-between items-start py-1">
+                <span className="text-[#8e8e88] whitespace-nowrap">{key}</span>
+                <span className="font-semibold text-right break-words max-w-[60%]">
+                  {renderTextWithBadges(value)}
+                </span>
+              </div>
+            ))}
           </div>
         </section>
 
-        {/* Contradictions */}
-        {validation.contradictions.length > 0 && (
-          <section className="bg-destructive/10 border border-destructive/20 rounded-xl p-6 space-y-3">
+        {/* Hard Errors */}
+        {validation.hard_errors.length > 0 && (
+          <section className="bg-destructive/10 border border-destructive/30 rounded-xl p-6 space-y-3">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-destructive text-[20px]">warning</span>
+              <span className="material-symbols-outlined text-destructive text-[20px]">error</span>
               <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-destructive">
-                Contradictions Detected
+                Critical Errors (Blocks Confirmation)
               </h3>
             </div>
-            {validation.contradictions.map((c, i) => (
-              <p key={i} className="text-sm text-destructive/90">{c}</p>
-            ))}
+            <ul className="list-disc pl-5 space-y-1">
+              {validation.hard_errors.map((e, i) => (
+                <li key={i} className="text-sm text-destructive/90">{e}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* Soft Contradictions */}
+        {validation.soft_contradictions.length > 0 && (
+          <section className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-6 space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-amber-500 text-[20px]">warning</span>
+              <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-amber-500">
+                Priority Conflicts & Contradictions
+              </h3>
+            </div>
+            <ul className="list-disc pl-5 space-y-1">
+              {validation.soft_contradictions.map((c, i) => (
+                <li key={i} className="text-sm text-amber-500/90">{c}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* Inferred Flags */}
+        {validation.inferred_flags.length > 0 && (
+          <section className="bg-surface-container-high border border-white/10 rounded-xl p-6 space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-on-surface-variant text-[20px]">psychology</span>
+              <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
+                System Inferences
+              </h3>
+            </div>
+            <p className="text-[0.6875rem] text-[#8e8e88]">
+              Aegis made the following assumptions based on incomplete information.
+            </p>
+            <ul className="list-disc pl-5 space-y-1 mt-2">
+              {validation.inferred_flags.map((f, i) => (
+                <li key={i} className="text-sm text-on-surface/80">{renderTextWithBadges(f)}</li>
+              ))}
+            </ul>
           </section>
         )}
 
         {/* Error */}
-        {error && (
-          <div className="bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-3 text-sm text-destructive">
-            {error}
-          </div>
-        )}
+        {error && <div className="text-destructive text-sm">{error}</div>}
 
         {/* Actions */}
-        <div className="flex justify-between items-center pt-4 border-t border-white/5">
-          <button
-            onClick={() => { setStep('input'); setValidation(null); }}
-            className="flex items-center gap-2 px-5 py-3 text-[#8e8e88] hover:text-on-surface text-[0.8125rem] transition-colors"
-          >
-            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-            Let me adjust
-          </button>
-          <button
-            onClick={handleConfirm}
-            disabled={confirming || !validation.is_valid}
-            className="px-8 py-3 bg-primary-container text-on-primary-container text-[0.8125rem] font-semibold rounded-lg hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {confirming ? (
-              <>
-                <span className="w-4 h-4 border-2 border-on-primary-container/30 border-t-on-primary-container rounded-full animate-spin" />
-                Launching…
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1, 'wght' 500" }}>
-                  rocket_launch
-                </span>
-                These look right — build it
-              </>
-            )}
-          </button>
+        <div className="pt-4 border-t border-white/5 space-y-4">
+          {hasWarnings && validation.is_valid && (
+            <label className="flex items-center gap-3 cursor-pointer group bg-surface-container p-4 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
+              <input 
+                type="checkbox" 
+                checked={acknowledged}
+                onChange={(e) => setAcknowledged(e.target.checked)}
+                className="w-5 h-5 rounded bg-surface-container-high border-white/20 text-primary focus:ring-primary/50 focus:ring-offset-surface cursor-pointer"
+              />
+              <span className="text-sm text-on-surface group-hover:text-white transition-colors">
+                I acknowledge the warnings and system inferences above.
+              </span>
+            </label>
+          )}
+
+          <div className="flex justify-between items-center">
+            <button
+              onClick={() => setStep('input')}
+              className="flex items-center gap-2 px-4 py-2.5 text-[#8e8e88] hover:text-on-surface text-[0.8125rem] transition-colors"
+            >
+              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+              Edit Mandate
+            </button>
+            <button
+              onClick={handleConfirm}
+              disabled={confirming || !canConfirm}
+              className="px-8 py-3 bg-primary-container text-on-primary-container text-[0.8125rem] font-semibold rounded-lg hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {confirming ? 'Locking...' : 'Lock Mandate'}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -490,7 +379,7 @@ export function IntakePage() {
             Sentinel Launched
           </h2>
           <p className="text-[#8e8e88] mt-2">
-            Your mandate is active. The pipeline is now generating and evaluating strategies.
+            Your mandate is locked. The pipeline is now generating and evaluating strategies.
           </p>
         </div>
         {confirmResult && (

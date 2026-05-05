@@ -110,71 +110,62 @@ The user gives both to their AI of choice and pastes the populated schema into A
 
 The schema alone is insufficient instruction for a filling LLM. The intake document explains the critical distinction between hard constraints and soft preferences, and the conservative rule for risk fields. Without it, an external LLM will fill risk fields aggressively based on personality inference rather than stated preferences.
 
-### The Intake Schema (v9.0)
-
-The v9 schema fundamentally changes how the Builder understands the user's intent by introducing a multi-tiered architecture with a dedicated priority system.
+### The Intake Schema
 
 ```json
 {
-  "_schema_version": "v9.0",
-  "_path": "A", // or "B"
+  "_schema_version": "v7.0",
+  "_path": "B",
+  "_for_llm": "See aegis_llm_intake.md before filling this schema.",
 
-  "mandate_hard_constraints": {
-    "_tier": 1,
+  "required": {
+    "risk_tolerance": null,
+    "max_drawdown_pct": null,
+    "time_horizon": null,
+    "raw_desire": null
+  },
+
+  "portfolio": {
     "investable_capital": null,
-    "max_portfolio_drawdown_pct": null,
+    "existing_holdings": [],
+    "holdings_to_never_touch": [],
+    "account_type": null
+  },
+
+  "universe": {
+    "asset_classes": [],
+    "market_cap_range": null,
+    "sectors_of_interest": [],
+    "sectors_to_avoid": [],
+    "geographies": [],
+    "specific_tickers": [],
+    "exclude_tickers": []
+  },
+
+  "strategy_character": {
+    "preferred_regimes": [],
+    "catalyst_types": [],
+    "signal_type_preference": [],
+    "holding_period_days": null,
+    "preferred_complexity": null
+  },
+
+  "macro_views": [],
+
+  "constraints": {
+    "esg_exclusions": [],
+    "max_sector_concentration_pct": null,
     "max_single_position_pct": null,
-    "max_concurrent_live_strategies": null,
-    "leverage_permitted": false,
-    "account_type": null,
-    "horizon_allocation": [
-      {
-        "label": "swing",
-        "min_days": 5,
-        "max_days": 21,
-        "capital_weight": 0.65
-      }
-    ],
-    "universe_hard_filters": { /* asset classes, market cap, volume, ESG, exclusions */ }
+    "leverage": false
   },
 
-  "mandate_priority_hierarchy": {
-    "_tier": 2,
-    "ordered_priorities": [
-      {
-        "rank": 1,
-        "dimension": "risk_control",
-        "rationale": "Explicitly bounded by ARKK loss history"
-      }
-    ],
-    "preference_flexibility": [
-      {
-        "preference": "mandate_hard_constraints.leverage_permitted",
-        "flexibility": "immovable",
-        "rationale": "User emphatically rejected borrowed money"
-      }
-    ],
-    "trade_off_philosophy": "Risk first, always.",
-    "conflict_notes": null
-  },
-
-  "investor_profile": { /* experience, time availability, behavioral history */ },
-  "risk_profile": { /* multi-dimensional: volatility, gap, tail, time, regret asymmetry */ },
-  "performance_targets": { /* objective, targets, success/failure definitions */ },
-  "universe_mandate": { /* raw desire, fundamental screens, sectors */ },
-  "strategy_intent": { /* regime pairs, catalyst prefs, entry/exit philosophy */ },
-  "horizon_mandate": { /* qualitative context for horizon_allocation */ },
-  "portfolio_scope": { /* diversification, correlation, beta intent */ },
-  "market_context": { /* user macro views and implications */ },
-  "execution_profile": { /* operational windows, order philosophy */ },
-  "exclusions_and_constraints": { /* strategy/instrument exclusions */ },
-  "filing_notes": { /* contradictions, expectation corrections */ }
+  "notes": null
 }
 ```
 
 ### Confirmation Step (Both Paths)
 
-Mandatory before anything freezes. Shows hard constraints in plain language with an explicit product boundary note where relevant. The system flags contradictions and expectation corrections identified during the conversational intake.
+Mandatory before anything freezes. Shows hard constraints in plain language with an explicit product boundary note where relevant.
 
 ```
 Here's what we're building:
@@ -190,34 +181,80 @@ Here's what we're building:
   These limits are hard — the system will never exceed them:
   ┌───────────────────────────────────────────────────────┐
   │  Max portfolio drawdown:  15%                         │
-  │  Max concurrent strats:   5                           │
-  │  Holding periods:         Swing (65%), Position (35%) │
-  │  Volume Floor:            $1M/day                     │
+  │  Max position size:       2.5% per trade              │
+  │  Stop-loss range:         1% – 3% per trade           │
+  │  Holding period:          3 – 21 days                 │
   └───────────────────────────────────────────────────────┘
+
+  ⚠  Small biotech is genuinely volatile. Your 15% drawdown
+     limit may reduce signal frequency. Raise it if you want
+     more activity.
 
   [ These look right — build it ]    [ Let me adjust ]
 ```
 
-### The Three Core Objects
+### The Two Core Objects
 
-The v9 schema is parsed into three objects for the Builder.
+**`MandateProfile` — frozen hard constraints**
 
-**`MandateProfile` — Tier 1 frozen hard constraints**
-Mathematical gates enforced by pipeline code. Circuit breakers, position sizing, stop-losses. No AI can override these.
+```python
+@dataclass(frozen=True)
+class MandateProfile:
+    risk_tolerance:          str
+    max_drawdown_target:     float
+    max_position_pct:        float
+    max_account_risk_pct:    float
+    stop_loss_range:         tuple
+    holding_period_range:    tuple
+    allowed_asset_classes:   list[str]
+    leverage_permitted:      bool
+    mandate_profile_id:      str
+    created_at:              datetime
+    schema_version:          str
+```
 
-**`UserIntent` — Tier 2 soft preferences**
-Rich context object the Builder reads as investment policy. Multi-dimensional risk, performance targets, universe rationale, strategy intent, and market context.
+**`UserIntent` — soft preferences, guides generation**
 
-**`ConflictResolutionProfile` — Tier 2 priority system (New in v9)**
-When preferences conflict (e.g., return target vs. risk limit, universe vs. diversification), the Builder consults this object to resolve the tradeoff without inventing an arbitrary ordering. It includes explicit rank, flexibility tags (`immovable`, `high_priority`, `medium_priority`, `low_priority`), and the user's tradeoff philosophy.
+```python
+@dataclass
+class UserIntent:
+    raw_desire:              str        # preserved verbatim always
+    has_preference:          bool
+    universe_tags:           list[str]
+    strategy_character:      str
+    sectors_of_interest:     list[str]
+    sectors_to_avoid:        list[str]
+    market_cap_range:        Optional[tuple]
+    catalyst_types:          list[str]
+    macro_views:             list[MacroView]
+    exclusions:              list[str]
+    notes:                   Optional[str]
+    intake_path:             str        # "A" | "B"
+    intake_schema_version:   str
+```
 
-### Contradiction & Conflict Detection
+### Builder Context Assembly
 
-- Priority vs. preference conflicts (e.g., high rank but low flexibility)
-- Immovable preferences that are mutually exclusive
-- Return target mathematically incompatible with risk-control priority
+Every Builder call receives four objects:
 
-Conflicts are explicitly flagged with a `resolution_hint` for the Builder or User to resolve.
+```
+MandateProfile         → what cannot be violated
+UserIntent             → what to explore and why
+StrategyArchetypePool  → what already exists (drive diversity before generation)
+FailureContext         → what failed last iteration (if any)
+```
+
+The `StrategyArchetypePool` prompt injection is what causes diversity during generation — not the `max_correlation_existing: 0.60` gate, which only catches duplicates after the fact.
+
+> *"Existing promoted strategies: [momentum-small-cap-biotech-fda-catalyst]. Generate a strategy in a meaningfully different regime or sub-sector. Underrepresented: mean-reversion, earnings-driven setups, PDUFA plays."*
+
+### Contradiction Detection
+
+- Conservative drawdown + desire implying aggressive risk → flag
+- "Never lose money" + day trading → flag
+- Ticker exclusion conflicts with stated sector interest → flag
+
+Contradictions are warnings, not hard blocks. User resolves before confirming.
 
 ---
 
