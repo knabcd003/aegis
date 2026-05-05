@@ -9,7 +9,7 @@ class HorizonAllocation(BaseModel):
 
 class UniverseHardFilters(BaseModel):
     asset_classes_permitted: Optional[List[str]] = Field(default_factory=list)
-    market_cap_range: Optional[str] = None
+    market_cap_range: Optional[List[int]] = Field(default_factory=list)
     min_avg_daily_volume_usd: Optional[float] = None
     price_range: Optional[str] = None
     geographies_permitted: Optional[List[str]] = Field(default_factory=list)
@@ -131,7 +131,7 @@ class PortfolioScope(BaseModel):
     diversification_intent: Optional[str] = None
     correlation_intent: Optional[str] = None
     market_beta_intent: Optional[str] = None
-    portfolio_beta_existing: Optional[str] = None
+    portfolio_beta_existing: Optional[float] = None
     pipeline_growth_intent: Optional[str] = None
 
 class MarketContext(BaseModel):
@@ -164,8 +164,8 @@ class FilingNotes(BaseModel):
     tier: Optional[int] = Field(2, alias="_tier")
     builder_note: Optional[str] = Field(None, alias="_builder_note")
     explicit_vs_inferred_summary: Optional[str] = None
-    contradictions: Optional[List[str]] = Field(default_factory=list)
-    expectation_corrections: Optional[List[str]] = Field(default_factory=list)
+    contradictions: Optional[List[Any]] = Field(default_factory=list)
+    expectation_corrections: Optional[List[Any]] = Field(default_factory=list)
     open_questions: Optional[List[str]] = Field(default_factory=list)
     conversation_quality_note: Optional[str] = None
 

@@ -154,7 +154,7 @@ def mock_llm_call(prompt: str, transcript: list, current_stage: int) -> dict:
         "schema_patch": patch
     }
 
-@router.post("/chat", response_model=ChatResponse)
+@router.post("", response_model=ChatResponse)
 async def chat_endpoint(req: ChatRequest):
     session = get_session(req.session_id)
     if session.get("locked"):

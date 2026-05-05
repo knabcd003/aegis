@@ -26,7 +26,11 @@ async def validate_intake(schema: V9IntakeSchema):
     summary = {}
     if schema.mandate_hard_constraints:
         drawdown = schema.mandate_hard_constraints.max_portfolio_drawdown_pct
-        summary["Max Drawdown"] = f"{drawdown * 100:.1f}%" if drawdown is not None else "Not Set"
+        if drawdown is not None:
+            dd_val = drawdown if drawdown > 1.0 else drawdown * 100
+            summary["Max Drawdown"] = f"{dd_val:.1f}%"
+        else:
+            summary["Max Drawdown"] = "Not Set"
         
         concurrent = schema.mandate_hard_constraints.max_concurrent_live_strategies
         summary["Max Concurrent Strats"] = str(concurrent) if concurrent is not None else "Not Set"
@@ -55,7 +59,7 @@ async def validate_intake(schema: V9IntakeSchema):
     if schema.mandate_priority_hierarchy and schema.mandate_priority_hierarchy.preference_flexibility:
         flex = schema.mandate_priority_hierarchy.preference_flexibility
         immovables = [f for f in flex if f.flexibility == "immovable"]
-        if len(immovables) > 3:
+        if len(immovables) > 5:
             hard_errors.append("Too many 'immovable' preferences specified. Conflict resolution impossible.")
             
     # Horizon Weights sum to 1.0
@@ -76,7 +80,10 @@ async def validate_intake(schema: V9IntakeSchema):
     # 3. Soft Contradiction Detection
     if schema.filing_notes and schema.filing_notes.contradictions:
         for c in schema.filing_notes.contradictions:
-            soft_contradictions.append(c)
+            if isinstance(c, dict) and "description" in c:
+                soft_contradictions.append(c["description"])
+            else:
+                soft_contradictions.append(str(c))
             
     # Implied Sharpe ratio contradiction
     if schema.performance_targets and schema.performance_targets.target_annual_return_pct and schema.mandate_hard_constraints and schema.mandate_hard_constraints.max_portfolio_drawdown_pct:

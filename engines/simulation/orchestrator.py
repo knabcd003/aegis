@@ -14,7 +14,7 @@ from engines.simulation.walk_forward import WalkForwardValidator
 from engines.system.scenario.generator import BlockBootstrapGenerator
 from engines.system.scenario.models import BootstrapRequest
 from api.routers.pipeline_events import broadcaster
-from api.schemas.intake import IntakeDraft
+from api.schemas.intake import V9IntakeSchema
 
 class SimulationOrchestrator:
     """
@@ -23,23 +23,47 @@ class SimulationOrchestrator:
     """
     
     @staticmethod
-    async def run_from_intake(draft: IntakeDraft, run_id: str):
+    async def run_from_intake(draft: V9IntakeSchema, run_id: str):
         """
         Background task to execute a full strategy discovery pipeline.
         """
         # 1. Map Path A Intake to a MandateProfile (Immutable Constraints)
+        
+        # Derive risk tolerance from max drawdown (simplistic mapping for now)
+        risk_tol = "moderate"
+        drawdown = 0.15
+        if draft.mandate_hard_constraints and draft.mandate_hard_constraints.max_portfolio_drawdown_pct is not None:
+            drawdown = draft.mandate_hard_constraints.max_portfolio_drawdown_pct
+            if drawdown <= 0.10: risk_tol = "conservative"
+            elif drawdown >= 0.20: risk_tol = "aggressive"
+            
+        # Derive horizon from weights
+        horizon = "swing"
+        if draft.mandate_hard_constraints and draft.mandate_hard_constraints.horizon_allocation:
+            for h in draft.mandate_hard_constraints.horizon_allocation:
+                if h.capital_weight and h.capital_weight > 0.5 and h.label:
+                    horizon = h.label
+                    
+        desire = ""
+        if draft.universe_mandate and draft.universe_mandate.raw_desire:
+            desire = draft.universe_mandate.raw_desire
+
         profile = MandateProfile.from_path_a(
-            risk_tolerance=draft.risk_tolerance,
-            time_horizon=draft.time_horizon,
-            raw_desire=draft.raw_desire
+            risk_tolerance=risk_tol,
+            time_horizon=horizon,
+            raw_desire=desire
         )
+        
+        tickers = ["AAPL", "MSFT", "NVDA", "TSLA", "AMD"]
+        if draft.mandate_hard_constraints and draft.mandate_hard_constraints.universe_hard_filters and draft.mandate_hard_constraints.universe_hard_filters.specific_tickers_focus:
+            tickers = draft.mandate_hard_constraints.universe_hard_filters.specific_tickers_focus
         
         # 2. Convert MandateProfile to a concrete AegisConfig
         config = AegisConfig(
             config_id=f"cfg_{uuid.uuid4().hex[:8]}",
             version="7.0.0",
             asset_universe=AssetUniverse(
-                tickers=draft.tickers if draft.tickers else ["AAPL", "MSFT", "NVDA", "TSLA", "AMD"],
+                tickers=tickers,
                 benchmark="SPY"
             ),
             signal_gate=SignalGateConfig(),
