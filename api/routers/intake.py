@@ -51,17 +51,39 @@ async def validate_intake(schema: V9IntakeSchema):
     if not schema.mandate_hard_constraints or schema.mandate_hard_constraints.investable_capital is None:
         hard_errors.append("Missing required Tier 1 constraint: investable_capital.")
         
-    # Priority vs Preference mutually exclusive conflicts (example mock check)
+        # Priority vs Preference mutually exclusive conflicts
     if schema.mandate_priority_hierarchy and schema.mandate_priority_hierarchy.preference_flexibility:
         flex = schema.mandate_priority_hierarchy.preference_flexibility
         immovables = [f for f in flex if f.flexibility == "immovable"]
         if len(immovables) > 3:
             hard_errors.append("Too many 'immovable' preferences specified. Conflict resolution impossible.")
             
+    # Horizon Weights sum to 1.0
+    if schema.mandate_hard_constraints and schema.mandate_hard_constraints.horizon_allocation:
+        allocs = schema.mandate_hard_constraints.horizon_allocation
+        total_weight = sum([h.capital_weight for h in allocs if h.capital_weight is not None])
+        # Tolerate slight floating point math issues
+        if total_weight > 0 and abs(total_weight - 1.0) > 0.01:
+            hard_errors.append(f"Horizon allocation weights must sum to 1.0, got {total_weight:.2f}")
+
+    # 401k account type with non-ETF assets
+    if schema.mandate_hard_constraints and schema.mandate_hard_constraints.account_type and "401k" in schema.mandate_hard_constraints.account_type.lower():
+        if schema.mandate_hard_constraints.universe_hard_filters and schema.mandate_hard_constraints.universe_hard_filters.asset_classes_permitted:
+            assets = [a.lower() for a in schema.mandate_hard_constraints.universe_hard_filters.asset_classes_permitted]
+            if any("etf" not in a and "mutual_fund" not in a for a in assets):
+                hard_errors.append("Account type 401k specified but non-ETF/Mutual Fund asset classes are permitted.")
+            
     # 3. Soft Contradiction Detection
     if schema.filing_notes and schema.filing_notes.contradictions:
         for c in schema.filing_notes.contradictions:
             soft_contradictions.append(c)
+            
+    # Implied Sharpe ratio contradiction
+    if schema.performance_targets and schema.performance_targets.target_annual_return_pct and schema.mandate_hard_constraints and schema.mandate_hard_constraints.max_portfolio_drawdown_pct:
+        target_return = schema.performance_targets.target_annual_return_pct
+        max_dd = schema.mandate_hard_constraints.max_portfolio_drawdown_pct
+        if max_dd > 0 and (target_return / max_dd) > 2.0:
+            soft_contradictions.append(f"Target return of {target_return*100:.1f}% with max drawdown of {max_dd*100:.1f}% implies an unrealistic Sharpe ratio. Strategy may struggle to find signals.")
             
     # 4. Inferred Flags Detection
     # Traverse string fields to find tags

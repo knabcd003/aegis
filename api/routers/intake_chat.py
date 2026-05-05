@@ -80,8 +80,29 @@ def evaluate_stage_exit(stage: int, schema_wip: dict, flags: dict) -> bool:
         flags["2"]["volatility_tolerance"] = r.get("volatility_tolerance") is not None
         # Simplified for mock
         return flags["2"]["drawdown_limit"]
-    # ... mock implementation for other stages
-    return True
+    elif stage == 3:
+        p = schema_wip.get("performance_targets", {})
+        h = schema_wip.get("mandate_hard_constraints", {})
+        flags["3"]["return_target"] = p.get("target_annual_return_pct") is not None
+        flags["3"]["horizon"] = h.get("horizon_allocation") is not None
+        return flags["3"]["return_target"] and flags["3"]["horizon"]
+    elif stage == 4:
+        u = schema_wip.get("universe_mandate", {})
+        s = schema_wip.get("strategy_intent", {})
+        flags["4"]["universe"] = u.get("raw_desire") is not None
+        flags["4"]["strategy"] = s.get("catalyst_preferences") is not None
+        return flags["4"]["universe"] and flags["4"]["strategy"]
+    elif stage == 5:
+        c = schema_wip.get("mandate_hard_constraints", {})
+        flags["5"]["max_strats"] = c.get("max_concurrent_live_strategies") is not None
+        return flags["5"]["max_strats"]
+    elif stage == 6:
+        m = schema_wip.get("mandate_priority_hierarchy", {})
+        flags["6"]["priority"] = m.get("ordered_priorities") is not None
+        return flags["6"]["priority"]
+    elif stage == 7:
+        # Synthesis stage has no exit condition other than user confirmation
+        return False
 
 def mock_llm_call(prompt: str, transcript: list, current_stage: int) -> dict:
     # This is a mock. In reality, we'd inject the prompt to an LLM.
@@ -93,9 +114,41 @@ def mock_llm_call(prompt: str, transcript: list, current_stage: int) -> dict:
         patch = {"mandate_hard_constraints": {"investable_capital": 100000, "account_type": "margin"}}
         msg = "I've noted your capital and account type. Let's move to risk."
     elif current_stage == 2:
-        patch = {"mandate_hard_constraints": {"max_portfolio_drawdown_pct": 0.15}}
+        patch = {
+            "mandate_hard_constraints": {"max_portfolio_drawdown_pct": 0.15},
+            "risk_profile": {"volatility_tolerance": "high", "gap_risk_tolerance": "medium"}
+        }
         msg = "Got the 15% drawdown limit."
-    
+    elif current_stage == 3:
+        patch = {
+            "performance_targets": {"target_annual_return_pct": 0.30},
+            "mandate_hard_constraints": {"horizon_allocation": [{"label": "swing", "capital_weight": 1.0}]}
+        }
+        msg = "Performance targets recorded."
+    elif current_stage == 4:
+        patch = {
+            "universe_mandate": {"raw_desire": "Tech momentum"},
+            "strategy_intent": {"catalyst_preferences": "earnings"}
+        }
+        msg = "Universe and strategy understood."
+    elif current_stage == 5:
+        patch = {"mandate_hard_constraints": {"max_concurrent_live_strategies": 5}}
+        msg = "Constraints logged."
+    elif current_stage == 6:
+        patch = {"mandate_priority_hierarchy": {"ordered_priorities": [{"rank": 1, "dimension": "risk_control"}]}}
+        msg = "Priorities set."
+    elif current_stage == 7:
+        # If user contradicts or corrects
+        if "wait" in transcript[-1]["content"].lower() or "actually" in transcript[-1]["content"].lower() or "no" in transcript[-1]["content"].lower():
+            patch = {"mandate_hard_constraints": {"max_portfolio_drawdown_pct": 0.20}}
+            msg = "I have updated your drawdown limit to 20%. Here is the revised summary."
+        elif "contradict" in transcript[-1]["content"].lower():
+             patch = {"filing_notes": {"contradictions": ["User wants safe returns but asked for penny stocks."]}}
+             msg = "I noticed a contradiction. Recorded."
+        else:
+            patch = {}
+            msg = "Here is your final synthesis. Please review and confirm."
+            
     return {
         "conversational_message": msg,
         "schema_patch": patch
