@@ -21,7 +21,7 @@ providers:
   api_key_env: GROQ_API_KEY
   exclude: false
   limits:
-    rpd: 1000
+    rpd: null
     rpm: 30
     tpd: 500000
   cost_per_1k_tokens: 0.0
@@ -35,7 +35,7 @@ providers:
   api_key_env: GROQ_API_KEY
   exclude: false
   limits:
-    rpd: 1000
+    rpd: null
     rpm: 60
     tpd: 500000
   cost_per_1k_tokens: 0.0
@@ -49,7 +49,7 @@ providers:
   api_key_env: GROQ_API_KEY
   exclude: false
   limits:
-    rpd: 1000
+    rpd: null
     rpm: 60
     tpd: 300000
   cost_per_1k_tokens: 0.0
@@ -63,7 +63,7 @@ providers:
   api_key_env: GROQ_API_KEY
   exclude: false
   limits:
-    rpd: 1000
+    rpd: null
     rpm: 30
     tpd: 200000
   cost_per_1k_tokens: 0.0
@@ -77,7 +77,7 @@ providers:
   api_key_env: GEMINI_API_KEY
   exclude: false
   limits:
-    rpd: 250
+    rpd: null
     rpm: null
     tpd: null
   cost_per_1k_tokens: 0.0
@@ -90,7 +90,7 @@ providers:
   api_key_env: OPENROUTER_API_KEY
   exclude: false
   limits:
-    rpd: 200
+    rpd: null
     rpm: 20
     tpd: null
   cost_per_1k_tokens: 0.0
@@ -104,7 +104,7 @@ providers:
   api_key_env: OPENROUTER_API_KEY
   exclude: false
   limits:
-    rpd: 200
+    rpd: null
     rpm: 20
     tpd: null
   cost_per_1k_tokens: 0.0
@@ -131,9 +131,9 @@ providers:
   api_key_env: CEREBRAS_API_KEY
   exclude: false
   limits:
-    rpd: 14400
-    rpm: 30
-    tpd: 1000000
+    rpd: null
+    rpm: null
+    tpd: null
   cost_per_1k_tokens: 0.0
   base_url: https://api.cerebras.ai/v1
 - id: cerebras/llama3.1-8b
@@ -145,9 +145,9 @@ providers:
   api_key_env: CEREBRAS_API_KEY
   exclude: false
   limits:
-    rpd: 14400
-    rpm: 30
-    tpd: 1000000
+    rpd: null
+    rpm: null
+    tpd: null
   cost_per_1k_tokens: 0.0
   base_url: https://api.cerebras.ai/v1
 role_assignments:
@@ -259,6 +259,11 @@ role_assignments:
   emergency:
     primary: anthropic/claude-sonnet-4-6
     fallback_chain: []
+    is_critical: true
+  intake_advisor:
+    primary: groq/llama-4-scout-17b-16e-instruct
+    fallback_chain:
+    - gemini/gemini-2.5-flash
     is_critical: true
 settings:
   context_size_threshold_tokens: 50000

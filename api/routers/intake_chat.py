@@ -4,10 +4,13 @@ from typing import List, Dict, Any, Optional
 import uuid
 import json
 import os
+import asyncio
 from api.schemas.intake import V9IntakeSchema
 from api.prompts.intake_stages import STAGE_PROMPTS
+from engines.system.llm_adapter import LLMAdapter
 
 router = APIRouter()
+llm_adapter = LLMAdapter()
 SESSIONS_DIR = "data/sessions"
 os.makedirs(SESSIONS_DIR, exist_ok=True)
 
@@ -104,55 +107,39 @@ def evaluate_stage_exit(stage: int, schema_wip: dict, flags: dict) -> bool:
         # Synthesis stage has no exit condition other than user confirmation
         return False
 
-def mock_llm_call(prompt: str, transcript: list, current_stage: int) -> dict:
-    # This is a mock. In reality, we'd inject the prompt to an LLM.
-    # We return a dummy conversational message and an empty merge patch.
-    # To test progression, we'll patch the required fields artificially based on stage.
-    patch = {}
-    msg = f"[Mock Stage {current_stage} Response]"
-    if current_stage == 1:
-        patch = {"mandate_hard_constraints": {"investable_capital": 100000, "account_type": "margin"}}
-        msg = "I've noted your capital and account type. Let's move to risk."
-    elif current_stage == 2:
-        patch = {
-            "mandate_hard_constraints": {"max_portfolio_drawdown_pct": 0.15},
-            "risk_profile": {"volatility_tolerance": "high", "gap_risk_tolerance": "medium"}
-        }
-        msg = "Got the 15% drawdown limit."
-    elif current_stage == 3:
-        patch = {
-            "performance_targets": {"target_annual_return_pct": 0.30},
-            "mandate_hard_constraints": {"horizon_allocation": [{"label": "swing", "capital_weight": 1.0}]}
-        }
-        msg = "Performance targets recorded."
-    elif current_stage == 4:
-        patch = {
-            "universe_mandate": {"raw_desire": "Tech momentum"},
-            "strategy_intent": {"catalyst_preferences": "earnings"}
-        }
-        msg = "Universe and strategy understood."
-    elif current_stage == 5:
-        patch = {"mandate_hard_constraints": {"max_concurrent_live_strategies": 5}}
-        msg = "Constraints logged."
-    elif current_stage == 6:
-        patch = {"mandate_priority_hierarchy": {"ordered_priorities": [{"rank": 1, "dimension": "risk_control"}]}}
-        msg = "Priorities set."
-    elif current_stage == 7:
-        # If user contradicts or corrects
-        if "wait" in transcript[-1]["content"].lower() or "actually" in transcript[-1]["content"].lower() or "no" in transcript[-1]["content"].lower():
-            patch = {"mandate_hard_constraints": {"max_portfolio_drawdown_pct": 0.20}}
-            msg = "I have updated your drawdown limit to 20%. Here is the revised summary."
-        elif "contradict" in transcript[-1]["content"].lower():
-             patch = {"filing_notes": {"contradictions": ["User wants safe returns but asked for penny stocks."]}}
-             msg = "I noticed a contradiction. Recorded."
-        else:
-            patch = {}
-            msg = "Here is your final synthesis. Please review and confirm."
+async def call_llm(prompt_template: str, transcript: list, stage: int, schema_wip: dict, session_id: str) -> dict:
+    system_msg = prompt_template
+    system_msg += f"\n\nCURRENT SCHEMA_WIP:\n{json.dumps(schema_wip, indent=2)}\n\n"
+    
+    messages = [{"role": "system", "content": system_msg}]
+    for msg in transcript:
+        # Convert 'system' to 'assistant' for LiteLLM if needed, but 'system' usually works as a generic system msg.
+        # It's better to map 'system' from transcript to 'assistant' so the LLM knows it's its own past response.
+        r = "assistant" if msg["role"] == "system" else msg["role"]
+        messages.append({"role": r, "content": msg["content"]})
+        
+    try:
+        response = await asyncio.to_thread(
+            llm_adapter.invoke,
+            messages=messages,
+            role="intake_advisor",
+            workflow_id=session_id,
+            node_id=f"intake_stage_{stage}"
+        )
+        content = response.content
+        if "```json" in content:
+            content = content.split("```json")[1].split("```")[0]
+        elif "```" in content:
+            content = content.split("```")[1].split("```")[0]
             
-    return {
-        "conversational_message": msg,
-        "schema_patch": patch
-    }
+        parsed = json.loads(content.strip())
+        return parsed
+    except Exception as e:
+        print(f"LLM call failed: {e}")
+        return {
+            "conversational_message": "I'm having trouble connecting to my reasoning engine right now. Could you please rephrase or try again in a moment?",
+            "schema_patch": {}
+        }
 
 @router.post("", response_model=ChatResponse)
 async def chat_endpoint(req: ChatRequest):
@@ -176,7 +163,7 @@ async def chat_endpoint(req: ChatRequest):
     recent_transcript = session["transcript"][-10:] # Bound token spend
     
     # In a real app, construct the full prompt combining template, schema_wip, and transcript
-    llm_output = mock_llm_call(prompt_template, recent_transcript, stage)
+    llm_output = await call_llm(prompt_template, recent_transcript, stage, session["schema_wip"], req.session_id)
     
     # Apply schema patch
     patch = llm_output.get("schema_patch", {})

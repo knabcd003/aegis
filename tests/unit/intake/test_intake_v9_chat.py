@@ -1,9 +1,48 @@
 import pytest
 from fastapi.testclient import TestClient
+from unittest.mock import patch
 from api.main import app
 import json
+from engines.system.llm_adapter import AdapterResponse
 
 client = TestClient(app)
+
+@pytest.fixture(autouse=True)
+def mock_llm_adapter():
+    with patch("api.routers.intake_chat.llm_adapter.invoke") as mock_invoke:
+        def side_effect(messages, role, workflow_id, node_id, **kwargs):
+            stage = int(node_id.split("_")[-1])
+            content = ""
+            if stage == 1:
+                content = '{"conversational_message": "stage 1", "schema_patch": {"mandate_hard_constraints": {"investable_capital": 100000, "account_type": "margin"}}}'
+            elif stage == 2:
+                content = '{"conversational_message": "stage 2", "schema_patch": {"mandate_hard_constraints": {"max_portfolio_drawdown_pct": 0.15}, "risk_profile": {"volatility_tolerance": "high"}}}'
+            elif stage == 3:
+                content = '{"conversational_message": "stage 3", "schema_patch": {"performance_targets": {"target_annual_return_pct": 0.30}, "mandate_hard_constraints": {"horizon_allocation": [{"label": "swing", "capital_weight": 1.0}]}}}'
+            elif stage == 4:
+                content = '{"conversational_message": "stage 4", "schema_patch": {"universe_mandate": {"raw_desire": "Tech momentum"}, "strategy_intent": {"catalyst_preferences": "earnings"}}}'
+            elif stage == 5:
+                content = '{"conversational_message": "stage 5", "schema_patch": {"mandate_hard_constraints": {"max_concurrent_live_strategies": 5}}}'
+            elif stage == 6:
+                content = '{"conversational_message": "stage 6", "schema_patch": {"mandate_priority_hierarchy": {"ordered_priorities": [{"rank": 1, "dimension": "risk_control"}]}}}'
+            elif stage == 7:
+                last_msg = messages[-1]["content"].lower()
+                if "wait" in last_msg or "actually" in last_msg or "no" in last_msg:
+                    content = '{"conversational_message": "revised", "schema_patch": {"mandate_hard_constraints": {"max_portfolio_drawdown_pct": 0.20}}}'
+                elif "contradict" in last_msg:
+                    content = '{"conversational_message": "contradict", "schema_patch": {"filing_notes": {"contradictions": ["User wants safe returns but asked for penny stocks."]}}}'
+                else:
+                    content = '{"conversational_message": "final", "schema_patch": {}}'
+                    
+            return AdapterResponse(
+                content=content, provider_id="mock", model_id="mock", was_primary=True,
+                fallback_reason="none", session_quality="nominal", prompt_tokens=10,
+                completion_tokens=10, estimated_cost_usd=0.0, latency_ms=10.0
+            )
+            
+        mock_invoke.side_effect = side_effect
+        yield mock_invoke
+
 
 def test_v9_path_b_validation():
     with open("docs_v7/updated_intake/aegis_intake_schema_v9_example.json", "r") as f:

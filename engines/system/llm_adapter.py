@@ -64,8 +64,8 @@ class AdapterResponse:
         )
 
 class LLMAdapter:
-    def __init__(self, config_path: str = "config/llm_providers.yaml"):
-        self.router = ProviderRouter(config_path=config_path)
+    def __init__(self, user_id: str = "default"):
+        self.router = ProviderRouter(user_id=user_id)
         self.quota = self.router.quota
         self.claude_budget = ClaudeBudgetTracker()
         
