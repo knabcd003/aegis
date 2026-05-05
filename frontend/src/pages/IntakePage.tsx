@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ConversationalChat } from '../components/Intake/ConversationalChat';
+import { IntakeWizard } from '../components/Intake/IntakeWizard';
 
 const API = 'http://localhost:8000/api/intake';
 
@@ -45,6 +46,7 @@ export function IntakePage() {
   // Path A state
   const [stage, setStage] = useState(0);
   const [schemaWip, setSchemaWip] = useState<any>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   
   // Path B state
   const [schemaJson, setSchemaJson] = useState('');
@@ -162,31 +164,55 @@ export function IntakePage() {
         </div>
 
         {path === 'A' ? (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
-                Aegis Advisory Link
-              </h3>
-              <span className="text-[0.625rem] bg-secondary/20 text-secondary px-2 py-0.5 rounded font-mono uppercase tracking-widest flex items-center gap-1">
-                <span className="w-1.5 h-1.5 bg-secondary rounded-full animate-pulse" />
-                Live
-              </span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2">
+              <IntakeWizard 
+                stage={stage} 
+                schemaWip={schemaWip} 
+                onUpdate={(patch) => setSchemaWip((prev: any) => ({ ...prev, ...patch }))}
+                onNext={async () => {
+                  if (stage === 7) {
+                    handleValidate(schemaWip);
+                    return;
+                  }
+                  // Send local edits to backend and advance
+                  try {
+                    const res = await fetch(`${API}/chat`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        session_id: sessionId,
+                        schema_update: schemaWip,
+                        advance_stage: true
+                      })
+                    });
+                    const data = await res.json();
+                    setStage(data.current_stage);
+                    setSchemaWip(data.schema_wip);
+                  } catch (e) {
+                    console.error("Failed to advance stage manually", e);
+                  }
+                }}
+              />
             </div>
-            <ConversationalChat 
-              onStageChange={setStage} 
-              onSchemaUpdate={setSchemaWip} 
-              onComplete={() => handleValidate(schemaWip)} 
-            />
-            <div className="flex justify-between items-center text-[0.6875rem] text-[#8e8e88]">
-              <span>Stage: {stage}/7</span>
-              {stage === 7 && (
-                <button 
-                  onClick={() => handleValidate()}
-                  className="text-primary hover:underline"
-                >
-                  Proceed to Review
-                </button>
-              )}
+            <div className="md:col-span-1 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant">
+                  Aegis Advisory Link
+                </h3>
+                <span className="text-[0.625rem] bg-secondary/20 text-secondary px-2 py-0.5 rounded font-mono uppercase tracking-widest flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-secondary rounded-full animate-pulse" />
+                  Live
+                </span>
+              </div>
+              <ConversationalChat 
+                sessionIdOverride={sessionId}
+                onSessionInit={setSessionId}
+                onStageChange={setStage} 
+                onSchemaUpdate={setSchemaWip} 
+                onComplete={() => handleValidate(schemaWip)} 
+                schemaWip={schemaWip}
+              />
             </div>
           </div>
         ) : (

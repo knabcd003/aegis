@@ -16,7 +16,9 @@ os.makedirs(SESSIONS_DIR, exist_ok=True)
 
 class ChatRequest(BaseModel):
     session_id: Optional[str] = None
-    message: str
+    message: Optional[str] = None
+    schema_update: Optional[Dict[str, Any]] = None
+    advance_stage: Optional[bool] = False
 
 class ChatResponse(BaseModel):
     session_id: str
@@ -161,36 +163,45 @@ async def chat_endpoint(req: ChatRequest):
     if session.get("locked"):
         raise HTTPException(status_code=400, detail="Session is locked.")
         
-    session["transcript"].append({"role": "user", "content": req.message})
     stage = session["current_stage"]
+    reply = ""
     
-    # Stage 0: Hardcoded Orientation
-    if stage == 0:
-        reply = "Welcome to Aegis Intake. I'll ask you some questions. Ready?"
-        session["current_stage"] = 1
+    # 1. Apply any manual schema updates from the wizard form first
+    if req.schema_update:
+        session["schema_wip"] = merge_patch(session["schema_wip"], req.schema_update)
+        
+    # 2. Handle Conversational Message (if any)
+    if req.message:
+        session["transcript"].append({"role": "user", "content": req.message})
+        
+        if stage == 0:
+            reply = "Welcome to Aegis Intake. I'm here to help you configure your mandate. What would you like to know?"
+            session["current_stage"] = 1
+            session["transcript"].append({"role": "system", "content": reply})
+            save_session(session)
+            return ChatResponse(session_id=session["session_id"], response=reply, current_stage=1, schema_wip=session["schema_wip"])
+            
+        prompt_template = STAGE_PROMPTS.get(stage, "")
+        recent_transcript = session["transcript"][-10:]
+        
+        llm_output = await call_llm(prompt_template, recent_transcript, stage, session["schema_wip"], session["session_id"])
+        
+        patch = llm_output.get("schema_patch", {})
+        if patch:
+            session["schema_wip"] = merge_patch(session["schema_wip"], patch)
+            
+        reply = llm_output.get("conversational_message", "")
         session["transcript"].append({"role": "system", "content": reply})
-        save_session(session)
-        return ChatResponse(session_id=session["session_id"], response=reply, current_stage=1, schema_wip=session["schema_wip"])
-        
-    # Stage 1-7: LLM-driven
-    prompt_template = STAGE_PROMPTS.get(stage, "")
-    recent_transcript = session["transcript"][-10:] # Bound token spend
     
-    # In a real app, construct the full prompt combining template, schema_wip, and transcript
-    llm_output = await call_llm(prompt_template, recent_transcript, stage, session["schema_wip"], req.session_id)
-    
-    # Apply schema patch
-    patch = llm_output.get("schema_patch", {})
-    if patch:
-        session["schema_wip"] = merge_patch(session["schema_wip"], patch)
-        
-    reply = llm_output.get("conversational_message", "")
-    session["transcript"].append({"role": "system", "content": reply})
-    
-    # Evaluate exit conditions
-    if evaluate_stage_exit(stage, session["schema_wip"], session["stage_completion_flags"]):
+    # 3. Handle Stage Advancement
+    if req.advance_stage:
         if stage <= 7:
             session["current_stage"] += 1
-            
+    elif req.message:
+        # Only auto-evaluate if the user sent a message
+        if evaluate_stage_exit(stage, session["schema_wip"], session["stage_completion_flags"]):
+            if stage <= 7:
+                session["current_stage"] += 1
+                
     save_session(session)
     return ChatResponse(session_id=session["session_id"], response=reply, current_stage=session["current_stage"], schema_wip=session["schema_wip"])

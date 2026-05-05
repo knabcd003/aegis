@@ -10,13 +10,18 @@ interface ConversationalChatProps {
   onStageChange: (stage: number) => void;
   onSchemaUpdate: (schema: any) => void;
   onComplete: () => void;
+  sessionIdOverride?: string | null;
+  onSessionInit?: (sessionId: string) => void;
+  schemaWip?: any;
 }
 
-export function ConversationalChat({ onStageChange, onSchemaUpdate, onComplete }: ConversationalChatProps) {
+export function ConversationalChat({ onStageChange, onSchemaUpdate, onComplete, sessionIdOverride, onSessionInit, schemaWip }: ConversationalChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [localSessionId, setLocalSessionId] = useState<string | null>(null);
+  
+  const sessionId = sessionIdOverride !== undefined ? sessionIdOverride : localSessionId;
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -49,7 +54,8 @@ export function ConversationalChat({ onStageChange, onSchemaUpdate, onComplete }
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           session_id: sessionId,
-          message: isInit ? 'init' : text
+          message: isInit ? 'init' : text,
+          schema_update: !isInit ? schemaWip : undefined
         })
       });
       
@@ -57,7 +63,11 @@ export function ConversationalChat({ onStageChange, onSchemaUpdate, onComplete }
       const data = await res.json();
       
       if (!sessionId && data.session_id) {
-        setSessionId(data.session_id);
+        if (onSessionInit) {
+          onSessionInit(data.session_id);
+        } else {
+          setLocalSessionId(data.session_id);
+        }
         // Persist session ID in session storage if needed
         sessionStorage.setItem('aegis_intake_session', data.session_id);
       }
