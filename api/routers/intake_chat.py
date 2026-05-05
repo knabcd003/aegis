@@ -104,7 +104,10 @@ def evaluate_stage_exit(stage: int, schema_wip: dict, flags: dict) -> bool:
         flags["6"]["priority"] = m.get("ordered_priorities") is not None
         return flags["6"]["priority"]
     elif stage == 7:
-        # Synthesis stage has no exit condition other than user confirmation
+        f = schema_wip.get("filing_notes", {})
+        if f.get("conversation_quality_note") == "CONFIRMED":
+            flags["7"]["synthesis_approved"] = True
+            return True
         return False
 
 async def call_llm(prompt_template: str, transcript: list, stage: int, schema_wip: dict, session_id: str) -> dict:
@@ -127,14 +130,25 @@ async def call_llm(prompt_template: str, transcript: list, stage: int, schema_wi
             node_id=f"intake_stage_{stage}"
         )
         content = response.content
+        
+        # Try to find JSON block using regex if backticks aren't present
+        import re
         if "```json" in content:
             content = content.split("```json")[1].split("```")[0]
         elif "```" in content:
             content = content.split("```")[1].split("```")[0]
-            
+        else:
+            # Fallback regex to find first { and last }
+            start = content.find('{')
+            end = content.rfind('}')
+            if start != -1 and end != -1:
+                content = content[start:end+1]
+                
         parsed = json.loads(content.strip())
         return parsed
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"LLM call failed: {e}")
         return {
             "conversational_message": "I'm having trouble connecting to my reasoning engine right now. Could you please rephrase or try again in a moment?",
@@ -175,7 +189,7 @@ async def chat_endpoint(req: ChatRequest):
     
     # Evaluate exit conditions
     if evaluate_stage_exit(stage, session["schema_wip"], session["stage_completion_flags"]):
-        if stage < 7:
+        if stage <= 7:
             session["current_stage"] += 1
             
     save_session(session)

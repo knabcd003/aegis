@@ -113,6 +113,7 @@ RULES:
 1. Synthesize the user's schema into a readable summary of what will be built.
 2. If the user corrects something (e.g., "No, I want 20% drawdown"), apply the patch and output an updated summary.
 3. Update `filing_notes` with any contradictions or assumed defaults.
+4. IMPORTANT: If the user explicitly confirms the synthesis is correct and they are ready to proceed, you MUST include `"conversation_quality_note": "CONFIRMED"` inside `filing_notes` in your schema_patch.
 
 OUTPUT FORMAT:
 You must return ONLY a JSON object with two keys:

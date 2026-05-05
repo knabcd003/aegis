@@ -32,7 +32,7 @@ def mock_llm_adapter():
                 elif "contradict" in last_msg:
                     content = '{"conversational_message": "contradict", "schema_patch": {"filing_notes": {"contradictions": ["User wants safe returns but asked for penny stocks."]}}}'
                 else:
-                    content = '{"conversational_message": "final", "schema_patch": {}}'
+                    content = '{"conversational_message": "final", "schema_patch": {"filing_notes": {"conversation_quality_note": "CONFIRMED"}}}'
                     
             return AdapterResponse(
                 content=content, provider_id="mock", model_id="mock", was_primary=True,
@@ -90,6 +90,10 @@ def test_v9_path_a_normal_flow():
     data = resp.json()
     assert data["current_stage"] == 7 # Doesn't rollback
     assert data["schema_wip"]["mandate_hard_constraints"]["max_portfolio_drawdown_pct"] == 0.20
+    
+    # Stage 7 Confirmation
+    resp = client.post("/api/intake/chat", json={"session_id": session_id, "message": "Looks good, confirm."})
+    assert resp.json()["current_stage"] == 8
     
 def test_v9_path_a_contradictory_user():
     # Setup up to stage 6
