@@ -73,31 +73,24 @@ What Aegis captures: durable signal in the days and weeks following catalysts, w
 
 For users who select catalyst-driven desires like "FDA plays" or "earnings momentum," the confirmation screen includes: *"Aegis captures post-catalyst signal — momentum and positioning in the days after events, not pre-announcement alpha. The system will not outrace institutional traders to the first tick."*
 
-### Path A — Simple Setup (Default)
+### Path A — Form-Based Guided Intake (Default)
 
-No AI involved anywhere in the intake. Four direct inputs. Direct mapping — no parsing, no inference, no LLM call.
+The primary intake is a deterministic 7-section form that explicitly captures Tier 1 hard constraints while using an LLM to validate and enrich Tier 2 soft preferences based on user-provided free-text.
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│  What do you want to trade? (optional — skip to go generic)  │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │ e.g. "risky small biotech" or "boring dividend stocks" │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                                                              │
-│  How much can you lose before it stops being okay?           │
-│  ○ A little (5–10%)  ● Some (10–20%)  ○ A lot (20–40%)      │
-│                                                              │
-│  How long do you hold positions?                             │
-│  ○ Hours (day)  ● Days to weeks (swing)  ○ Weeks+ (position) │
-│                                                              │
-│  How much capital? (optional)                                │
-│  $___________                                                │
-│                                                              │
-│               [ Build my pipeline → ]                        │
-└──────────────────────────────────────────────────────────────┘
-```
+**The Multi-Section Form Structure:**
+- **Structured Fields**: Dropdowns, number inputs, toggles, and multi-selects. These map 1:1 to hard constraints (e.g. `max_portfolio_drawdown_pct`). No LLM inference is permitted on these fields. What the user types is what gets stored.
+- **Detail Box**: A free-text area where the user provides nuance, context, history, and reasoning. The LLM reads this and populates the corresponding Tier 2 prose fields.
+- **Validation**: Per-section validation endpoint (`intake_validate.py`) translates the detail box to prose fields, detects gaps (asking targeted questions), and detects contradictions between structured inputs and the detail box.
+- **Section Locking**: Users must confirm a section's validation before locking it. Upstream edits invalidate downstream locks to prevent hidden contradictions.
 
-If the desire field is blank, the Builder explores freely within the risk parameters. The three structured inputs map deterministically to hard constraints — no model call involved.
+**The Seven Stages:**
+1. Foundation (Capital, Account Type, Portfolio Context)
+2. Risk (Drawdown, Concurrent Strats, Leverage, Loss History)
+3. Performance Targets (Objective, Return Target, Benchmark, Success Definition)
+4. Universe (Asset Classes, Sectors, Market Cap, Fundamental Screens)
+5. Strategy Intent (Catalysts, Entry/Exit Philosophy, Exclusions)
+6. Execution (Brokerage, Available Windows, Order Type)
+7. Priorities (Drag-to-rank hierarchy, Trade-off Philosophy)
 
 ### Path B — Comprehensive Schema Import (Power Users)
 

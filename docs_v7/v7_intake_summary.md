@@ -2,8 +2,8 @@
 
 The intake process is the only interaction the user has to steer Aegis before strategies are constructed. There are two paths to populate the `Aegis Intake Schema` (JSON):
 
-1. **Path A (Simple)**: 4 direct inputs with no AI translation. Deterministic mappings.
-2. **Path B (Comprehensive/Power User)**: The user has an AI (Claude/ChatGPT/etc.) fill out an extensive JSON schema (`aegis_intake_schema.json`) based on their conversation history, guided by `aegis_llm_intake_final.md`.
+1. **Path A (Form-Based Intake, Default)**: A deterministic 7-stage form that explicitly captures Tier 1 hard constraints while using an LLM to validate and enrich Tier 2 soft preferences from free-text detail boxes.
+2. **Path B (Comprehensive/Power User)**: The user has an AI (Claude/ChatGPT/etc.) fill out an extensive JSON schema (`aegis_intake_schema_v9_blank.json`) based on their conversation history, guided by `aegis_llm_intake_v9.md`.
 
 ## Golden Rule of Intake interpretation
 **Hard Constraints vs. Soft Preferences**

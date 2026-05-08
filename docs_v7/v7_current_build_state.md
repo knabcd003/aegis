@@ -56,7 +56,8 @@ Verified via `scripts/verify_phase5_e2e.py` and `scripts/verify/` suite:
 *   ✅ **VCL SDK:** 5-gate import verification, 7 wrappers registered.
 *   ✅ **Token Messenger:** Cryptographic chaining across pipeline stages.
 *   ✅ **Scenario Battery:** Block bootstrap generator with pass rate gating.
-*   ✅ **Intake System:** MandateProfile, UserIntent, Contradiction detection, ArchetypePool.
+*   ✅ **Intake System (Backend):** MandateProfile, UserIntent, Contradiction detection, ArchetypePool.
+*   ✅ **Intake System (Frontend):** Form-based deterministic 7-stage intake, localStorage persistence, drag-and-drop priorities.
 *   ✅ **Signal Freshness:** Live price validator with volatility-bucketed thresholds.
 
 ## 3. Archived v6 Code (`_v6_archive/`)
@@ -71,8 +72,7 @@ The following v6 components have been archived — they conflict with v7's auton
 
 ## 4. Pending & Immediate Horizon (Phase 5A)
 
-**Next Up: Phase 5A — Frontend Architecture**
-*   Build the *Intake Interface* (Path A & Path B Schema).
+**Next Up: Phase 5B — Dashboard Architecture**
 *   Construct the *Mission Control* canvas (WebSocket → live pipeline events).
 *   Develop the *Glass Box* (audit trail as product).
 *   Build the *Signal Card UI* for ACCEPT/DECLINE.

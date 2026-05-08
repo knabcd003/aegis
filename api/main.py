@@ -97,7 +97,7 @@ async def health_check() -> Dict[str, Any]:
         }
     }
 
-from api.routers import quant, analyst, mlops, stream, systems, audit, health, improvements, portfolio, openclaw, pipeline_events, intake, intake_chat, budget, setup
+from api.routers import quant, analyst, mlops, stream, systems, audit, health, improvements, portfolio, openclaw, pipeline_events, intake, intake_validate, intake_confirm, budget, setup
 
 # ============================================================
 # API Routers
@@ -113,7 +113,8 @@ app.include_router(improvements.router, prefix="/api/improvements", tags=["Impro
 app.include_router(portfolio.router, prefix="/api/portfolio", tags=["Portfolio"])
 app.include_router(openclaw.router, prefix="/api/openclaw", tags=["OpenClaw"])
 app.include_router(intake.router, prefix="/api/intake", tags=["Intake"])
-app.include_router(intake_chat.router, prefix="/api/intake/chat", tags=["Intake Chat"])
+app.include_router(intake_validate.router, prefix="/api/intake/validate", tags=["Intake Validate"])
+app.include_router(intake_confirm.router, prefix="/api/intake/confirm", tags=["Intake Confirm"])
 app.include_router(budget.router, prefix="/api/budget", tags=["Budget"])
 app.include_router(pipeline_events.router, prefix="/ws", tags=["Pipeline Events"])
 app.include_router(setup.router, prefix="/api/setup", tags=["Setup"])
