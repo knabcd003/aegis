@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi.responses import FileResponse
 from typing import List, Dict, Any
 import datetime
 import uuid
@@ -15,6 +16,19 @@ SESSIONS_DIR = "data/sessions"
 
 os.makedirs(MANDATES_DIR, exist_ok=True)
 os.makedirs(SESSIONS_DIR, exist_ok=True)
+
+@router.get("/download-package")
+async def download_package():
+    """Serves the LLM intake package directly from the backend source-of-truth."""
+    file_path = "api/static/files/aegis_llm_intake.zip"
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Intake package not found on server.")
+        
+    return FileResponse(
+        path=file_path, 
+        filename="aegis_llm_intake.zip", 
+        media_type="application/zip"
+    )
 
 @router.post("/validate", response_model=ValidationResponse)
 async def validate_intake(schema: V9IntakeSchema):

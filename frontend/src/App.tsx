@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Layout } from '@/components/Shell/Layout';
 import { SetupPage } from '@/pages/SetupPage';
 import { IntakePage } from '@/pages/IntakePage';
+import { LLMIntakePage } from '@/pages/LLMIntakePage';
 
 // Placeholder pages — will be replaced with real implementations
 function PlaceholderPage({ title, description }: { title: string; description: string }) {
@@ -48,6 +49,7 @@ function App() {
 
           {/* SETTINGS */}
           <Route path="/intake" element={<IntakePage />} />
+          <Route path="/llm-intake" element={<LLMIntakePage />} />
           <Route path="/settings" element={<SetupPage />} />
 
           {/* Catch-all */}

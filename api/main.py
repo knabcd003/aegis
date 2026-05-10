@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, Any, Optional
 
 # Load environment variables from .env
+from fastapi.staticfiles import StaticFiles
 load_dotenv()
 
 from engines.data_ingestion.data_engine import DataEngine
@@ -73,6 +74,9 @@ app = FastAPI(
     version="2.0.0",
     lifespan=lifespan
 )
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="api/static"), name="static")
 
 # Configure CORS so the React frontend can talk to this API from a different port
 app.add_middleware(
