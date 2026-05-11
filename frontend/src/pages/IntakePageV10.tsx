@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useIntakeStore } from '../store/intakeStore';
 import { SectionShell } from '../components/Intake/SectionShell';
 import { AgentPanel } from '../components/Intake/AgentPanel';
@@ -5,9 +6,13 @@ import { MandateAndCapital } from '../components/Intake/Sections/MandateAndCapit
 import { RiskMandate } from '../components/Intake/Sections/RiskMandate';
 import { PerformanceTargets } from '../components/Intake/Sections/PerformanceTargets';
 import { UniverseMandate } from '../components/Intake/Sections/UniverseMandate';
-import type { AgentMessage } from '../types/intake';
+import { CatalystCardGrid } from '../components/Intake/CatalystCardGrid';
+import type { AgentMessage, CatalystTypeEntry } from '../types/intake';
 
 export function IntakePageV10() {
+  const [testCatalysts, setTestCatalysts] = useState<CatalystTypeEntry[]>([]);
+  const [isCatalystValid, setIsCatalystValid] = useState(false);
+
   const { 
     currentSection, 
     messages, 
@@ -46,33 +51,25 @@ export function IntakePageV10() {
     }, 1500);
   };
 
-  // Validation Logic for Section 4
   const canLockSection4 = () => {
     const filters = schema.universe_mandate.tier_1_hard_filters;
     const screens = schema.universe_mandate.fundamental_screens;
-    
     if (filters.asset_classes_permitted.length === 0) return false;
     if (filters.geographies_permitted.length === 0) return false;
     if (filters.market_cap_min_usd === undefined) return false;
     if (filters.min_avg_daily_volume_usd === undefined) return false;
-    
-    // Sector conflict check
     const conflicts = filters.sectors_of_interest.filter((s: string) => filters.sectors_excluded.includes(s));
     if (conflicts.length > 0) return false;
-
-    // Screens validation
     if (screens.fundamental_screens_enabled) {
       const incomplete = screens.screens.some((s: any) => !s.screen_type || !s.flexibility);
       if (incomplete) return false;
     }
-
     return true;
   };
 
   return (
     <div className="flex min-h-screen bg-surface">
-      {/* MAIN CONTENT AREA */}
-      <div className="flex-1 pr-[380px]"> {/* Space for fixed AgentPanel */}
+      <div className="flex-1 pr-[380px]">
         <div className="max-w-4xl mx-auto px-8 space-y-12 pb-32 pt-12">
           <div className="space-y-2">
             <h1 className="font-headline text-5xl font-light tracking-tight text-on-surface serif-text">
@@ -84,7 +81,6 @@ export function IntakePageV10() {
           </div>
 
           <div className="space-y-8">
-            {/* SECTION 1 */}
             <SectionShell
               sectionNumber={1}
               title="Mandate & Capital"
@@ -97,20 +93,11 @@ export function IntakePageV10() {
               <div className="space-y-8">
                 <MandateAndCapital />
                 <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
-                   <p className="text-sm text-on-surface/80 leading-relaxed">
-                     Once all Tier 1 fields are filled, trigger validation to proceed.
-                   </p>
-                   <button 
-                     onClick={() => setValidated(1, true)}
-                     className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all"
-                   >
-                     Validate Section 01
-                   </button>
+                   <button onClick={() => setValidated(1, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded">Validate Section 01</button>
                 </div>
               </div>
             </SectionShell>
 
-            {/* SECTION 2 */}
             <SectionShell
               sectionNumber={2}
               title="Risk Mandate"
@@ -123,20 +110,11 @@ export function IntakePageV10() {
               <div className="space-y-8">
                 <RiskMandate />
                 <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
-                   <p className="text-sm text-on-surface/80 leading-relaxed">
-                     Risk parameters are Tier 1 constraints. They cannot be bypassed by the AI.
-                   </p>
-                   <button 
-                     onClick={() => setValidated(2, true)}
-                     className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all"
-                   >
-                     Validate Section 02
-                   </button>
+                   <button onClick={() => setValidated(2, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded">Validate Section 02</button>
                 </div>
               </div>
             </SectionShell>
 
-            {/* SECTION 3 */}
             <SectionShell
               sectionNumber={3}
               title="Performance Targets"
@@ -149,20 +127,11 @@ export function IntakePageV10() {
               <div className="space-y-8">
                 <PerformanceTargets />
                 <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
-                   <p className="text-sm text-on-surface/80 leading-relaxed">
-                     Return targets are advisory. They calibrate the AI's signal selection aggressiveness.
-                   </p>
-                   <button 
-                     onClick={() => setValidated(3, true)}
-                     className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all"
-                   >
-                     Validate Section 03
-                   </button>
+                   <button onClick={() => setValidated(3, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded">Validate Section 03</button>
                 </div>
               </div>
             </SectionShell>
 
-            {/* SECTION 4 */}
             <SectionShell
               sectionNumber={4}
               title="Universe & Asset Class"
@@ -176,29 +145,43 @@ export function IntakePageV10() {
               <div className="space-y-8">
                 <UniverseMandate />
                 <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
+                   <button onClick={() => setValidated(4, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded">Validate Section 04</button>
+                </div>
+              </div>
+            </SectionShell>
+
+            {/* SECTION 5 (TEST) */}
+            <SectionShell
+              sectionNumber={5}
+              title="Strategy & Catalysts"
+              description="Select the market catalysts Aegis will monitor and define your multi-period risk allocation."
+              locked={sections[5].locked}
+              validated={sections[5].validated}
+              onLock={() => lockSection(5)}
+              onUnlock={() => unlockSection(5)}
+            >
+              <div className="space-y-8">
+                <div className="space-y-4">
+                  <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
+                    Active Catalysts
+                  </label>
+                  <CatalystCardGrid
+                    value={testCatalysts}
+                    onChange={setTestCatalysts}
+                    onValidityChange={setIsCatalystValid}
+                  />
+                </div>
+                <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
                    <p className="text-sm text-on-surface/80 leading-relaxed">
-                     Universe filters are applied before any trade execution logic.
+                     Valid: {isCatalystValid ? "YES" : "NO"}
                    </p>
-                   <button 
-                     onClick={() => setValidated(4, true)}
-                     className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all"
-                   >
-                     Validate Section 04
-                   </button>
                 </div>
               </div>
             </SectionShell>
           </div>
         </div>
       </div>
-
-      {/* AGENT PANEL */}
-      <AgentPanel
-        messages={messages}
-        isThinking={isThinking}
-        onSendMessage={handleSendMessage}
-        currentSection={currentSection}
-      />
+      <AgentPanel messages={messages} isThinking={isThinking} onSendMessage={handleSendMessage} currentSection={currentSection} />
     </div>
   );
 }
