@@ -34,6 +34,14 @@ export interface CatalystTypeEntry {
   };
 }
 
+export interface HorizonBucket {
+  id: string;
+  label: string;
+  min_days: number;
+  max_days: number;
+  capital_weight: number;
+}
+
 export interface IntakeSchemaV10 {
   _schema_version: 'v10.0';
   // Note: Full schema definition will be added as we build each section

@@ -7,11 +7,14 @@ import { RiskMandate } from '../components/Intake/Sections/RiskMandate';
 import { PerformanceTargets } from '../components/Intake/Sections/PerformanceTargets';
 import { UniverseMandate } from '../components/Intake/Sections/UniverseMandate';
 import { CatalystCardGrid } from '../components/Intake/CatalystCardGrid';
-import type { AgentMessage, CatalystTypeEntry } from '../types/intake';
+import { HorizonAllocationBuilder } from '../components/Intake/HorizonAllocationBuilder';
+import type { AgentMessage, CatalystTypeEntry, HorizonBucket } from '../types/intake';
 
 export function IntakePageV10() {
   const [testCatalysts, setTestCatalysts] = useState<CatalystTypeEntry[]>([]);
   const [isCatalystValid, setIsCatalystValid] = useState(false);
+  const [testHorizons, setTestHorizons] = useState<HorizonBucket[]>([]);
+  const [isHorizonValid, setIsHorizonValid] = useState(false);
 
   const { 
     currentSection, 
@@ -36,7 +39,6 @@ export function IntakePageV10() {
     };
     addMessage(userMsg);
     
-    // Simulate agent response
     setThinking(true);
     setTimeout(() => {
       const agentMsg: AgentMessage = {
@@ -93,7 +95,7 @@ export function IntakePageV10() {
               <div className="space-y-8">
                 <MandateAndCapital />
                 <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
-                   <button onClick={() => setValidated(1, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded">Validate Section 01</button>
+                   <button onClick={() => setValidated(1, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all">Validate Section 01</button>
                 </div>
               </div>
             </SectionShell>
@@ -110,7 +112,7 @@ export function IntakePageV10() {
               <div className="space-y-8">
                 <RiskMandate />
                 <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
-                   <button onClick={() => setValidated(2, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded">Validate Section 02</button>
+                   <button onClick={() => setValidated(2, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all">Validate Section 02</button>
                 </div>
               </div>
             </SectionShell>
@@ -127,7 +129,7 @@ export function IntakePageV10() {
               <div className="space-y-8">
                 <PerformanceTargets />
                 <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
-                   <button onClick={() => setValidated(3, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded">Validate Section 03</button>
+                   <button onClick={() => setValidated(3, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all">Validate Section 03</button>
                 </div>
               </div>
             </SectionShell>
@@ -145,7 +147,7 @@ export function IntakePageV10() {
               <div className="space-y-8">
                 <UniverseMandate />
                 <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
-                   <button onClick={() => setValidated(4, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded">Validate Section 04</button>
+                   <button onClick={() => setValidated(4, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all">Validate Section 04</button>
                 </div>
               </div>
             </SectionShell>
@@ -160,7 +162,7 @@ export function IntakePageV10() {
               onLock={() => lockSection(5)}
               onUnlock={() => unlockSection(5)}
             >
-              <div className="space-y-8">
+              <div className="space-y-12">
                 <div className="space-y-4">
                   <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
                     Active Catalysts
@@ -171,9 +173,21 @@ export function IntakePageV10() {
                     onValidityChange={setIsCatalystValid}
                   />
                 </div>
+
+                <div className="space-y-4 pt-10 border-t border-white/5">
+                  <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
+                    Capital Allocation by Horizon
+                  </label>
+                  <HorizonAllocationBuilder
+                    value={testHorizons}
+                    onChange={setTestHorizons}
+                    onValidityChange={setIsHorizonValid}
+                  />
+                </div>
+
                 <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
-                   <p className="text-sm text-on-surface/80 leading-relaxed">
-                     Valid: {isCatalystValid ? "YES" : "NO"}
+                   <p className="text-sm text-on-surface/80 leading-relaxed font-mono">
+                     Strategy: {isCatalystValid ? "✓" : "✗"} | Horizon: {isHorizonValid ? "✓" : "✗"}
                    </p>
                 </div>
               </div>

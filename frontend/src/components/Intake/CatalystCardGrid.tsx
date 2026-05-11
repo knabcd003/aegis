@@ -133,6 +133,25 @@ export function CatalystCardGrid({
   }, [value]);
 
   const handleTogglePermitted = (catalystType: string) => {
+    const existingEntry = value.find(e => e.catalyst_type === catalystType);
+    
+    if (!existingEntry) {
+      // Create new entry if it doesn't exist
+      const newEntry: CatalystTypeEntry = {
+        catalyst_type: catalystType,
+        permitted: true,
+        risk_acknowledgments: {
+          iv_crush_risk_acknowledged: false,
+          gap_risk_acknowledged: false,
+          binary_event_risk_acknowledged: false,
+          information_leakage_risk_acknowledged: false,
+          pre_revenue_universe_acknowledged: false,
+        }
+      };
+      onChange([...value, newEntry]);
+      return;
+    }
+
     const newValue = value.map(entry => {
       if (entry.catalyst_type === catalystType) {
         const isEnabling = !entry.permitted;
@@ -141,7 +160,13 @@ export function CatalystCardGrid({
           permitted: isEnabling,
           risk_acknowledgments: isEnabling 
             ? entry.risk_acknowledgments 
-            : Object.keys(entry.risk_acknowledgments).reduce((acc, key) => ({ ...acc, [key]: false }), {}) as any
+            : {
+                iv_crush_risk_acknowledged: false,
+                gap_risk_acknowledged: false,
+                binary_event_risk_acknowledged: false,
+                information_leakage_risk_acknowledged: false,
+                pre_revenue_universe_acknowledged: false,
+              }
         };
       }
       return entry;
