@@ -1,15 +1,18 @@
+import { useState } from 'react';
 import { useIntakeStore } from '../store/intakeStore';
 import { SectionShell } from '../components/Intake/SectionShell';
 import { AgentPanel } from '../components/Intake/AgentPanel';
 import { MandateAndCapital } from '../components/Intake/Sections/MandateAndCapital';
 import { RiskMandate } from '../components/Intake/Sections/RiskMandate';
 import { PerformanceTargets } from '../components/Intake/Sections/PerformanceTargets';
-import type { AgentMessage } from '../types/intake';
+import { DynamicScreenBuilder } from '../components/Intake/DynamicScreenBuilder';
+import type { AgentMessage, FundamentalScreen } from '../types/intake';
 
 export function IntakePageV10() {
+  const [testScreens, setTestScreens] = useState<FundamentalScreen[]>([]);
+  
   const { 
     currentSection, 
-    setCurrentSection, 
     messages, 
     addMessage, 
     isThinking, 
@@ -72,7 +75,6 @@ export function IntakePageV10() {
             >
               <div className="space-y-8">
                 <MandateAndCapital />
-                
                 <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
                    <p className="text-sm text-on-surface/80 leading-relaxed">
                      Once all Tier 1 fields are filled, trigger validation to proceed.
@@ -99,7 +101,6 @@ export function IntakePageV10() {
             >
               <div className="space-y-8">
                 <RiskMandate />
-
                 <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
                    <p className="text-sm text-on-surface/80 leading-relaxed">
                      Risk parameters are Tier 1 constraints. They cannot be bypassed by the AI.
@@ -126,7 +127,6 @@ export function IntakePageV10() {
             >
               <div className="space-y-8">
                 <PerformanceTargets />
-
                 <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
                    <p className="text-sm text-on-surface/80 leading-relaxed">
                      Return targets are advisory. They calibrate the AI's signal selection aggressiveness.
@@ -137,6 +137,35 @@ export function IntakePageV10() {
                    >
                      Validate Section 03
                    </button>
+                </div>
+              </div>
+            </SectionShell>
+
+            {/* SECTION 4 (TEST) */}
+            <SectionShell
+              sectionNumber={4}
+              title="Universe & Asset Class"
+              description="Define your asset class focus, geographical boundaries, and fundamental screening rules."
+              locked={sections[4].locked}
+              validated={sections[4].validated}
+              onLock={() => lockSection(4)}
+              onUnlock={() => unlockSection(4)}
+            >
+              <div className="space-y-8">
+                <div className="space-y-4">
+                  <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
+                    Fundamental Screens
+                  </label>
+                  <DynamicScreenBuilder
+                    screens={testScreens}
+                    onChange={setTestScreens}
+                    availableCatalystTypes={[]} 
+                  />
+                </div>
+                <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
+                   <p className="text-sm text-on-surface/80 leading-relaxed">
+                     Universe filters are applied before any trade execution logic.
+                   </p>
                 </div>
               </div>
             </SectionShell>
