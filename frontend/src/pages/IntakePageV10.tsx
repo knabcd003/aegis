@@ -1,16 +1,13 @@
-import { useState } from 'react';
 import { useIntakeStore } from '../store/intakeStore';
 import { SectionShell } from '../components/Intake/SectionShell';
 import { AgentPanel } from '../components/Intake/AgentPanel';
 import { MandateAndCapital } from '../components/Intake/Sections/MandateAndCapital';
 import { RiskMandate } from '../components/Intake/Sections/RiskMandate';
 import { PerformanceTargets } from '../components/Intake/Sections/PerformanceTargets';
-import { DynamicScreenBuilder } from '../components/Intake/DynamicScreenBuilder';
-import type { AgentMessage, FundamentalScreen } from '../types/intake';
+import { UniverseMandate } from '../components/Intake/Sections/UniverseMandate';
+import type { AgentMessage } from '../types/intake';
 
 export function IntakePageV10() {
-  const [testScreens, setTestScreens] = useState<FundamentalScreen[]>([]);
-  
   const { 
     currentSection, 
     messages, 
@@ -20,7 +17,8 @@ export function IntakePageV10() {
     sections,
     lockSection,
     unlockSection,
-    setValidated
+    setValidated,
+    schema
   } = useIntakeStore();
 
   const handleSendMessage = (text: string) => {
@@ -46,6 +44,29 @@ export function IntakePageV10() {
       addMessage(agentMsg);
       setThinking(false);
     }, 1500);
+  };
+
+  // Validation Logic for Section 4
+  const canLockSection4 = () => {
+    const filters = schema.universe_mandate.tier_1_hard_filters;
+    const screens = schema.universe_mandate.fundamental_screens;
+    
+    if (filters.asset_classes_permitted.length === 0) return false;
+    if (filters.geographies_permitted.length === 0) return false;
+    if (filters.market_cap_min_usd === undefined) return false;
+    if (filters.min_avg_daily_volume_usd === undefined) return false;
+    
+    // Sector conflict check
+    const conflicts = filters.sectors_of_interest.filter((s: string) => filters.sectors_excluded.includes(s));
+    if (conflicts.length > 0) return false;
+
+    // Screens validation
+    if (screens.fundamental_screens_enabled) {
+      const incomplete = screens.screens.some((s: any) => !s.screen_type || !s.flexibility);
+      if (incomplete) return false;
+    }
+
+    return true;
   };
 
   return (
@@ -141,7 +162,7 @@ export function IntakePageV10() {
               </div>
             </SectionShell>
 
-            {/* SECTION 4 (TEST) */}
+            {/* SECTION 4 */}
             <SectionShell
               sectionNumber={4}
               title="Universe & Asset Class"
@@ -150,22 +171,20 @@ export function IntakePageV10() {
               validated={sections[4].validated}
               onLock={() => lockSection(4)}
               onUnlock={() => unlockSection(4)}
+              lockDisabled={!canLockSection4()}
             >
               <div className="space-y-8">
-                <div className="space-y-4">
-                  <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
-                    Fundamental Screens
-                  </label>
-                  <DynamicScreenBuilder
-                    screens={testScreens}
-                    onChange={setTestScreens}
-                    availableCatalystTypes={[]} 
-                  />
-                </div>
+                <UniverseMandate />
                 <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
                    <p className="text-sm text-on-surface/80 leading-relaxed">
                      Universe filters are applied before any trade execution logic.
                    </p>
+                   <button 
+                     onClick={() => setValidated(4, true)}
+                     className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all"
+                   >
+                     Validate Section 04
+                   </button>
                 </div>
               </div>
             </SectionShell>
