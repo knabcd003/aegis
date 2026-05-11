@@ -6,16 +6,16 @@ import { MandateAndCapital } from '../components/Intake/Sections/MandateAndCapit
 import { RiskMandate } from '../components/Intake/Sections/RiskMandate';
 import { PerformanceTargets } from '../components/Intake/Sections/PerformanceTargets';
 import { UniverseMandate } from '../components/Intake/Sections/UniverseMandate';
-import { CatalystCardGrid } from '../components/Intake/CatalystCardGrid';
-import { HorizonAllocationBuilder } from '../components/Intake/HorizonAllocationBuilder';
-import type { AgentMessage, CatalystTypeEntry, HorizonBucket } from '../types/intake';
+import { Section5_Strategy } from '../components/Intake/Sections/Section5_Strategy';
+import type { AgentMessage } from '../types/intake';
+
+const BIOTECH_CATALYSTS = [
+  'fda_pdufa_biotech',
+  'clinical_trial_readout_phase3',
+  'clinical_trial_readout_phase2'
+];
 
 export function IntakePageV10() {
-  const [testCatalysts, setTestCatalysts] = useState<CatalystTypeEntry[]>([]);
-  const [isCatalystValid, setIsCatalystValid] = useState(false);
-  const [testHorizons, setTestHorizons] = useState<HorizonBucket[]>([]);
-  const [isHorizonValid, setIsHorizonValid] = useState(false);
-
   const { 
     currentSection, 
     messages, 
@@ -69,6 +69,42 @@ export function IntakePageV10() {
     return true;
   };
 
+  const canLockSection5 = () => {
+    const strategy = schema.strategy_mandate;
+    const universe = schema.universe_mandate;
+
+    // 1. Catalyst complete
+    const catalystValid = strategy.catalyst_types.some(c => 
+      c.permitted && 
+      Object.values(c.risk_acknowledgments).every(v => v === true)
+    );
+    if (!catalystValid) return false;
+
+    // 2. Horizon 100%
+    const totalWeight = strategy.horizon_allocation.reduce((sum, b) => sum + (b.capital_weight || 0), 0);
+    if (Math.round(totalWeight * 100) !== 100) return false;
+
+    // 3. Blocking Conflicts
+    const activeBiotech = strategy.catalyst_types.filter(c => c.permitted && BIOTECH_CATALYSTS.includes(c.catalyst_type));
+    const sectorExclusions = universe.tier_1_hard_filters.sectors_excluded || [];
+    if (activeBiotech.length > 0 && (sectorExclusions.includes('healthcare') || sectorExclusions.includes('biotech'))) return false;
+
+    const screens = universe.fundamental_screens.screens || [];
+    const profitabilityConflict = activeBiotech.length > 0 && screens.some(s => 
+      s.screen_type === 'profitability_required' && (
+        s.applies_to_catalyst_types.includes('all') ||
+        s.applies_to_catalyst_types.some(t => BIOTECH_CATALYSTS.includes(t))
+      )
+    );
+    if (profitabilityConflict) return false;
+
+    // 4. Bucket labels
+    const hasIncompleteBucket = strategy.horizon_allocation.some(b => !b.label || !b.min_days || !b.max_days);
+    if (hasIncompleteBucket) return false;
+
+    return true;
+  };
+
   return (
     <div className="flex min-h-screen bg-surface">
       <div className="flex-1 pr-[380px]">
@@ -94,7 +130,7 @@ export function IntakePageV10() {
             >
               <div className="space-y-8">
                 <MandateAndCapital />
-                <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
+                <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3 text-right">
                    <button onClick={() => setValidated(1, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all">Validate Section 01</button>
                 </div>
               </div>
@@ -111,7 +147,7 @@ export function IntakePageV10() {
             >
               <div className="space-y-8">
                 <RiskMandate />
-                <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
+                <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3 text-right">
                    <button onClick={() => setValidated(2, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all">Validate Section 02</button>
                 </div>
               </div>
@@ -128,7 +164,7 @@ export function IntakePageV10() {
             >
               <div className="space-y-8">
                 <PerformanceTargets />
-                <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
+                <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3 text-right">
                    <button onClick={() => setValidated(3, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all">Validate Section 03</button>
                 </div>
               </div>
@@ -146,13 +182,12 @@ export function IntakePageV10() {
             >
               <div className="space-y-8">
                 <UniverseMandate />
-                <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
+                <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3 text-right">
                    <button onClick={() => setValidated(4, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all">Validate Section 04</button>
                 </div>
               </div>
             </SectionShell>
 
-            {/* SECTION 5 (TEST) */}
             <SectionShell
               sectionNumber={5}
               title="Strategy & Catalysts"
@@ -161,34 +196,17 @@ export function IntakePageV10() {
               validated={sections[5].validated}
               onLock={() => lockSection(5)}
               onUnlock={() => unlockSection(5)}
+              lockDisabled={!canLockSection5()}
             >
-              <div className="space-y-12">
-                <div className="space-y-4">
-                  <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
-                    Active Catalysts
-                  </label>
-                  <CatalystCardGrid
-                    value={testCatalysts}
-                    onChange={setTestCatalysts}
-                    onValidityChange={setIsCatalystValid}
-                  />
-                </div>
-
-                <div className="space-y-4 pt-10 border-t border-white/5">
-                  <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
-                    Capital Allocation by Horizon
-                  </label>
-                  <HorizonAllocationBuilder
-                    value={testHorizons}
-                    onChange={setTestHorizons}
-                    onValidityChange={setIsHorizonValid}
-                  />
-                </div>
-
-                <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3">
-                   <p className="text-sm text-on-surface/80 leading-relaxed font-mono">
-                     Strategy: {isCatalystValid ? "✓" : "✗"} | Horizon: {isHorizonValid ? "✓" : "✗"}
-                   </p>
+              <div className="space-y-8">
+                <Section5_Strategy />
+                <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3 text-right">
+                   <button 
+                     onClick={() => setValidated(5, true)} 
+                     className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all"
+                   >
+                     Validate Section 05
+                   </button>
                 </div>
               </div>
             </SectionShell>
