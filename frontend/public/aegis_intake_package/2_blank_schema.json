@@ -1,0 +1,608 @@
+{
+  "_schema_version": "v10.0",
+  "_design_basis": "aegis_intake_v10_complete_spec.md",
+  "_path_note": "Both intake paths (form-based: IntakePage.tsx, conversational: /intake/chat) produce this schema. The Builder cannot distinguish which path was used.",
+  "_for_llm": "Read aegis_intake_v10_complete_spec.md fully before populating any field. This schema feeds an autonomous AI trading pipeline. What you write here directly determines what strategies are built and deployed with real capital. Read mandate_priority_hierarchy before any decision requiring trade-offs. Read filing_notes LAST.",
+  "_builder_note": "Tier 1 fields are mathematical gates enforced by pipeline code. No AI agent overrides them. Tier 2 fields are investment policy context — read as a portfolio manager reads a client brief. Tier 2-Hard = Tier 2 fields marked 'immovable' in mandate_priority_hierarchy.preference_flexibility. These are inviolable within their pipeline stage (post-Tier-1-filtering) but are NOT Tier 1 filters — they apply at a different stage. Do not collapse them.",
+  "_tags": {},
+
+  "mandate_identification": {
+    "_tier": 1,
+    "_note": "Read before interpreting any other section. aegis_capital_as_pct_of_total_liquid_net_worth is the most important contextual field in this section — it determines whether downstream concentration limits are appropriate.",
+
+    "account_type": null,
+    "_account_type_options": ["individual_taxable","joint_taxable","traditional_ira","roth_ira","401k_solo","trust","corporate_taxable","sep_ira","other"],
+
+    "account_identifier": null,
+
+    "investor_sophistication": null,
+    "_investor_sophistication_options": ["retail_novice","retail_experienced","semi_professional","professional"],
+    "_investor_sophistication_note": "Set first. Gates conditional field complexity throughout the form. retail_novice = simplified field sets. professional = full field set, technical language.",
+
+    "mandate_role": null,
+    "_mandate_role_options": ["entire_liquid_portfolio","growth_sleeve","satellite_speculative","income_sleeve","other"],
+
+    "aegis_capital_as_pct_of_total_liquid_net_worth": null,
+
+    "total_liquid_net_worth_estimate_usd": null,
+
+    "existing_non_aegis_portfolio_description": null,
+
+    "portfolio_beta_existing": null,
+
+    "mandate_inception_reason": null,
+
+    "investment_experience": null,
+
+    "behavioral_history": null
+  },
+
+  "capital_structure": {
+    "_tier": 1,
+    "_note": "All Tier 1 fields enforced mechanically. existing_holdings is ticker list only — no quantity, no cost basis. Both max_single_position_pct and max_single_position_usd enforced simultaneously; the more restrictive applies.",
+
+    "investable_capital_usd": null,
+
+    "reserved_cash_pct": null,
+    "_reserved_cash_pct_default": 10,
+    "_reserved_cash_pct_note": "Minimum cash buffer never deployed. System never deploys more than (100 - reserved_cash_pct)% of capital.",
+
+    "max_deployed_pct": null,
+    "_max_deployed_pct_default": 80,
+    "_max_deployed_pct_note": "Maximum % of investable_capital in live positions simultaneously. Distinct from reserved_cash_pct — accounts for pending orders and unsettled trades.",
+
+    "leverage_permitted": false,
+
+    "max_leverage_ratio": null,
+    "_max_leverage_ratio_note": "Active only if leverage_permitted = true. Gross exposure / capital ceiling. Excluded from enforcement if leverage_permitted = false.",
+
+    "margin_account": false,
+
+    "options_permitted": false,
+
+    "short_selling_permitted": false,
+
+    "leverage_context": null,
+
+    "existing_holdings": [],
+    "_existing_holdings_type": "array of ticker strings only",
+    "_existing_holdings_note": "Tickers the user currently holds outside Aegis. Ticker list only — no quantity, no cost basis (those are portfolio management fields, not intake fields). Purpose: portfolio-level correlation awareness. If user holds 35% of net worth in Healthcare outside Aegis, Aegis's own sector concentration limits alone are insufficient context.",
+    "_existing_holdings_example": ["AAPL","MSFT","JNJ"],
+
+    "tickers_never_touch": [],
+    "_tickers_never_touch_note": "Absolute unconditional exclusions enforced before any other logic. No override permitted."
+  },
+
+  "risk_mandate": {
+
+    "tier_1_risk_constraints": {
+      "_tier": 1,
+      "_note": "The seven-field minimum risk set. Each addresses a distinct failure mode. All required.",
+
+      "max_portfolio_drawdown_pct": null,
+      "_max_portfolio_drawdown_pct_note": "THE foundational risk input. Builder derives portfolio volatility target via risk-constrained Kelly logic assuming conservative baseline Sharpe of 0.4-0.6 for pre-deployment strategies. Derivation documented in filing_notes.volatility_target_derivation and updated as live performance accumulates.",
+
+      "max_daily_loss_pct": null,
+      "_max_daily_loss_pct_note": "Daily circuit breaker. Reference point: portfolio value at market open for that trading day (starting-of-day NAV). If intraday P&L falls below (-1 * max_daily_loss_pct)% of starting-of-day NAV: halt all new position-building for the remainder of that day. Existing positions continue normal exit logic. Resets at next market open. Distinct from max_portfolio_drawdown_pct (cumulative) vs this (daily).",
+
+      "drawdown_breach_protocol": null,
+      "_drawdown_breach_protocol_options": ["pause_all_notify_user","reduce_position_sizes_50pct","manual_restart_required","reduce_and_notify"],
+      "_drawdown_breach_protocol_required": true,
+      "_drawdown_breach_protocol_note": "REQUIRED. Mandate cannot lock if null. Executed immediately when max_portfolio_drawdown_pct is hit.",
+
+      "max_single_position_pct": null,
+      "_max_single_position_pct_note": "Percentage ceiling per name. Enforced simultaneously with max_single_position_usd. The more restrictive (binding) limit applies.",
+
+      "max_single_position_usd": null,
+      "_max_single_position_usd_note": "Absolute dollar ceiling per name. Required alongside max_single_position_pct. Percentage alone is insufficient for large accounts: 5% of $2M in a $1M ADV stock = $100K position = 10% market impact, eroding the strategy edge. Binding rule: whichever of pct or usd is more restrictive applies.",
+
+      "max_sector_concentration_pct": null,
+      "_max_sector_concentration_pct_note": "Maximum capital weight in any single GICS sector simultaneously across all live positions. Post-catalyst strategies generate correlated sector signals during earnings seasons and FDA decision weeks.",
+
+      "max_concurrent_live_strategies": null,
+      "_max_concurrent_live_strategies_note": "Operational safeguard AND stress-scenario protection. Covariance matrix manages correlation under normal conditions. This field provides structural protection when correlations spike to ~1.0 during market stress — a scenario the covariance matrix systematically underestimates from historical data. NOT redundant with the covariance matrix: complementary.",
+
+      "max_position_as_pct_of_adv": null,
+      "_max_position_as_pct_of_adv_default": 3,
+      "_max_position_as_pct_of_adv_note": "Maximum position size as % of the asset's 20-day average daily volume. Prevents market impact from eroding theoretical edge. Empirically validated range: 1-5% of ADV. Default: 3%."
+    },
+
+    "tier_2_risk_context": {
+      "_tier": 2,
+      "_note": "Multi-dimensional. Do not reduce to a single label. Each sub-field drives a different calibration decision. regret_asymmetry has the single largest impact on exit rule design — weight it most heavily.",
+
+      "volatility_tolerance": null,
+      "gap_risk_tolerance": null,
+      "concentration_tolerance": null,
+      "tail_risk_tolerance": null,
+      "time_risk_tolerance": null,
+      "correlation_risk_context": null,
+
+      "regret_asymmetry": {
+        "type": null,
+        "_type_options": ["loss_regret_dominant","miss_regret_dominant","balanced"],
+        "_type_note": "HIGHEST IMPACT FIELD. loss_regret_dominant: enforce strict time-based exits; auto-liquidate at horizon midpoint percentage (magnitude-scaled). miss_regret_dominant: trailing volatility stops; full anomaly window. balanced: hybrid. See enforcement spec Part 7.1.",
+        "magnitude": null,
+        "_magnitude_options": ["mild","moderate","severe"],
+        "context": null
+      },
+
+      "loss_aversion_context": null,
+
+      "target_portfolio_beta": null,
+      "_target_portfolio_beta_note": "Target market beta for this mandate. 0 = market neutral. 1 = market-matching. Interacts with mandate_identification.portfolio_beta_existing to define what Aegis should add.",
+
+      "stress_scenario_constraints": [],
+      "_stress_scenario_schema": {"scenario_name": "string", "max_acceptable_loss_pct": "number"},
+      "_stress_scenario_example": [{"scenario_name": "covid_march_2020", "max_acceptable_loss_pct": 25}]
+    }
+  },
+
+  "return_mandate": {
+    "_tier": 2,
+    "_note": "ALL fields advisory. Returns are outputs, not constraints. target_annual_return_pct is ADVISORY ONLY — explicitly labeled as such in the UI. target_win_rate_pct is ELIMINATED from this schema — win rate is an output of edge distribution, not a tunable input. Removed from v9.",
+
+    "primary_objective": null,
+    "_primary_objective_options": ["capital_growth","income_generation","capital_preservation","beat_benchmark","absolute_return"],
+
+    "target_annual_return_pct": null,
+    "_target_annual_return_pct_note": "ADVISORY ONLY. Builder uses to calibrate signal selection aggressiveness. NOT a hard optimization target. Sharpe feasibility check at confirmation flags if implied_sharpe > 1.5 (warning) or > 2.0 (blocking).",
+
+    "target_annual_return_context": null,
+
+    "benchmark": null,
+    "_benchmark_options": ["sp500","nasdaq100","russell_2000","custom_ticker","absolute_return_hurdle"],
+
+    "benchmark_context": null,
+
+    "return_character": {
+      "smoothness_preference": null,
+      "_smoothness_options": ["smooth_and_consistent","lumpy_and_high"],
+      "_smoothness_ui_note": "UI must show plain-language descriptions: smooth_and_consistent = 'Smaller, more frequent gains. Lower month-to-month volatility. Fewer large wins.' lumpy_and_high = 'Larger, less frequent gains. Some months flat or negative. Wins are larger when they come.'",
+      "income_vs_appreciation": null,
+      "_income_vs_appreciation_options": ["income","appreciation","balanced"]
+    },
+
+    "target_monthly_income_usd": null,
+    "_target_monthly_income_note": "Active only if primary_objective = income_generation.",
+
+    "min_acceptable_sharpe": null,
+
+    "target_return_horizon_months": null,
+
+    "success_definition": null,
+
+    "failure_definition": null,
+
+    "expectation_calibration_acknowledged": false,
+    "_expectation_calibration_note": "Set to true only after user has reviewed and acknowledged filing_notes.realistic_performance_range at confirmation step. Mandate cannot lock if false. Timestamp stored in filing_notes.expectation_calibration_presented_at."
+  },
+
+  "universe_mandate": {
+
+    "tier_1_hard_filters": {
+      "_tier": 1,
+      "_note": "Applied as database query parameters before signal generation. Strict exclusions enforced before any other logic runs.",
+
+      "asset_classes_permitted": [],
+      "_asset_classes_options": ["us_equities","canadian_equities","etfs","equity_options","us_adrs"],
+
+      "geographies_permitted": [],
+      "_geographies_options": ["us","canada","uk","eu","asia_pacific"],
+
+      "market_cap_min_usd": null,
+
+      "market_cap_max_usd": null,
+      "_market_cap_max_note": "Optional. null = no upper cap.",
+
+      "min_avg_daily_volume_usd": null,
+      "_min_avg_daily_volume_note": "Hard liquidity gate. Recommended minimum: 1000000. Empirically validated threshold for baseline tradeability in momentum strategies.",
+
+      "price_min_usd": null,
+      "_price_min_note": "Anti-penny-stock gate. Market manipulation and spread quality gate — not a liquidity proxy. Recommended: 1.00. Sub-$1 stocks disproportionately subject to dynamics that contaminate momentum signals.",
+
+      "restrict_to_sectors_of_interest": false,
+      "_restrict_note": "If true: sectors_of_interest enforced as hard filter. If false: sectors_of_interest is a Tier 2 preference weight only.",
+
+      "sectors_of_interest": [],
+      "_sectors_of_interest_tier_note": "Tier 1 only if restrict_to_sectors_of_interest = true. Otherwise Tier 2.",
+
+      "sectors_excluded": [],
+
+      "specific_tickers_focus": [],
+
+      "specific_tickers_exclude": [],
+
+      "esg_hard_exclusions": [],
+      "_esg_options": ["weapons","tobacco","gambling","adult_content","cannabis","fossil_fuels","other"]
+    },
+
+    "tier_2_context": {
+      "_tier": 2,
+
+      "universe_description": null,
+
+      "sector_reasoning": null,
+      "_sector_reasoning_note": "WHY these sectors — the specific investment thesis, what the user knows about these markets. Informs sub-sector prioritization, adjacent sector signal handling, and regime-dependent weighting. Not decorative despite not changing the hard filter logic.",
+
+      "equity_character": null,
+      "liquidity_and_price_character": null,
+      "options_context": null,
+      "etf_preferences": null,
+      "asset_class_preferences": null
+    },
+
+    "fundamental_screens": {
+      "_tier": 2,
+      "_note": "Fundamental screens interact directly with catalyst_types. Profitability screens applied to biotech catalyst types produce an empty universe — 94%+ of PDUFA candidates are pre-revenue. Use applies_to_catalyst_types to restrict screens to compatible catalyst types. System generates compatibility_warnings at validate step.",
+
+      "fundamental_screens_enabled": false,
+      "_fundamental_screens_enabled_note": "If false, entire fundamental_screens sub-section is skipped in Builder logic.",
+
+      "screens": [],
+      "_screen_schema": {
+        "screen_type": null,
+        "_screen_type_options": ["profitability_required","revenue_positive","positive_fcf","max_debt_to_equity","max_pe_ratio","max_pb_ratio","min_revenue_growth_pct","min_market_cap_separate","custom"],
+        "threshold": null,
+        "flexibility": null,
+        "_flexibility_options": ["hard_filter","soft_preference","advisory_only"],
+        "applies_to_catalyst_types": [],
+        "_applies_to_note": "Options: 'all' | 'pead_only' | 'non_biotech_only' | array of specific catalyst_type enum values. Critical field — allows profitability screens to apply to PEAD while biotech catalyst types are unfiltered.",
+        "custom_description": null
+      },
+
+      "fundamental_screen_compatibility_warnings": [],
+      "_compatibility_warnings_note": "System-generated at section validation. Not user input. Lists conflicts between screens and selected catalyst types in strategy_mandate."
+    }
+  },
+
+  "strategy_mandate": {
+
+    "catalyst_types": [],
+    "_catalyst_types_tier": 1,
+    "_catalyst_types_note": "Most consequential user decision in this system. Must be explicit structured opt-in. Never inferred from prose.",
+    "_catalyst_type_schema": {
+      "catalyst_type": null,
+      "_catalyst_type_options": [
+        "pead_earnings_momentum",
+        "fda_pdufa_biotech",
+        "clinical_trial_readout_phase3",
+        "clinical_trial_readout_phase2",
+        "ma_announcement",
+        "index_reconstitution",
+        "management_change",
+        "secondary_offering",
+        "short_squeeze_setup",
+        "macro_data_surprise"
+      ],
+      "permitted": null,
+      "risk_acknowledgments": {
+        "iv_crush_risk_acknowledged": false,
+        "_iv_crush_required_for": ["fda_pdufa_biotech","clinical_trial_readout_phase3","clinical_trial_readout_phase2"],
+        "gap_risk_acknowledged": false,
+        "_gap_risk_required_for": "all overnight-hold catalyst types",
+        "binary_event_risk_acknowledged": false,
+        "_binary_event_required_for": ["fda_pdufa_biotech","clinical_trial_readout_phase3","clinical_trial_readout_phase2"],
+        "information_leakage_risk_acknowledged": false,
+        "_leakage_required_for": ["fda_pdufa_biotech","clinical_trial_readout_phase3"],
+        "pre_revenue_universe_acknowledged": false,
+        "_pre_revenue_required_for": ["fda_pdufa_biotech","clinical_trial_readout_phase3","clinical_trial_readout_phase2"]
+      }
+    },
+
+    "horizon_allocation": [],
+    "_horizon_allocation_tier": 1,
+    "_horizon_allocation_note": "Weights must sum to 1.0. Directly dictates Builder's selection of drift windows and exit trigger optimization.",
+    "_horizon_allocation_schema": {
+      "label": null,
+      "min_days": null,
+      "max_days": null,
+      "capital_weight": null
+    },
+
+    "strategy_types_excluded": [],
+    "_strategy_types_excluded_tier": 1,
+
+    "tier_2_strategy_context": {
+      "_tier": 2,
+
+      "regime_preferences": null,
+
+      "regime_universe_pairs": [],
+      "_regime_universe_pair_schema": {"regime": null, "universe": null, "strategy_type": null, "rationale": null},
+      "_regime_universe_pairs_note": "CREATION RULE: Generate ONLY from explicitly linked user preferences. Never infer. If user explicitly links a market condition to an asset class AND strategy type, create the pair. Otherwise leave empty.",
+
+      "entry_philosophy": null,
+      "_entry_philosophy_note": "High-signal for experienced users. Respect strong views here over system defaults.",
+
+      "exit_philosophy": null,
+      "_exit_philosophy_note": "Respect strong user views over system defaults. Interacts with regret_asymmetry.",
+
+      "holding_philosophy": null,
+
+      "complexity_preference": null,
+      "_complexity_options": ["simple_rules","moderate_complexity","maximum_sophistication"],
+
+      "signal_type_preferences": null
+    }
+  },
+
+  "operational_mandate": {
+
+    "tier_1_operational_constraints": {
+      "_tier": 1,
+      "_note": "available_windows is Tier 1 — hard operational filter on strategy types, not a soft preference. Promoted from v9 Tier 2. A strategy requiring execution outside these windows will never be acted on and must not be generated.",
+
+      "available_windows": [],
+      "_available_windows_schema": {
+        "days": [],
+        "_days_options": ["monday","tuesday","wednesday","thursday","friday"],
+        "start_time_et": null,
+        "end_time_et": null
+      },
+      "_available_windows_note": "Builder hard-excludes any strategy type requiring execution outside these windows.",
+
+      "pre_post_market_capable": false,
+
+      "max_execution_latency_minutes": null,
+      "_max_execution_latency_note": "At >= 120 minutes: strategies requiring tight entry windows are hard-excluded. Directly determines entry range width in generated strategies.",
+
+      "automation_level": null,
+      "_automation_level_options": ["semi_automated_confirmation_required","fully_manual"],
+      "_automation_level_note": "fully_automated is NOT a valid value until the pipeline supports execution without manual Signal Card confirmation. Do not add it to the enum until that capability exists. fully_manual requires wider entry windows and simpler signal structures."
+    },
+
+    "tier_2_execution_context": {
+      "_tier": 2,
+      "brokerage": null,
+      "order_type_philosophy": null,
+      "_order_type_options": ["market_orders_acceptable","limit_orders_preferred","stop_limit_preferred"],
+      "brokerage_constraints": null,
+      "execution_friction_context": null
+    }
+  },
+
+  "behavioral_profile": {
+    "_tier": 2,
+    "_note": "Every field in this section has a specific, parametric enforcement mechanism documented in aegis_intake_v10_complete_spec.md Part 7. Fields without defined enforcement are decorative — v10 does not have decorative fields. See spec for full algorithmic mappings.",
+
+    "regret_asymmetry": {
+      "type": null,
+      "_type_options": ["loss_regret_dominant","miss_regret_dominant","balanced"],
+      "_builder_enforcement": "See spec Part 7.1. loss_regret_dominant → time-based exit at horizon midpoint (magnitude-scaled). miss_regret_dominant → trailing volatility stop, full anomaly window. balanced → hybrid.",
+      "magnitude": null,
+      "_magnitude_options": ["mild","moderate","severe"],
+      "context": null
+    },
+
+    "disposition_effect_tendency": {
+      "self_assessed": null,
+      "_self_assessed_options": ["strong","moderate","mild","none"],
+      "_builder_enforcement": "See spec Part 7.2. strong → mandatory minimum holding period on profitable positions before profit-taking exit signals are honored. Calculated as round(bucket.min_days * 0.5).",
+      "context": null
+    },
+
+    "loss_aversion_coefficient": null,
+    "_loss_aversion_options": ["standard_2to1","elevated_3to1","severe_4plus_to_1"],
+    "_builder_enforcement": "See spec Part 7.3. Calibrates stop loss distance: standard = 2.0x ATR, elevated = 1.5x ATR + 15% position size reduction, severe = 1.0x ATR + 25% position size reduction + signal threshold elevation.",
+
+    "overtrading_tendency": {
+      "self_assessed": null,
+      "_self_assessed_options": ["frequent","occasional","rare","none"],
+      "_builder_enforcement": "See spec Part 7.4. frequent → signal threshold elevated to top 20th percentile + 48-hour minimum time between new position entries.",
+      "context": null
+    },
+
+    "behavioral_constraints_during_drawdown": null,
+    "_behavioral_constraints_note": "User commitment document — not system-enforced. System cannot verify compliance.",
+
+    "cooling_off_requirements": {
+      "trigger": null,
+      "_trigger_options": ["drawdown_breach","consecutive_loss_threshold","major_adverse_event"],
+      "cooling_off_days": null,
+      "required_actions_before_restart": null,
+      "_required_actions_note": "Human checklist — system cannot verify completion. User acknowledgment only before restart. New strategy generation and new position entries are blocked for cooling_off_days. Existing positions run normal exit logic.",
+      "_builder_enforcement": "See spec Part 7.5."
+    },
+
+    "signal_override_policy": {
+      "can_user_override": null,
+      "override_conditions": null,
+      "override_documentation_required": false,
+      "_note": "Ad hoc overrides are the most common source of systematic strategy performance degradation. Policy must be explicit at intake."
+    },
+
+    "max_consecutive_losses_review_trigger": null,
+    "_max_consecutive_losses_note": "GOVERNANCE TRIGGER ONLY. Reclassified from v9 hard constraint. Activates mandate review and cooling_off_requirements. Does NOT constrain the Builder's optimization engine or signal thresholds."
+  },
+
+  "tax_and_legal": {
+
+    "account_tax_status": null,
+    "_account_tax_status_tier": 1,
+    "_account_tax_status_options": ["fully_taxable","tax_deferred_traditional","tax_exempt_roth","partially_sheltered"],
+    "_account_tax_status_note": "Tier 1. Directly affects strategy design at the generation level.",
+
+    "estimated_marginal_tax_rate_pct": null,
+    "_estimated_marginal_tax_rate_note": "Used to weight after-tax returns in strategy evaluation and to flag strategies that are highly tax-inefficient at this user's tax rate.",
+
+    "short_term_gains_tolerance": {
+      "level": null,
+      "_level_options": ["strongly_prefer_to_avoid","prefer_to_avoid","neutral","acceptable","indifferent"],
+      "_contradiction_rules": "Rule 09: strongly_prefer_to_avoid + all horizon max_days < 365 = warning. Rule 10: estimated_marginal_tax_rate_pct >= 32 + any horizon max_days < 365 + level in [neutral,acceptable,indifferent] = advisory (proactive connection — user may not have connected these facts).",
+      "context": null
+    },
+
+    "long_term_holding_preference_pct": null,
+
+    "tax_loss_harvesting_directive": null,
+    "_tax_loss_options": ["active","passive_opportunistic","none"],
+
+    "wash_sale_awareness_required": false,
+
+    "specific_tax_lot_method": null,
+    "_tax_lot_options": ["fifo","lifo","hifo","specific_identification"],
+
+    "legal_trading_restrictions_disclosure": null,
+    "_legal_trading_restrictions_note": "DOCUMENTATION ONLY — NOT ENFORCED BY PIPELINE. Full compliance enforcement (blackout dates, restricted securities lists, pre-clearance) is out of scope for v10. This field captures disclosure for Builder awareness only. User-facing copy must state: 'This field is for disclosure purposes only. Aegis does not enforce blackout periods or restricted securities lists. You are responsible for compliance with your applicable trading policies.' Builder: set filing_notes.legal_restrictions_disclosure_flag = true if this field is populated.",
+
+    "regulatory_constraints": null,
+
+    "jurisdiction": null,
+    "_jurisdiction_options": ["us","canada","uk","eu_member","other"],
+
+    "erisa_applicable": false
+  },
+
+  "portfolio_scope_and_macro": {
+    "_tier": 2,
+
+    "ambition_description": null,
+    "diversification_intent": null,
+    "correlation_intent": null,
+    "market_beta_intent": null,
+    "pipeline_growth_intent": null,
+
+    "macro_views": [],
+    "_macro_view_schema": {
+      "view": null,
+      "conviction": null,
+      "_conviction_options": ["high","medium","low"],
+      "time_horizon_months": null,
+      "strategy_implication": null,
+      "_strategy_implication_note": "Builder-actionable language — use directly in strategy generation decisions."
+    },
+
+    "current_regime_beliefs": null,
+
+    "regime_adaptivity_intent": null,
+    "_regime_adaptivity_options": ["adaptive_to_regime","strategy_consistent_regardless_of_regime"],
+
+    "sectors_with_tailwinds": [],
+    "sectors_with_headwinds": []
+  },
+
+  "governance_and_review": {
+    "_tier": 2,
+    "_note": "New section in v10. Standard in institutional IPS documents. Absent from v9.",
+
+    "mandate_review_frequency": null,
+    "_review_frequency_options": ["monthly","quarterly","semi_annually","annually","event_driven_only"],
+
+    "review_trigger_conditions": {
+      "drawdown_pct_of_max_triggers_review": null,
+      "_drawdown_review_note": "Percentage of max_portfolio_drawdown_pct that triggers review — not the absolute drawdown value. Example: 75 means review triggers when cumulative drawdown reaches 75% of the max limit.",
+      "consecutive_losses_triggers_review": null,
+      "calendar_interval_months": null,
+      "regime_change_triggers_review": false,
+      "capital_change_pct_triggers_review": null,
+      "custom_trigger": null
+    },
+
+    "strategy_pause_conditions": {
+      "auto_pause_on_drawdown_breach": true,
+      "_auto_pause_note": "Links to risk_mandate.tier_1_risk_constraints.drawdown_breach_protocol.",
+      "auto_pause_on_market_circuit_breaker": false,
+      "manual_pause_conditions": null
+    },
+
+    "performance_reporting_frequency": null,
+    "_reporting_frequency_options": ["daily","weekly","monthly"],
+
+    "performance_attribution_framework": {
+      "by_catalyst_type": false,
+      "by_sector": false,
+      "by_strategy_type": false,
+      "by_holding_period": false,
+      "benchmark_for_attribution": null
+    },
+
+    "mandate_amendment_policy": null
+  },
+
+  "mandate_priority_hierarchy": {
+    "_tier": 2,
+    "_note": "Read before any decision requiring trade-offs between preferences. ordered_priorities ranking determines which preference yields when they conflict. immovable preferences are Tier 2-Hard — inviolable within their pipeline stage (post-Tier-1-filtering) but NOT collapsed into Tier 1 filters. Different pipeline stages.",
+
+    "ordered_priorities": [],
+    "_ordered_priority_schema": {
+      "rank": null,
+      "dimension": null,
+      "_dimension_options": ["capital_preservation","return_maximization","consistency","tax_efficiency","catalyst_type_adherence","sector_focus","execution_simplicity","income_generation"],
+      "_dimension_note": "v9 had universe_specificity and strategy_type_adherence. These are replaced in v10 by catalyst_type_adherence and sector_focus. Update drag-to-rank UI component accordingly.",
+      "rationale": null
+    },
+
+    "preference_flexibility": [],
+    "_preference_flexibility_schema": {
+      "preference": null,
+      "flexibility": null,
+      "_flexibility_options": ["immovable","strong","moderate","flexible"],
+      "_immovable_note": "Activates Tier 2-Hard classification for this preference. Builder treats as inviolable within the already-constructed universe. Example: 'no shorting biotech' = immovable → allows long biotech, blocks short biotech. This is NOT the same as sectors_excluded (Tier 1 hard filter that blocks all biotech). These apply at different pipeline stages and must not be collapsed.",
+      "rationale": null
+    },
+
+    "trade_off_philosophy": null,
+
+    "conflict_notes": []
+  },
+
+  "filing_notes": {
+    "_tier": 2,
+    "_note": "System-generated entirely. No user input. Produced by two-pass confirmation endpoint. Read LAST, after reading the full schema.",
+
+    "explicit_vs_inferred_summary": null,
+
+    "contradictions": [],
+    "_contradiction_schema": {
+      "field_a": null,
+      "field_b": null,
+      "description": null,
+      "severity": null,
+      "_severity_options": ["blocking","warning","advisory"],
+      "_severity_enforcement": "blocking: mandate cannot lock until resolved. warning: can proceed; user must acknowledge. advisory: surfaced for awareness only.",
+      "user_message": null
+    },
+
+    "expectation_corrections": [],
+    "_expectation_correction_schema": {
+      "field": null,
+      "user_stated": null,
+      "realistic_range": null,
+      "explanation": null
+    },
+
+    "sharpe_feasibility_check": {
+      "implied_sharpe_required": null,
+      "feasibility": null,
+      "_feasibility_options": ["achievable","difficult","implausible"],
+      "explanation": null
+    },
+
+    "volatility_target_derivation": {
+      "assumed_sharpe": null,
+      "_assumed_sharpe_note": "Conservative baseline Sharpe for pre-deployment strategies: 0.4-0.6. Updated as live performance data accumulates. Not a static derivation.",
+      "derived_volatility_pct": null,
+      "confidence": null,
+      "_confidence_options": ["pre_deployment_estimate","early_live_data","established_track_record"],
+      "note": null
+    },
+
+    "open_questions": [],
+    "_open_questions_note": "Material gaps where conservative defaults are applied. Each entry names the field and the default being applied.",
+
+    "realistic_performance_range": {
+      "return_pct": {"low": null, "mid": null, "high": null},
+      "sharpe": {"low": null, "mid": null, "high": null},
+      "max_drawdown_pct": {"low": null, "mid": null, "high": null},
+      "assumptions": null
+    },
+
+    "legal_restrictions_disclosure_flag": false,
+    "_legal_flag_note": "Set to true by Pass 1 if legal_trading_restrictions_disclosure is populated. Builder: flag this in strategy generation output when true.",
+
+    "conversation_quality_note": null,
+
+    "expectation_calibration_presented_at": null
+  }
+}

@@ -1,0 +1,631 @@
+{
+  "_schema_version": "v10.0",
+  "_example_note": "This is a complete example schema for a fictional user named Marcus Webb. It is referenced by aegis_llm_intake_v10.md as the canonical example of a correctly completed intake. Every field is populated as it would be after a real intake conversation.",
+  "_path_note": "Produced via LLM conversational intake path.",
+  "_tags": {
+    "mandate_identification.account_type": "[EXPLICIT]",
+    "mandate_identification.account_identifier": "[EXPLICIT]",
+    "mandate_identification.investor_sophistication": "[INFERRED]",
+    "mandate_identification.mandate_role": "[EXPLICIT]",
+    "mandate_identification.aegis_capital_as_pct_of_total_liquid_net_worth": "[EXPLICIT]",
+    "mandate_identification.total_liquid_net_worth_estimate_usd": "[EXPLICIT]",
+    "mandate_identification.existing_non_aegis_portfolio_description": "[EXPLICIT]",
+    "mandate_identification.portfolio_beta_existing": "[INFERRED]",
+    "mandate_identification.mandate_inception_reason": "[EXPLICIT]",
+    "mandate_identification.investment_experience": "[EXPLICIT]",
+    "mandate_identification.behavioral_history": "[EXPLICIT]",
+    "capital_structure.investable_capital_usd": "[EXPLICIT]",
+    "capital_structure.reserved_cash_pct": "[EXPLICIT]",
+    "capital_structure.max_deployed_pct": "[INFERRED]",
+    "capital_structure.leverage_permitted": "[EXPLICIT]",
+    "capital_structure.max_leverage_ratio": "[EXPLICIT]",
+    "capital_structure.margin_account": "[EXPLICIT]",
+    "capital_structure.options_permitted": "[EXPLICIT]",
+    "capital_structure.short_selling_permitted": "[EXPLICIT]",
+    "capital_structure.existing_holdings": "[EXPLICIT]",
+    "capital_structure.tickers_never_touch": "[EXPLICIT]",
+    "risk_mandate.tier_1_risk_constraints.max_portfolio_drawdown_pct": "[EXPLICIT]",
+    "risk_mandate.tier_1_risk_constraints.max_daily_loss_pct": "[EXPLICIT]",
+    "risk_mandate.tier_1_risk_constraints.drawdown_breach_protocol": "[EXPLICIT]",
+    "risk_mandate.tier_1_risk_constraints.max_single_position_pct": "[EXPLICIT]",
+    "risk_mandate.tier_1_risk_constraints.max_single_position_usd": "[EXPLICIT]",
+    "risk_mandate.tier_1_risk_constraints.max_sector_concentration_pct": "[EXPLICIT]",
+    "risk_mandate.tier_1_risk_constraints.max_concurrent_live_strategies": "[EXPLICIT]",
+    "risk_mandate.tier_1_risk_constraints.max_position_as_pct_of_adv": "[INFERRED]",
+    "risk_mandate.tier_2_risk_context.volatility_tolerance": "[EXPLICIT]",
+    "risk_mandate.tier_2_risk_context.gap_risk_tolerance": "[EXPLICIT]",
+    "risk_mandate.tier_2_risk_context.concentration_tolerance": "[EXPLICIT]",
+    "risk_mandate.tier_2_risk_context.tail_risk_tolerance": "[INFERRED]",
+    "risk_mandate.tier_2_risk_context.time_risk_tolerance": "[EXPLICIT]",
+    "risk_mandate.tier_2_risk_context.correlation_risk_context": "[INFERRED]",
+    "risk_mandate.tier_2_risk_context.regret_asymmetry.type": "[EXPLICIT]",
+    "risk_mandate.tier_2_risk_context.regret_asymmetry.magnitude": "[EXPLICIT]",
+    "risk_mandate.tier_2_risk_context.regret_asymmetry.context": "[EXPLICIT]",
+    "risk_mandate.tier_2_risk_context.loss_aversion_context": "[EXPLICIT]",
+    "risk_mandate.tier_2_risk_context.target_portfolio_beta": "[EXPLICIT]",
+    "return_mandate.primary_objective": "[EXPLICIT]",
+    "return_mandate.target_annual_return_pct": "[EXPLICIT]",
+    "return_mandate.target_annual_return_context": "[EXPLICIT]",
+    "return_mandate.benchmark": "[EXPLICIT]",
+    "return_mandate.benchmark_context": "[INFERRED]",
+    "return_mandate.return_character.smoothness_preference": "[EXPLICIT]",
+    "return_mandate.return_character.income_vs_appreciation": "[EXPLICIT]",
+    "return_mandate.min_acceptable_sharpe": "[EXPLICIT]",
+    "return_mandate.target_return_horizon_months": "[EXPLICIT]",
+    "return_mandate.success_definition": "[EXPLICIT]",
+    "return_mandate.failure_definition": "[EXPLICIT]",
+    "universe_mandate.tier_1_hard_filters.asset_classes_permitted": "[EXPLICIT]",
+    "universe_mandate.tier_1_hard_filters.geographies_permitted": "[EXPLICIT]",
+    "universe_mandate.tier_1_hard_filters.market_cap_min_usd": "[EXPLICIT]",
+    "universe_mandate.tier_1_hard_filters.min_avg_daily_volume_usd": "[EXPLICIT]",
+    "universe_mandate.tier_1_hard_filters.price_min_usd": "[INFERRED]",
+    "universe_mandate.tier_1_hard_filters.restrict_to_sectors_of_interest": "[EXPLICIT]",
+    "universe_mandate.tier_1_hard_filters.sectors_of_interest": "[EXPLICIT]",
+    "universe_mandate.tier_1_hard_filters.sectors_excluded": "[EXPLICIT]",
+    "universe_mandate.tier_2_context.universe_description": "[EXPLICIT]",
+    "universe_mandate.tier_2_context.sector_reasoning": "[EXPLICIT]",
+    "universe_mandate.tier_2_context.equity_character": "[INFERRED]",
+    "universe_mandate.fundamental_screens.fundamental_screens_enabled": "[EXPLICIT]",
+    "strategy_mandate.catalyst_types": "[EXPLICIT]",
+    "strategy_mandate.horizon_allocation": "[EXPLICIT]",
+    "strategy_mandate.tier_2_strategy_context.entry_philosophy": "[EXPLICIT]",
+    "strategy_mandate.tier_2_strategy_context.exit_philosophy": "[EXPLICIT]",
+    "strategy_mandate.tier_2_strategy_context.holding_philosophy": "[INFERRED]",
+    "strategy_mandate.tier_2_strategy_context.complexity_preference": "[EXPLICIT]",
+    "operational_mandate.tier_1_operational_constraints.available_windows": "[EXPLICIT]",
+    "operational_mandate.tier_1_operational_constraints.pre_post_market_capable": "[EXPLICIT]",
+    "operational_mandate.tier_1_operational_constraints.max_execution_latency_minutes": "[EXPLICIT]",
+    "operational_mandate.tier_1_operational_constraints.automation_level": "[EXPLICIT]",
+    "operational_mandate.tier_2_execution_context.brokerage": "[EXPLICIT]",
+    "operational_mandate.tier_2_execution_context.order_type_philosophy": "[EXPLICIT]",
+    "operational_mandate.tier_2_execution_context.brokerage_constraints": "[INFERRED]",
+    "behavioral_profile.regret_asymmetry.type": "[EXPLICIT]",
+    "behavioral_profile.regret_asymmetry.magnitude": "[EXPLICIT]",
+    "behavioral_profile.regret_asymmetry.context": "[EXPLICIT]",
+    "behavioral_profile.disposition_effect_tendency.self_assessed": "[EXPLICIT]",
+    "behavioral_profile.disposition_effect_tendency.context": "[EXPLICIT]",
+    "behavioral_profile.loss_aversion_coefficient": "[EXPLICIT]",
+    "behavioral_profile.overtrading_tendency.self_assessed": "[EXPLICIT]",
+    "behavioral_profile.overtrading_tendency.context": "[INFERRED]",
+    "behavioral_profile.behavioral_constraints_during_drawdown": "[EXPLICIT]",
+    "behavioral_profile.cooling_off_requirements.trigger": "[EXPLICIT]",
+    "behavioral_profile.cooling_off_requirements.cooling_off_days": "[EXPLICIT]",
+    "behavioral_profile.cooling_off_requirements.required_actions_before_restart": "[EXPLICIT]",
+    "behavioral_profile.signal_override_policy.can_user_override": "[EXPLICIT]",
+    "behavioral_profile.signal_override_policy.override_conditions": "[EXPLICIT]",
+    "behavioral_profile.signal_override_policy.override_documentation_required": "[EXPLICIT]",
+    "behavioral_profile.max_consecutive_losses_review_trigger": "[EXPLICIT]",
+    "tax_and_legal.account_tax_status": "[EXPLICIT]",
+    "tax_and_legal.estimated_marginal_tax_rate_pct": "[EXPLICIT]",
+    "tax_and_legal.short_term_gains_tolerance.level": "[EXPLICIT]",
+    "tax_and_legal.short_term_gains_tolerance.context": "[EXPLICIT]",
+    "tax_and_legal.tax_loss_harvesting_directive": "[EXPLICIT]",
+    "tax_and_legal.wash_sale_awareness_required": "[EXPLICIT]",
+    "tax_and_legal.specific_tax_lot_method": "[EXPLICIT]",
+    "tax_and_legal.jurisdiction": "[EXPLICIT]",
+    "portfolio_scope_and_macro.ambition_description": "[EXPLICIT]",
+    "portfolio_scope_and_macro.diversification_intent": "[EXPLICIT]",
+    "portfolio_scope_and_macro.correlation_intent": "[EXPLICIT]",
+    "portfolio_scope_and_macro.market_beta_intent": "[EXPLICIT]",
+    "portfolio_scope_and_macro.macro_views": "[EXPLICIT]",
+    "portfolio_scope_and_macro.current_regime_beliefs": "[EXPLICIT]",
+    "portfolio_scope_and_macro.regime_adaptivity_intent": "[EXPLICIT]",
+    "portfolio_scope_and_macro.sectors_with_tailwinds": "[EXPLICIT]",
+    "portfolio_scope_and_macro.sectors_with_headwinds": "[EXPLICIT]",
+    "governance_and_review.mandate_review_frequency": "[EXPLICIT]",
+    "governance_and_review.review_trigger_conditions": "[EXPLICIT]",
+    "governance_and_review.performance_reporting_frequency": "[EXPLICIT]",
+    "governance_and_review.performance_attribution_framework": "[EXPLICIT]",
+    "governance_and_review.mandate_amendment_policy": "[EXPLICIT]",
+    "mandate_priority_hierarchy.ordered_priorities": "[EXPLICIT]",
+    "mandate_priority_hierarchy.preference_flexibility": "[EXPLICIT]",
+    "mandate_priority_hierarchy.trade_off_philosophy": "[EXPLICIT]"
+  },
+
+  "mandate_identification": {
+    "account_type": "individual_taxable",
+    "account_identifier": "WEBB-001",
+    "investor_sophistication": "retail_experienced",
+    "mandate_role": "growth_sleeve",
+    "aegis_capital_as_pct_of_total_liquid_net_worth": 25,
+    "total_liquid_net_worth_estimate_usd": 800000,
+    "existing_non_aegis_portfolio_description": "The remainder of Marcus's portfolio is approximately $600,000 split between a Vanguard S&P 500 index fund (roughly $400K) and a bond ladder (roughly $200K). The index fund provides broad market beta around 1.0. The bond ladder is defensive. Marcus views Aegis as the active, higher-return component that his index funds cannot provide.",
+    "portfolio_beta_existing": 0.65,
+    "mandate_inception_reason": "Marcus has been managing his own stock picks for three years with mixed results. He believes systematic, event-driven strategies are more disciplined than his own discretionary approach and wants a rules-based system that removes emotional decision-making from his active trading.",
+    "investment_experience": "Marcus has traded individual stocks for 8 years. He is comfortable with technical analysis, understands basic options concepts (though has not traded them actively), and has studied momentum and earnings momentum strategies. He has experienced two significant drawdowns — a 22% loss in 2022 from concentration in growth tech, and a smaller 12% loss in 2020 from panic selling during COVID. He understands systematic strategies conceptually and is motivated to move away from discretionary trading.",
+    "behavioral_history": "Marcus's 2022 loss came from holding concentrated positions in high-multiple tech too long after the Fed pivot signals were clear. He describes himself as 'stubborn about thesis trades.' His 2020 COVID panic sell was the opposite — he sold at the bottom and missed the recovery. He recognizes he has both a disposition to hold losers (stubbornness) and a tendency toward panic exits in extreme markets. He has committed to systematic approaches specifically because he does not trust his own judgment under stress."
+  },
+
+  "capital_structure": {
+    "investable_capital_usd": 200000,
+    "reserved_cash_pct": 10,
+    "max_deployed_pct": 80,
+    "leverage_permitted": false,
+    "max_leverage_ratio": null,
+    "margin_account": true,
+    "options_permitted": false,
+    "short_selling_permitted": false,
+    "leverage_context": "Marcus is not comfortable with leverage. He understands margin is available on his account (TD Ameritrade margin account) but has chosen not to use it for Aegis. His reasoning: leverage amplifies the behavioral errors he's trying to eliminate.",
+    "existing_holdings": ["SPY", "BND", "AAPL"],
+    "tickers_never_touch": ["TSLA", "GME"]
+  },
+
+  "risk_mandate": {
+    "tier_1_risk_constraints": {
+      "max_portfolio_drawdown_pct": 18,
+      "max_daily_loss_pct": 3.5,
+      "drawdown_breach_protocol": "reduce_and_notify",
+      "max_single_position_pct": 8,
+      "max_single_position_usd": 18000,
+      "max_sector_concentration_pct": 30,
+      "max_concurrent_live_strategies": 6,
+      "max_position_as_pct_of_adv": 3
+    },
+    "tier_2_risk_context": {
+      "volatility_tolerance": "Marcus is comfortable with intraday volatility in individual positions but becomes anxious when he sees portfolio-level drawdown exceed 10% of his invested capital. He checks his portfolio once in the morning and once at close — he does not want to monitor intraday beyond those checkpoints. He describes his tolerance as 'moderate — I can stomach individual positions moving 5-8% in a day as long as the system has a plan, but if I see the total account down 15% I start losing sleep.'",
+      "gap_risk_tolerance": "Marcus understands gap risk theoretically and has experienced it — he held through two earnings gap-downs. He is willing to accept overnight gap risk for PEAD strategies but explicitly does not want to hold through binary biotech events overnight (FDA decisions). He wants the system to enter post-catalyst, not pre-catalyst, in all cases.",
+      "concentration_tolerance": "Marcus prefers having 4-6 positions over having 15-20 smaller ones. He wants to know what he owns. He is uncomfortable with hyper-diversification — if he's in 18 positions simultaneously he loses track of the logic behind each. His comfort zone is 4-8 concurrent positions.",
+      "tail_risk_tolerance": "Marcus has moderate tail risk tolerance. He is not seeking disaster-proof capital preservation — he understands systematic strategies have tail events. His 18% drawdown limit reflects a deliberate choice: he calculated that $36,000 loss (18% of $200K) is the maximum he could sustain without material lifestyle impact. Below that threshold, losses feel manageable. Above it, the psychological cost becomes too high.",
+      "time_risk_tolerance": "Marcus is patient with strategies in their early phases — he explicitly said he would give the system 12 months before drawing conclusions about performance. He would not panic-exit a strategy because of a 6-week drawdown as long as the system explained why. However, he does not want positions held beyond 63 days under any circumstances — 'after two months, I've lost the narrative.'",
+      "correlation_risk_context": "Marcus is aware that running multiple healthcare momentum trades simultaneously increases correlation risk. He is comfortable with the sector concentration limit of 30% as the governing constraint. He does not want a more complex correlation framework — he found the concept of tracking inter-strategy correlation 'confusing enough to make me not trust it.'",
+      "regret_asymmetry": {
+        "type": "loss_regret_dominant",
+        "magnitude": "moderate",
+        "context": "Marcus explicitly said: 'What kills me more than anything is holding a loser when I should have sold. Missing a winner stings, but I can live with it. Holding through a loss that I could have cut — that's what I lie awake thinking about. Every time I've held through a loss hoping it would recover, I've regretted it.' This maps clearly to loss_regret_dominant. His magnitude is moderate rather than severe because he acknowledged that overly tight stops have also cost him — he's been stopped out of positions that then recovered in his pre-systematic trading."
+      },
+      "loss_aversion_context": "Marcus's 2022 loss of 22% on his growth tech positions left a lasting impression. He describes the experience as 'feeling like I'd worked three years for nothing in eight months.' His risk limits in this mandate are set specifically to ensure he never experiences that magnitude of loss again. He framed his 18% drawdown limit as 'one notch better than my worst experience — if I hit that, something went very wrong and I need to stop.'",
+      "target_portfolio_beta": 0.7,
+      "stress_scenario_constraints": [
+        {"scenario_name": "covid_march_2020", "max_acceptable_loss_pct": 20},
+        {"scenario_name": "2022_fed_tightening_cycle", "max_acceptable_loss_pct": 18}
+      ]
+    }
+  },
+
+  "return_mandate": {
+    "primary_objective": "capital_growth",
+    "target_annual_return_pct": 18,
+    "target_annual_return_context": "Marcus's 18% target is based on wanting to meaningfully outperform his S&P index funds over a full cycle. He is not trying to get rich quickly — he described this as 'the system needs to justify its complexity compared to just buying more VOO.' He understands this is advisory and not guaranteed. He explicitly said he would not be disappointed if the system returned 12% in a low-signal year, but that below 8% consistently would prompt a review.",
+    "benchmark": "sp500",
+    "benchmark_context": "Marcus benchmarks against the S&P 500 because that is his alternative — his passive portfolio holds SPY. If Aegis cannot consistently beat SPY on a risk-adjusted basis over 3 years, he would reallocate back to index funds.",
+    "return_character": {
+      "smoothness_preference": "smooth_and_consistent",
+      "income_vs_appreciation": "appreciation"
+    },
+    "target_monthly_income_usd": null,
+    "min_acceptable_sharpe": 0.6,
+    "target_return_horizon_months": 24,
+    "success_definition": "The system has generated at least 15% annualized returns over 24 months on a realized basis, with no single drawdown exceeding 15% (well inside the 18% limit), and the equity curve looks smoother than my pre-systematic discretionary trading. The system should also have surfaced at least a few trades I would never have found on my own — proof that it's adding value beyond what I was already doing.",
+    "failure_definition": "Three scenarios would make me shut this down: (1) A realized drawdown exceeds 15% — not the 18% limit, but if I get to 15% I'll be evaluating whether the system is broken. (2) Annualized returns are below 8% after 18 months — at that point my index funds are beating it. (3) The system makes a trade I fundamentally cannot understand or explain — if it's opaque to me, I can't maintain conviction through a drawdown.",
+    "expectation_calibration_acknowledged": true
+  },
+
+  "universe_mandate": {
+    "tier_1_hard_filters": {
+      "asset_classes_permitted": ["us_equities", "etfs"],
+      "geographies_permitted": ["us"],
+      "market_cap_min_usd": 300000000,
+      "market_cap_max_usd": null,
+      "min_avg_daily_volume_usd": 1000000,
+      "price_min_usd": 2.00,
+      "restrict_to_sectors_of_interest": false,
+      "sectors_of_interest": ["healthcare", "technology", "consumer_discretionary"],
+      "sectors_excluded": ["utilities", "real_estate"],
+      "specific_tickers_focus": [],
+      "specific_tickers_exclude": [],
+      "esg_hard_exclusions": ["weapons", "tobacco"]
+    },
+    "tier_2_context": {
+      "universe_description": "Marcus wants to trade US equities and ETFs in the small-to-large cap range with a strong tilt toward healthcare and technology where he has the most background knowledge and conviction. He wants to avoid low-volatility defensive sectors (utilities, real estate) because he believes the drift anomaly is weaker there. He is comfortable with the full market cap range above $300M because he wants access to small-cap biotech momentum while also being able to trade large-cap earnings surprises.",
+      "sector_reasoning": "Healthcare is Marcus's primary sector interest because he worked in medical device sales for four years and has a strong intuitive feel for FDA cycle dynamics, competitive landscapes, and what clinical data actually means for a company. He believes he can contextualize signals that a purely quantitative system would treat as equivalent. Technology is his secondary interest — he trades tech earnings momentum and has had his best systematic-adjacent results there. Consumer discretionary is tertiary — he follows retail and e-commerce trends. He explicitly excluded utilities and real estate because 'there's nothing to trade — they move too slowly and the events aren't binary enough.'",
+      "equity_character": "Marcus prefers higher-beta, event-driven names over slow-moving defensive stocks. He is comfortable with low-float biotech names for FDA trades but wants the ADV filter to prevent illiquid micro-caps. His sweet spot is small-to-mid cap names ($300M-$5B) with identifiable catalysts, real clinical programs or product pipelines, and daily volume above $1M.",
+      "liquidity_and_price_character": "Marcus wants the price minimum set at $2 rather than the default $1 — he is more conservative about penny stock risk than the minimum floor. He is comfortable with $1M+ ADV as the floor and would not push for more liquidity than that given his $200K capital base.",
+      "options_context": null,
+      "etf_preferences": "ETFs are permitted but Marcus expects the system to use them primarily for index reconstitution plays and sector momentum trades rather than as primary vehicles. Individual equities are the preference.",
+      "asset_class_preferences": "US equities are the core. ETFs are secondary and opportunistic."
+    },
+    "fundamental_screens": {
+      "fundamental_screens_enabled": true,
+      "screens": [
+        {
+          "screen_type": "min_revenue_growth_pct",
+          "threshold": 10,
+          "flexibility": "soft_preference",
+          "applies_to_catalyst_types": ["pead_earnings_momentum"],
+          "custom_description": null
+        },
+        {
+          "screen_type": "max_debt_to_equity",
+          "threshold": 2.0,
+          "flexibility": "advisory_only",
+          "applies_to_catalyst_types": ["pead_earnings_momentum"],
+          "custom_description": null
+        }
+      ],
+      "fundamental_screen_compatibility_warnings": [
+        "All fundamental screens have been restricted to pead_earnings_momentum catalyst type. No screens apply to fda_pdufa_biotech or clinical_trial_readout catalyst types, which is correct given the pre-revenue nature of most PDUFA candidates."
+      ]
+    }
+  },
+
+  "strategy_mandate": {
+    "catalyst_types": [
+      {
+        "catalyst_type": "pead_earnings_momentum",
+        "permitted": true,
+        "risk_acknowledgments": {
+          "iv_crush_risk_acknowledged": false,
+          "gap_risk_acknowledged": true,
+          "binary_event_risk_acknowledged": false,
+          "information_leakage_risk_acknowledged": false,
+          "pre_revenue_universe_acknowledged": false
+        }
+      },
+      {
+        "catalyst_type": "fda_pdufa_biotech",
+        "permitted": true,
+        "risk_acknowledgments": {
+          "iv_crush_risk_acknowledged": true,
+          "gap_risk_acknowledged": true,
+          "binary_event_risk_acknowledged": true,
+          "information_leakage_risk_acknowledged": true,
+          "pre_revenue_universe_acknowledged": true
+        }
+      },
+      {
+        "catalyst_type": "clinical_trial_readout_phase3",
+        "permitted": false,
+        "risk_acknowledgments": {
+          "iv_crush_risk_acknowledged": false,
+          "gap_risk_acknowledged": false,
+          "binary_event_risk_acknowledged": false,
+          "information_leakage_risk_acknowledged": false,
+          "pre_revenue_universe_acknowledged": false
+        }
+      },
+      {
+        "catalyst_type": "clinical_trial_readout_phase2",
+        "permitted": false,
+        "risk_acknowledgments": {
+          "iv_crush_risk_acknowledged": false,
+          "gap_risk_acknowledged": false,
+          "binary_event_risk_acknowledged": false,
+          "information_leakage_risk_acknowledged": false,
+          "pre_revenue_universe_acknowledged": false
+        }
+      },
+      {
+        "catalyst_type": "ma_announcement",
+        "permitted": false,
+        "risk_acknowledgments": {
+          "iv_crush_risk_acknowledged": false,
+          "gap_risk_acknowledged": false,
+          "binary_event_risk_acknowledged": false,
+          "information_leakage_risk_acknowledged": false,
+          "pre_revenue_universe_acknowledged": false
+        }
+      },
+      {
+        "catalyst_type": "index_reconstitution",
+        "permitted": true,
+        "risk_acknowledgments": {
+          "iv_crush_risk_acknowledged": false,
+          "gap_risk_acknowledged": true,
+          "binary_event_risk_acknowledged": false,
+          "information_leakage_risk_acknowledged": false,
+          "pre_revenue_universe_acknowledged": false
+        }
+      },
+      {
+        "catalyst_type": "management_change",
+        "permitted": false,
+        "risk_acknowledgments": {
+          "iv_crush_risk_acknowledged": false,
+          "gap_risk_acknowledged": false,
+          "binary_event_risk_acknowledged": false,
+          "information_leakage_risk_acknowledged": false,
+          "pre_revenue_universe_acknowledged": false
+        }
+      },
+      {
+        "catalyst_type": "secondary_offering",
+        "permitted": false,
+        "risk_acknowledgments": {
+          "iv_crush_risk_acknowledged": false,
+          "gap_risk_acknowledged": false,
+          "binary_event_risk_acknowledged": false,
+          "information_leakage_risk_acknowledged": false,
+          "pre_revenue_universe_acknowledged": false
+        }
+      },
+      {
+        "catalyst_type": "short_squeeze_setup",
+        "permitted": false,
+        "risk_acknowledgments": {
+          "iv_crush_risk_acknowledged": false,
+          "gap_risk_acknowledged": false,
+          "binary_event_risk_acknowledged": false,
+          "information_leakage_risk_acknowledged": false,
+          "pre_revenue_universe_acknowledged": false
+        }
+      },
+      {
+        "catalyst_type": "macro_data_surprise",
+        "permitted": false,
+        "risk_acknowledgments": {
+          "iv_crush_risk_acknowledged": false,
+          "gap_risk_acknowledged": false,
+          "binary_event_risk_acknowledged": false,
+          "information_leakage_risk_acknowledged": false,
+          "pre_revenue_universe_acknowledged": false
+        }
+      }
+    ],
+
+    "horizon_allocation": [
+      {
+        "label": "Short Swing",
+        "min_days": 5,
+        "max_days": 21,
+        "capital_weight": 0.65
+      },
+      {
+        "label": "Intermediate Drift",
+        "min_days": 21,
+        "max_days": 63,
+        "capital_weight": 0.35
+      }
+    ],
+
+    "strategy_types_excluded": ["market_neutral", "intraday_scalping", "pairs_trading"],
+
+    "tier_2_strategy_context": {
+      "regime_preferences": "Marcus prefers the system to be most active in low-to-moderate VIX environments (VIX 12-22). In high-volatility regimes (VIX > 25), he would prefer the system to apply higher signal quality thresholds before entering new positions, as he believes the PEAD anomaly is weaker when market-wide uncertainty dominates idiosyncratic price action.",
+      "regime_universe_pairs": [
+        {
+          "regime": "Rising interest rate environment with defensive rotation",
+          "universe": "healthcare_biotechnology",
+          "strategy_type": "pead_earnings_momentum",
+          "rationale": "Marcus explicitly stated: 'When rates are rising and money is rotating out of growth, healthcare with positive earnings surprises tends to hold up better because it has defensive characteristics. I'd want the system to lean toward healthcare PEAD in that environment.' This is an explicit linkage of regime + universe + strategy type."
+        }
+      ],
+      "entry_philosophy": "Marcus wants the system to wait for volume confirmation before entering post-catalyst positions. He described his preference as: 'Don't be the first one in. Wait for the opening volatility to settle, see that volume is confirming the move, then enter. I'd rather miss the first 2% of a move and have higher confidence than get in immediately and get whipsawed.' He is comfortable with entries up to 48 hours post-catalyst for PEAD strategies.",
+      "exit_philosophy": "Marcus is strongly oriented toward loss-cutting over profit protection. He explicitly said: 'Cut losers fast, let winners run within the time window.' He prefers time-based exits at the horizon midpoint as a backstop combined with a trailing volatility stop for winners. He does not want fixed profit targets — 'if it's still moving, let it move.'",
+      "holding_philosophy": "Marcus will not hold positions beyond 63 days under any circumstances — this is a stated hard preference even though it is technically Tier 2. He says: 'After two months, whatever was driving the move has been priced in or it hasn't, and either way the catalyst narrative is stale.' He is flexible within the 5-63 day window but the 63-day outer limit feels immovable to him.",
+      "complexity_preference": "moderate_complexity",
+      "signal_type_preferences": "Marcus prefers strategies that combine fundamental catalyst signals (the actual event) with price and volume confirmation (technical). He is skeptical of purely price-based signals with no fundamental anchor: 'If there's no event behind it, I don't trust the signal.'"
+    }
+  },
+
+  "operational_mandate": {
+    "tier_1_operational_constraints": {
+      "available_windows": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+          "start_time_et": "09:30",
+          "end_time_et": "11:30"
+        },
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+          "start_time_et": "15:30",
+          "end_time_et": "16:00"
+        }
+      ],
+      "pre_post_market_capable": false,
+      "max_execution_latency_minutes": 30,
+      "automation_level": "semi_automated_confirmation_required"
+    },
+    "tier_2_execution_context": {
+      "brokerage": "TD Ameritrade (thinkorswim)",
+      "order_type_philosophy": "limit_orders_preferred",
+      "brokerage_constraints": "Marcus uses thinkorswim and is comfortable with all standard order types including conditional orders. No PDT issues — account is well above the $25K PDT threshold. No known API restrictions. He prefers limit orders over market orders because of slippage concerns in smaller-cap names.",
+      "execution_friction_context": "Marcus has a day job in B2B sales. He can reliably check signals and execute between 9:30-11:30 AM before his first client calls, and again in the last 30 minutes of the trading day. He occasionally travels for work (1-2 days per month) during which he may not be able to execute morning signals. He asked that strategies not depend on perfect every-day execution — 'it should be okay if I miss a day here and there.'"
+    }
+  },
+
+  "behavioral_profile": {
+    "regret_asymmetry": {
+      "type": "loss_regret_dominant",
+      "magnitude": "moderate",
+      "context": "Marcus's most painful trading memory is holding a 40% loser in a biotech name for six months hoping it would recover. It didn't. He has replayed that decision dozens of times. By contrast, he describes missing a 3x winner in 2021 as 'annoying but fine — there will be other opportunities.' His loss aversion is clearly dominant, but he recognizes from experience that stops that are too tight also cause pain — getting stopped out at -8% only to watch the stock recover to +15% happened to him twice in 2023. His moderate magnitude reflects this nuance."
+    },
+    "disposition_effect_tendency": {
+      "self_assessed": "moderate",
+      "context": "Marcus acknowledges that pre-systemically he sold winners too early when they hit round-number gains. He would exit at +20% 'to lock in the win' and frequently watched the stock continue another 30%. He has identified this as a pattern and is one reason he wants a rules-based system — to prevent himself from discretionarily exiting positions that are still in their momentum phase. He rates himself moderate rather than strong because he has improved this behavior over time with journaling."
+    },
+    "loss_aversion_coefficient": "elevated_3to1",
+    "overtrading_tendency": {
+      "self_assessed": "occasional",
+      "context": "Marcus describes himself as 'not a chronic overtrader but I have my moments — usually after a good run when I feel like I can do no wrong.' He is most prone to overtrading in bull markets following a winning streak. He explicitly asked for the system to apply some friction to prevent him from adding positions during periods when he is 'feeling invincible.'"
+    },
+    "behavioral_constraints_during_drawdown": "During drawdown periods I commit to: (1) Not adding new capital to losing positions — if a position is down, the system's exit logic handles it, I don't average down. (2) Not checking my account more than twice per day. (3) Not making any changes to the mandate configuration until the drawdown has recovered by at least 5 percentage points or I have waited 30 days, whichever comes first. (4) Not discussing open positions with friends or family whose reactions might influence my decisions.",
+    "cooling_off_requirements": {
+      "trigger": "drawdown_breach",
+      "cooling_off_days": 14,
+      "required_actions_before_restart": "Before restarting after a drawdown breach: (1) Read the full trade log for the preceding 60 days and identify the 3 largest losing trades. (2) Determine whether those losses were within the system's designed parameters or indicate a structural problem. (3) If structural problem: revise the mandate before restarting. If within parameters: document the conclusion and restart. (4) Wait minimum 14 days from the breach regardless."
+    },
+    "signal_override_policy": {
+      "can_user_override": true,
+      "override_conditions": "Marcus can reject a signal under two conditions only: (1) He has material non-public information about the company (making the trade illegal). (2) The signal is for a company he has personal or professional relationships that create conflicts. In all other cases — including simply disagreeing with the trade — he commits to accepting the signal. He explicitly said: 'If I'm overriding because I think I know better than the system, that defeats the entire purpose.'",
+      "override_documentation_required": true
+    },
+    "max_consecutive_losses_review_trigger": 7
+  },
+
+  "tax_and_legal": {
+    "account_tax_status": "fully_taxable",
+    "estimated_marginal_tax_rate_pct": 35,
+    "short_term_gains_tolerance": {
+      "level": "neutral",
+      "context": "Marcus understands that post-catalyst momentum strategies generate almost exclusively short-term gains given the 5-63 day holding periods. At his 35% marginal rate, this is a meaningful tax drag — he estimated after-tax returns would be approximately 65% of gross returns. He accepts this as the cost of the strategy type he wants and has not found a way to achieve equivalent returns with longer hold periods. He flagged this as something to revisit if the tax law changes."
+    },
+    "long_term_holding_preference_pct": 10,
+    "tax_loss_harvesting_directive": "passive_opportunistic",
+    "wash_sale_awareness_required": true,
+    "specific_tax_lot_method": "hifo",
+    "legal_trading_restrictions_disclosure": null,
+    "regulatory_constraints": null,
+    "jurisdiction": "us",
+    "erisa_applicable": false
+  },
+
+  "portfolio_scope_and_macro": {
+    "ambition_description": "Marcus wants a focused mandate — he would rather have 3-4 high-conviction strategy types working well than 10 mediocre ones. He is not trying to build a diversified multi-strategy fund; he wants a coherent, explainable system that specializes in post-catalyst momentum and does it very well. He is open to the system expanding over time if performance warrants it but starts narrow by design.",
+    "diversification_intent": "Within catalyst types, Marcus wants meaningful diversification across sectors and names. He does not want the system concentrated in one sector even if the signals are strongest there — the 30% sector concentration limit is his primary diversification tool. Across strategy types, he is comfortable being concentrated in post-catalyst momentum as a category.",
+    "correlation_intent": "Marcus wants the Aegis portfolio to have low correlation with his existing SPY holdings. His existing portfolio already has full market beta exposure through the index funds. Aegis should ideally generate returns with lower market correlation — he described wanting 'alpha, not more beta.' Target portfolio beta of 0.7 reflects this: meaningful market exposure but less than pure beta.",
+    "market_beta_intent": 0.7,
+    "pipeline_growth_intent": "Marcus plans to review performance at the 12-month mark. If returns are consistent with or above targets, he would consider adding $50,000-$75,000 to Aegis at that point. He would not add capital during a drawdown period. He views this as a 3-5 year capital commitment if performance is satisfactory.",
+    "macro_views": [
+      {
+        "view": "Interest rates will remain higher for longer than the market currently expects. The Fed is unlikely to cut aggressively in 2025 given persistent services inflation.",
+        "conviction": "high",
+        "time_horizon_months": 12,
+        "strategy_implication": "Prefer strategies in sectors less sensitive to rate changes. Healthcare and technology with strong earnings momentum should be prioritized. Avoid rate-sensitive consumer discretionary names with high debt loads."
+      },
+      {
+        "view": "The FDA is in an accelerated approval phase for oncology drugs — multiple PDUFA dates in the next 12 months represent significant post-catalyst opportunities.",
+        "conviction": "medium",
+        "time_horizon_months": 12,
+        "strategy_implication": "FDA PDUFA biotech strategies are particularly timely. Focus on oncology names with PDUFA dates rather than metabolic or rare disease where approval dynamics are less predictable."
+      }
+    ],
+    "current_regime_beliefs": "Marcus believes we are in a late-cycle, sector-rotation environment. Growth has had a strong run and there is increasing rotation into value and defensives. He expects more volatility in high-multiple tech names and sees the FDA approval cycle as a relative opportunity because it is idiosyncratic (uncorrelated with macro).",
+    "regime_adaptivity_intent": "adaptive_to_regime",
+    "sectors_with_tailwinds": ["healthcare", "technology", "industrials"],
+    "sectors_with_headwinds": ["consumer_discretionary", "real_estate", "utilities"]
+  },
+
+  "governance_and_review": {
+    "mandate_review_frequency": "quarterly",
+    "review_trigger_conditions": {
+      "drawdown_pct_of_max_triggers_review": 75,
+      "consecutive_losses_triggers_review": 7,
+      "calendar_interval_months": 3,
+      "regime_change_triggers_review": true,
+      "capital_change_pct_triggers_review": 40,
+      "custom_trigger": "If the FDA issues a major enforcement action that changes the PDUFA approval rate significantly (e.g., Complete Response Letters become materially more common), I want to review whether the biotech catalyst strategy remains viable."
+    },
+    "strategy_pause_conditions": {
+      "auto_pause_on_drawdown_breach": true,
+      "auto_pause_on_market_circuit_breaker": true,
+      "manual_pause_conditions": "I will manually pause new entries if a major geopolitical event occurs that I believe will dominate all idiosyncratic price action for more than a week (e.g., a major war escalation, global financial crisis). I will not pause for normal market volatility."
+    },
+    "performance_reporting_frequency": "weekly",
+    "performance_attribution_framework": {
+      "by_catalyst_type": true,
+      "by_sector": true,
+      "by_strategy_type": false,
+      "by_holding_period": true,
+      "benchmark_for_attribution": "SPY"
+    },
+    "mandate_amendment_policy": "I will formally review and potentially amend this mandate: (1) At every quarterly review. (2) If investable capital changes by more than 40% in either direction. (3) If I change brokers. (4) If tax law changes materially affect short-term capital gains rates. (5) If the system's live Sharpe ratio over a 12-month rolling period falls below 0.4, I will consider whether the mandate needs restructuring rather than just continuing as-is."
+  },
+
+  "mandate_priority_hierarchy": {
+    "ordered_priorities": [
+      {
+        "rank": 1,
+        "dimension": "capital_preservation",
+        "rationale": "Marcus's defining experience was his 2022 loss. Protecting capital is non-negotiable — not because he is risk-averse by nature, but because he has experienced what happens to his psychology when significant capital is impaired. He cannot perform well under large drawdowns and therefore capital preservation is the prerequisite for everything else working."
+      },
+      {
+        "rank": 2,
+        "dimension": "catalyst_type_adherence",
+        "rationale": "Marcus is building this system specifically for post-catalyst momentum strategies. If the system cannot generate sufficient signals in the permitted catalyst types, he would rather it hold cash than drift into strategy types he hasn't approved. He explicitly said: 'I'd rather have the system be idle than busy in the wrong way.'"
+      },
+      {
+        "rank": 3,
+        "dimension": "consistency",
+        "rationale": "Marcus values smooth, consistent returns over lumpy high returns. He is sensitive to long dry spells — not just drawdowns but periods of flat performance — because they erode his conviction in the system. He wants to see the system generating activity and wins regularly, even if they are smaller."
+      },
+      {
+        "rank": 4,
+        "dimension": "return_maximization",
+        "rationale": "Returns matter but are fourth in priority. Marcus is comfortable sacrificing some return for more consistency and better downside protection. He is not trying to maximize returns at any cost."
+      },
+      {
+        "rank": 5,
+        "dimension": "tax_efficiency",
+        "rationale": "Tax efficiency is a real concern at his 35% marginal rate but is clearly subordinate to the strategy working well. He would rather pay taxes on gains than optimize taxes on losses."
+      },
+      {
+        "rank": 6,
+        "dimension": "execution_simplicity",
+        "rationale": "Marcus wants strategies he can execute in his available windows and understand. Complexity that makes execution unreliable is worse than a simpler approach. But this is ranked below his core objectives because he is experienced enough to handle moderate complexity."
+      }
+    ],
+    "preference_flexibility": [
+      {
+        "preference": "Maximum 63-day holding period for any position",
+        "flexibility": "immovable",
+        "rationale": "Marcus stated this explicitly and emphatically. After 63 days, in his experience, the catalyst narrative is stale regardless of price action. This is not a default he will revisit. Builder must enforce this as a hard constraint within its scope — no position should be held beyond 63 trading days."
+      },
+      {
+        "preference": "No leverage",
+        "flexibility": "immovable",
+        "rationale": "Marcus has thought about this carefully and believes leverage introduces a failure mode (margin calls under stress) that is incompatible with his stated goal of eliminating emotional decision-making. Even if the system could theoretically use leverage profitably, the psychological cost during drawdowns is too high."
+      },
+      {
+        "preference": "No options",
+        "flexibility": "strong",
+        "rationale": "Options are currently off the table because Marcus has not traded them actively and does not want to learn options mechanics at the same time as implementing a systematic approach. He flagged this as something he might revisit in 12-18 months if the base system is performing well. Strong but not immovable — could change with a mandate amendment."
+      },
+      {
+        "preference": "Healthcare and technology sector focus",
+        "flexibility": "moderate",
+        "rationale": "Marcus's sector preferences are genuine but not absolute. If the system finds strong signals in other sectors where the catalyst is clear and the trade is well-structured, he is open to the system trading those opportunities — especially for PEAD where the anomaly applies across sectors."
+      }
+    ],
+    "trade_off_philosophy": "When the system has to choose, it should always err toward doing less with higher conviction rather than more with lower conviction. I would rather have 3 great trades than 12 mediocre ones. If the system has to choose between a high-conviction PEAD trade in a sector outside my stated preferences and a mediocre trade in healthcare, it should take the high-conviction trade. The catalyst quality and signal strength matter more than the sector label. When risk and return trade off directly, take the lower-return, lower-risk path — I am not trying to maximize return at all costs, I am trying to build something I can sustain for 5 years.",
+    "conflict_notes": [
+      "Marcus's stated primary objective (capital growth) and his top priority (capital preservation) are in slight tension. Resolved via his explicit trade_off_philosophy: in any direct conflict, capital preservation wins.",
+      "Marcus's desire for smooth and consistent returns combined with biotech PEAD exposure creates inherent tension — biotech strategies have more lumpy, asymmetric return distributions. Resolved by limiting biotech to FDA post-catalyst drift (not pre-catalyst bets) and applying conservative position sizing via the 8% single-position limit."
+    ]
+  },
+
+  "filing_notes": {
+    "explicit_vs_inferred_summary": "The vast majority of Tier 1 fields were populated from explicit user statements. Marcus was precise about his risk limits, capital amount, and catalyst preferences. Key inferences: investor_sophistication was assessed as retail_experienced from his demonstrated knowledge of systematic strategies, Sharpe ratios, and his trading history rather than a direct self-assessment. portfolio_beta_existing was inferred from his description of holding SPY and BND at roughly a 2:1 ratio. max_deployed_pct was inferred as 80% since he did not have a specific preference beyond the reserved_cash_pct of 10%. correlation_risk_context and tail_risk_tolerance were inferred from his broader risk narrative. equity_character was inferred from his stated universe preferences.",
+    "contradictions": [
+      {
+        "field_a": "tax_and_legal.short_term_gains_tolerance.level",
+        "field_b": "strategy_mandate.horizon_allocation",
+        "description": "Rule 10 (proactive tax rate advisory): Marcus's marginal tax rate is 35% and all horizon allocation buckets have max_days < 365. Every strategy will generate short-term capital gains taxed at ordinary income rates. At 35%, a 18% gross annual return becomes approximately 11.7% after tax.",
+        "severity": "advisory",
+        "user_message": "Advisory flag surfaced and acknowledged by Marcus. He stated: 'I know the tax hit is real and I'm okay with it. The net return still beats my index funds on an after-tax basis in most scenarios.' No action taken."
+      }
+    ],
+    "expectation_corrections": [
+      {
+        "field": "return_mandate.target_annual_return_pct",
+        "user_stated": "18%",
+        "realistic_range": "10-18% gross, 6.5-11.7% after-tax at 35% marginal rate",
+        "explanation": "18% gross is achievable in high-signal environments but represents the upper bound of realistic out-of-sample performance for a well-configured post-catalyst system. The mid-case is closer to 13-15% gross. Marcus acknowledged this and confirmed his 18% target is a goal, not an expectation."
+      }
+    ],
+    "sharpe_feasibility_check": {
+      "implied_sharpe_required": 0.80,
+      "feasibility": "achievable",
+      "explanation": "Implied Sharpe = 18% / (18% × 1.5) = 0.80. This is within the achievable range for well-configured post-catalyst momentum strategies (realistic range: 0.4-1.0 out-of-sample). No adjustment required. Note that the after-tax implied Sharpe is approximately 0.52, which is more conservative and well within achievable bounds."
+    },
+    "volatility_target_derivation": {
+      "assumed_sharpe": 0.5,
+      "derived_volatility_pct": 14.4,
+      "confidence": "pre_deployment_estimate",
+      "note": "Derived using: max_drawdown / (2.5 × sqrt(max_horizon_days / 252)) = 18% / (2.5 × sqrt(63/252)) = 18% / (2.5 × 0.5) = 14.4% annualized volatility target. This assumes Sharpe = 0.5 as a conservative pre-deployment baseline. Will be updated after 90 days of live performance data."
+    },
+    "open_questions": [
+      "max_deployed_pct was set to 80% by default — Marcus did not have a specific preference. Review at first quarterly check.",
+      "max_position_as_pct_of_adv was set to 3% by default (the conservative standard). Marcus did not override this. His capital size ($200K) and typical position size (up to $18K) means position sizes will generally be well within the 3% ADV threshold for stocks with $1M+ ADV.",
+      "Marcus mentioned potentially adding options after 12-18 months. This will require a mandate amendment. Flag for quarterly review."
+    ],
+    "realistic_performance_range": {
+      "return_pct": {"low": 8, "mid": 14, "high": 20},
+      "sharpe": {"low": 0.4, "mid": 0.65, "high": 1.0},
+      "max_drawdown_pct": {"low": 8, "mid": 14, "high": 18},
+      "assumptions": "Low case: low-signal environment, elevated VIX reducing PEAD anomaly strength, one adverse FDA binary event near position limit. Mid case: typical signal frequency for PEAD + FDA post-catalyst strategies with 6 concurrent positions maximum. High case: high-signal environment, multiple strong PEAD trades in healthcare and tech, favorable FDA approval environment. All cases assume no leverage, options not used, 5-63 day holding periods. After-tax returns at 35% marginal rate are approximately 65% of gross figures shown."
+    },
+    "legal_restrictions_disclosure_flag": false,
+    "conversation_quality_note": "High quality intake. Marcus was specific, consistent, and demonstrated genuine understanding of the strategy types and their risk profiles. He resolved contradictions cleanly when surfaced. His behavioral history is unusually specific and well-articulated, which increases confidence in the behavioral field calibration. The main area of inferential uncertainty is investor_sophistication — he was assessed as retail_experienced but showed flashes of semi_professional depth in his catalyst analysis. Builder may consider weighting signal quality thresholds toward the higher end of the retail_experienced range.",
+    "expectation_calibration_presented_at": "2025-03-15T14:32:00Z"
+  }
+}

@@ -20,7 +20,7 @@ export function LLMIntakePage() {
     fetch(`/aegis_intake_package/${selectedFile}`)
       .then(res => res.text())
       .then(text => setFileContent(text))
-      .catch(err => setFileContent('Error loading file.'));
+      .catch(() => setFileContent('Error loading file.'));
   }, [selectedFile]);
 
   const renderContent = () => {

@@ -1,0 +1,170 @@
+import { useIntakeStore } from '../../../store/intakeStore';
+import { SegmentedControl } from '../SegmentedControl';
+import { NumberInput } from '../NumberInput';
+import { Stepper } from '../Stepper';
+
+export function PerformanceTargets() {
+  const schema = useIntakeStore((state) => state.schema);
+  const updateField = useIntakeStore((state) => state.updateField);
+
+  const returnMandate = schema.return_mandate;
+  const investorSophistication = schema.mandate_identification.investor_sophistication;
+
+  return (
+    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* 3.1 PRIMARY OBJECTIVE */}
+      <div className="space-y-4">
+        <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
+          Primary Objective
+        </label>
+        <SegmentedControl
+          value={returnMandate.primary_objective}
+          onChange={(val) => updateField('return_mandate.primary_objective', val)}
+          options={[
+            { value: 'capital_growth', label: 'Capital Growth' },
+            { value: 'income_generation', label: 'Income Generation' },
+            { value: 'capital_preservation', label: 'Capital Preservation' },
+            { value: 'beat_benchmark', label: 'Beat Benchmark' },
+            { value: 'absolute_return', label: 'Absolute Return' }
+          ]}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-10">
+        {/* 3.2 TARGET ANNUAL RETURN */}
+        <NumberInput
+          label="Target Annual Return"
+          value={returnMandate.target_annual_return_pct}
+          onChange={(val) => updateField('return_mandate.target_annual_return_pct', val)}
+          suffix="%"
+          subtext="Advisory only — not a guarantee. This calibrates the system's aggressiveness."
+        />
+
+        {/* 3.3 BENCHMARK */}
+        <div className="space-y-3">
+          <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
+            Benchmark
+          </label>
+          <select
+            value={returnMandate.benchmark || ''}
+            onChange={(e) => updateField('return_mandate.benchmark', e.target.value)}
+            className="w-full bg-surface-container/50 border border-white/5 rounded-xl px-4 py-3.5 text-on-surface outline-none focus:border-secondary/30 transition-all appearance-none cursor-pointer"
+          >
+            <option value="" disabled>Select benchmark...</option>
+            <option value="sp500">S&P 500</option>
+            <option value="nasdaq100">Nasdaq 100</option>
+            <option value="russell_2000">Russell 2000</option>
+            <option value="absolute_return_hurdle">Absolute Return</option>
+            <option value="custom_ticker">Custom</option>
+          </select>
+        </div>
+      </div>
+
+      {/* 3.4 RETURN CHARACTER */}
+      <div className="pt-10 border-t border-white/5 space-y-10">
+        <div className="space-y-4">
+          <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
+            Smoothness Preference
+          </label>
+          <SegmentedControl
+            value={returnMandate.return_character.smoothness_preference}
+            onChange={(val) => updateField('return_mandate.return_character.smoothness_preference', val)}
+            options={[
+              { 
+                value: 'smooth_and_consistent', 
+                label: 'Smooth & Consistent', 
+                description: 'Smaller, more frequent gains. Lower month-to-month volatility.' 
+              },
+              { 
+                value: 'lumpy_and_high', 
+                label: 'Lumpy & High', 
+                description: 'Larger, less frequent gains. Some months flat or negative.' 
+              }
+            ]}
+          />
+        </div>
+
+        <div className="space-y-4">
+          <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
+            Allocation Priority
+          </label>
+          <SegmentedControl
+            value={returnMandate.return_character.income_vs_appreciation}
+            onChange={(val) => updateField('return_mandate.return_character.income_vs_appreciation', val)}
+            options={[
+              { value: 'income', label: 'Income' },
+              { value: 'appreciation', label: 'Appreciation' },
+              { value: 'balanced', label: 'Balanced' }
+            ]}
+          />
+        </div>
+      </div>
+
+      {/* 3.5 CONDITIONAL FIELDS */}
+      <div className="grid grid-cols-2 gap-10">
+        {returnMandate.primary_objective === 'income_generation' && (
+          <NumberInput
+            label="Target Monthly Income (USD)"
+            value={returnMandate.target_monthly_income_usd}
+            onChange={(val) => updateField('return_mandate.target_monthly_income_usd', val)}
+            prefix="$"
+            subtext="Target cash distribution generated by the mandate."
+          />
+        )}
+
+        {(investorSophistication === 'semi_professional' || investorSophistication === 'professional') && (
+          <NumberInput
+            label="Min Acceptable Sharpe"
+            value={returnMandate.min_acceptable_sharpe}
+            onChange={(val) => updateField('return_mandate.min_acceptable_sharpe', val)}
+            step={0.1}
+            min={0.1}
+            max={3.0}
+            subtext="Hard filter on strategy selection based on risk-adjusted returns."
+          />
+        )}
+      </div>
+
+      {/* 3.6 RETURN HORIZON */}
+      <div className="pt-10 border-t border-white/5">
+        <Stepper
+          label="Target Return Horizon"
+          min={3}
+          max={60}
+          step={1}
+          suffix=" Months"
+          value={returnMandate.target_return_horizon_months}
+          onChange={(val) => updateField('return_mandate.target_return_horizon_months', val)}
+        />
+      </div>
+
+      {/* 3.7 FEASIBILITY WARNING (SHARPE STUB) */}
+      {schema.filing_notes.sharpe_feasibility_check?.feasibility !== 'achievable' && (
+        <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-3 animate-in fade-in zoom-in duration-300">
+          <span className="material-symbols-outlined text-amber-500 mt-0.5">warning</span>
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-amber-500 uppercase tracking-wider">
+              Feasibility Warning: {schema.filing_notes.sharpe_feasibility_check?.feasibility}
+            </p>
+            <p className="text-xs text-amber-500/80 leading-relaxed">
+              {schema.filing_notes.sharpe_feasibility_check?.explanation}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* 3.8 DETAIL BOX */}
+      <div className="space-y-3">
+        <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
+          Success & Failure Definition
+        </label>
+        <textarea
+          value={returnMandate.success_definition || ''}
+          onChange={(e) => updateField('return_mandate.success_definition', e.target.value)}
+          placeholder="What does success look like for this system? And what would make you pull the plug..."
+          className="w-full bg-surface-container/30 border border-white/5 rounded-xl px-4 py-3 text-sm text-on-surface placeholder-[#8e8e88]/30 min-h-[120px] outline-none focus:border-secondary/30 transition-all"
+        />
+      </div>
+    </div>
+  );
+}
