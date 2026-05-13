@@ -34,7 +34,7 @@ export function SegmentedControl({
         disabled && "opacity-50 pointer-events-none grayscale"
       )}
     >
-      <div className="flex items-stretch gap-1 w-full">
+      <div className="flex items-stretch gap-1 w-full flex-wrap">
         {options.map((option) => {
           const isSelected = value === option.value;
           
@@ -45,7 +45,7 @@ export function SegmentedControl({
               disabled={disabled}
               onClick={() => onChange(option.value)}
               className={cn(
-                "flex-1 min-w-[120px] px-4 py-2.5 rounded-lg transition-all duration-300 flex flex-col items-center justify-center gap-0.5 relative group",
+                "flex-1 min-w-[80px] px-3 py-2.5 rounded-lg transition-all duration-300 flex flex-col items-center justify-center gap-0.5 relative group",
                 isSelected 
                   ? "bg-secondary-fixed-dim text-on-secondary-fixed shadow-lg shadow-secondary/10 z-10" 
                   : "text-[#8e8e88] hover:text-on-surface hover:bg-white/5"

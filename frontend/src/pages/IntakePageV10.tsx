@@ -9,6 +9,7 @@ import { UniverseMandate } from '../components/Intake/Sections/UniverseMandate';
 import { Section5_Strategy } from '../components/Intake/Sections/Section5_Strategy';
 import { Section6_Operations } from '../components/Intake/Sections/Section6_Operations';
 import { Section7_Behavioral } from '../components/Intake/Sections/Section7_Behavioral';
+import { Section8_Tax } from '../components/Intake/Sections/Section8_Tax';
 import type { AgentMessage } from '../types/intake';
 
 const BIOTECH_CATALYSTS = [
@@ -101,6 +102,10 @@ export function IntakePageV10() {
     const profile = schema.behavioral_profile;
     if ((profile.cooling_off_requirements.trigger?.length || 0) > 0 && !profile.cooling_off_requirements.cooling_off_days) return false;
     return true;
+  };
+
+  const canLockSection8 = () => {
+    return !!schema.tax_and_legal.account_tax_status;
   };
 
   return (
@@ -236,6 +241,24 @@ export function IntakePageV10() {
                 <Section7_Behavioral />
                 <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3 text-right">
                    <button onClick={() => setValidated(7, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all">Validate Section 07</button>
+                </div>
+              </div>
+            </SectionShell>
+
+            <SectionShell
+              sectionNumber={8}
+              title="Tax & Legal"
+              description="Define your account's tax status, marginal rates, and any legal trading restrictions."
+              locked={sections[8].locked}
+              validated={sections[8].validated}
+              onLock={() => lockSection(8)}
+              onUnlock={() => unlockSection(8)}
+              lockDisabled={!canLockSection8()}
+            >
+              <div className="space-y-8">
+                <Section8_Tax />
+                <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3 text-right">
+                   <button onClick={() => setValidated(8, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all">Validate Section 08</button>
                 </div>
               </div>
             </SectionShell>
