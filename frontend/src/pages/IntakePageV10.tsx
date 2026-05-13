@@ -10,6 +10,7 @@ import { Section5_Strategy } from '../components/Intake/Sections/Section5_Strate
 import { Section6_Operations } from '../components/Intake/Sections/Section6_Operations';
 import { Section7_Behavioral } from '../components/Intake/Sections/Section7_Behavioral';
 import { Section8_Tax } from '../components/Intake/Sections/Section8_Tax';
+import { Section9_Macro } from '../components/Intake/Sections/Section9_Macro';
 import type { AgentMessage } from '../types/intake';
 
 const BIOTECH_CATALYSTS = [
@@ -106,6 +107,10 @@ export function IntakePageV10() {
 
   const canLockSection8 = () => {
     return !!schema.tax_and_legal.account_tax_status;
+  };
+
+  const canLockSection9 = () => {
+    return true; // Section 9 has no hard required fields
   };
 
   return (
@@ -259,6 +264,24 @@ export function IntakePageV10() {
                 <Section8_Tax />
                 <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3 text-right">
                    <button onClick={() => setValidated(8, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all">Validate Section 08</button>
+                </div>
+              </div>
+            </SectionShell>
+
+            <SectionShell
+              sectionNumber={9}
+              title="Portfolio Scope & Macro"
+              description="Establish your target market beta, regime adaptivity, and current sector sentiment."
+              locked={sections[9].locked}
+              validated={sections[9].validated}
+              onLock={() => lockSection(9)}
+              onUnlock={() => unlockSection(9)}
+              lockDisabled={!canLockSection9()}
+            >
+              <div className="space-y-8">
+                <Section9_Macro />
+                <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3 text-right">
+                   <button onClick={() => setValidated(9, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all">Validate Section 09</button>
                 </div>
               </div>
             </SectionShell>
