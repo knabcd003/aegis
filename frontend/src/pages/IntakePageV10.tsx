@@ -11,6 +11,7 @@ import { Section6_Operations } from '../components/Intake/Sections/Section6_Oper
 import { Section7_Behavioral } from '../components/Intake/Sections/Section7_Behavioral';
 import { Section8_Tax } from '../components/Intake/Sections/Section8_Tax';
 import { Section9_Macro } from '../components/Intake/Sections/Section9_Macro';
+import { Section10_Governance } from '../components/Intake/Sections/Section10_Governance';
 import type { AgentMessage } from '../types/intake';
 
 const BIOTECH_CATALYSTS = [
@@ -110,7 +111,15 @@ export function IntakePageV10() {
   };
 
   const canLockSection9 = () => {
-    return true; // Section 9 has no hard required fields
+    return true; 
+  };
+
+  const canLockSection10 = () => {
+    const gov = schema.governance_and_review;
+    if (!gov) return false;
+    if (!gov.mandate_review_frequency) return false;
+    if (!gov.performance_reporting_frequency) return false;
+    return true;
   };
 
   return (
@@ -282,6 +291,24 @@ export function IntakePageV10() {
                 <Section9_Macro />
                 <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3 text-right">
                    <button onClick={() => setValidated(9, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all">Validate Section 09</button>
+                </div>
+              </div>
+            </SectionShell>
+
+            <SectionShell
+              sectionNumber={10}
+              title="Governance & Attestation"
+              description="Finalize your mandate priorities and attest to your compliance awareness."
+              locked={sections[10].locked}
+              validated={sections[10].validated}
+              onLock={() => lockSection(10)}
+              onUnlock={() => unlockSection(10)}
+              lockDisabled={!canLockSection10()}
+            >
+              <div className="space-y-8">
+                <Section10_Governance />
+                <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-xl space-y-3 text-right">
+                   <button onClick={() => setValidated(10, true)} className="px-4 py-2 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest rounded hover:bg-secondary/20 transition-all">Validate Section 10</button>
                 </div>
               </div>
             </SectionShell>

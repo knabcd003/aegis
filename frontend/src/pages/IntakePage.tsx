@@ -10,7 +10,6 @@ import {
   useSensor,
   useSensors
 } from '@dnd-kit/core';
-import type { DragEndEvent } from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
@@ -319,7 +318,7 @@ export function IntakePage() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = (event: any) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
       setS7Priorities((items) => {

@@ -16,6 +16,7 @@ interface StepperProps {
   step?: number;
   onChange: (value: number) => void;
   suffix?: string;
+  helper?: string;
   disabled?: boolean;
 }
 
@@ -27,6 +28,7 @@ export function Stepper({
   step = 1,
   onChange,
   suffix = '',
+  helper,
   disabled = false,
 }: StepperProps) {
   const displayValue = value ?? min;
@@ -70,6 +72,12 @@ export function Stepper({
           </button>
         </div>
       </div>
+
+      {helper && (
+        <p className="text-[0.6875rem] text-[#8e8e88]/60 leading-relaxed italic">
+          {helper}
+        </p>
+      )}
     </div>
   );
 }

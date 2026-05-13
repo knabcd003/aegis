@@ -1,3 +1,15 @@
+export interface PriorityEntry {
+  rank: number;
+  dimension: string;
+  rationale: string | null;
+}
+
+export interface FlexibilityEntry {
+  preference: string;
+  flexibility: string;
+  rationale: string | null;
+}
+
 export interface AgentMessage {
   id: string;
   role: 'agent' | 'user';
@@ -44,6 +56,6 @@ export interface HorizonBucket {
 
 export interface IntakeSchemaV10 {
   _schema_version: 'v10.0';
-  // Note: Full schema definition will be added as we build each section
+  /* Note: Full schema definition will be added as we build each section */
   [key: string]: any;
 }
