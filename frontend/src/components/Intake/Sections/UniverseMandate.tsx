@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useIntakeStore } from '../../../store/intakeStore';
 import { MultiSelectChips } from '../MultiSelectChips';
 import { SegmentedControl } from '../SegmentedControl';
@@ -23,7 +23,12 @@ const GICS_SECTORS = [
   { value: 'biotech', label: 'Biotech' }
 ];
 
-export function UniverseMandate() {
+interface SectionProps {
+  onFieldFocus?: (path: string) => void;
+  onFieldBlur?: () => void;
+}
+
+export function UniverseMandate({ onFieldFocus, onFieldBlur }: SectionProps) {
   const schema = useIntakeStore((state) => state.schema);
   const updateField = useIntakeStore((state) => state.updateField);
   const [sectorConflictError, setSectorConflictError] = useState<string | null>(null);
@@ -35,7 +40,7 @@ export function UniverseMandate() {
   const strategyCatalysts = schema.strategy_mandate?.catalyst_types || [];
   const availableCatalysts = strategyCatalysts
     .filter((c: any) => c.permitted)
-    .map((c: any) => c.value);
+    .map((c: any) => c.catalyst_type);
 
   const handleSectorSelect = (path: string, currentSelected: string[], targetList: string[], value: string[]) => {
     // Check if any new value exists in the other list
@@ -49,10 +54,23 @@ export function UniverseMandate() {
   };
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div 
+      className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700"
+      onFocusCapture={(e) => {
+        const target = e.target as HTMLElement;
+        const fieldEl = target.closest('[data-field-path]');
+        if (fieldEl) {
+          const path = fieldEl.getAttribute('data-field-path');
+          if (path && onFieldFocus) onFieldFocus(path);
+        }
+      }}
+      onBlurCapture={() => {
+        if (onFieldBlur) onFieldBlur();
+      }}
+    >
       {/* 4.1 ASSET CLASSES & GEOGRAPHIES */}
       <div className="grid grid-cols-2 gap-10">
-        <div className="space-y-4">
+        <div className="space-y-4" data-field-path="universe_mandate.tier_1_hard_filters.asset_classes_permitted">
           <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
             Asset Classes Permitted
           </label>
@@ -69,7 +87,7 @@ export function UniverseMandate() {
           />
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4" data-field-path="universe_mandate.tier_1_hard_filters.geographies_permitted">
           <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
             Geographies Permitted
           </label>
@@ -94,13 +112,13 @@ export function UniverseMandate() {
             Min Market Cap
           </label>
           <SegmentedControl
-            value={filters.market_cap_min_usd}
-            onChange={(val) => updateField('universe_mandate.tier_1_hard_filters.market_cap_min_usd', val)}
+            value={filters.market_cap_min_usd?.toString() || null}
+            onChange={(val) => updateField('universe_mandate.tier_1_hard_filters.market_cap_min_usd', parseInt(val))}
             options={[
-              { value: 50000000, label: '$50M+', description: 'Micro / Small Cap' },
-              { value: 300000000, label: '$300M+', description: 'Small / Mid Cap' },
-              { value: 2000000000, label: '$2B+', description: 'Mid / Large Cap' },
-              { value: 10000000000, label: '$10B+', description: 'Large Cap Only' }
+              { value: '50000000', label: '$50M+', description: 'Micro / Small Cap' },
+              { value: '300000000', label: '$300M+', description: 'Small / Mid Cap' },
+              { value: '2000000000', label: '$2B+', description: 'Mid / Large Cap' },
+              { value: '10000000000', label: '$10B+', description: 'Large Cap Only' }
             ]}
           />
         </div>
@@ -110,31 +128,31 @@ export function UniverseMandate() {
             Max Market Cap
           </label>
           <SegmentedControl
-            value={filters.market_cap_max_usd}
-            onChange={(val) => updateField('universe_mandate.tier_1_hard_filters.market_cap_max_usd', val)}
+            value={filters.market_cap_max_usd?.toString() || 'none'}
+            onChange={(val) => updateField('universe_mandate.tier_1_hard_filters.market_cap_max_usd', val === 'none' ? null : parseInt(val))}
             options={[
-              { value: 2000000000, label: '$2B', description: 'Up to Mid Cap' },
-              { value: 10000000000, label: '$10B', description: 'Up to Large Cap' },
-              { value: 50000000000, label: '$50B', description: 'Up to Mega Cap' },
-              { value: null, label: 'No Cap', description: 'Full range' }
+              { value: '2000000000', label: '$2B', description: 'Up to Mid Cap' },
+              { value: '10000000000', label: '$10B', description: 'Up to Large Cap' },
+              { value: '50000000000', label: '$50B', description: 'Up to Mega Cap' },
+              { value: 'none', label: 'No Cap', description: 'Full range' }
             ]}
           />
         </div>
 
         <div className="grid grid-cols-2 gap-10">
-          <div className="space-y-4">
+          <div className="space-y-4" data-field-path="universe_mandate.tier_1_hard_filters.min_avg_daily_volume_usd">
             <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
               Min Avg Daily Volume (USD)
             </label>
             <SegmentedControl
-              value={filters.min_avg_daily_volume_usd}
-              onChange={(val) => updateField('universe_mandate.tier_1_hard_filters.min_avg_daily_volume_usd', val)}
+              value={filters.min_avg_daily_volume_usd?.toString() || null}
+              onChange={(val) => updateField('universe_mandate.tier_1_hard_filters.min_avg_daily_volume_usd', parseInt(val))}
               options={[
-                { value: 500000, label: '$500K' },
-                { value: 1000000, label: '$1M', description: 'Recommended' },
-                { value: 2000000, label: '$2M' },
-                { value: 5000000, label: '$5M' },
-                { value: 10000000, label: '$10M' }
+                { value: '500000', label: '$500K' },
+                { value: '1000000', label: '$1M', description: 'Recommended' },
+                { value: '2000000', label: '$2M' },
+                { value: '5000000', label: '$5M' },
+                { value: '10000000', label: '$10M' }
               ]}
             />
           </div>

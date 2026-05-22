@@ -14,7 +14,12 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function Section7_Behavioral() {
+interface SectionProps {
+  onFieldFocus?: (path: string) => void;
+  onFieldBlur?: () => void;
+}
+
+export function Section7_Behavioral({ onFieldFocus, onFieldBlur }: SectionProps) {
   const schema = useIntakeStore((state) => state.schema);
   const updateField = useIntakeStore((state) => state.updateField);
   const setCurrentSection = useIntakeStore((state) => state.setCurrentSection);
@@ -52,7 +57,20 @@ export function Section7_Behavioral() {
   };
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div 
+      className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700"
+      onFocusCapture={(e) => {
+        const target = e.target as HTMLElement;
+        const fieldEl = target.closest('[data-field-path]');
+        if (fieldEl) {
+          const path = fieldEl.getAttribute('data-field-path');
+          if (path && onFieldFocus) onFieldFocus(path);
+        }
+      }}
+      onBlurCapture={() => {
+        if (onFieldBlur) onFieldBlur();
+      }}
+    >
       
       {/* 7.0 REGRET SUMMARY CARD */}
       <div className="p-6 bg-secondary/5 border border-secondary/20 rounded-2xl relative overflow-hidden group">
@@ -77,7 +95,7 @@ export function Section7_Behavioral() {
       </div>
 
       {/* 7.1 DISPOSITION EFFECT */}
-      <div className="space-y-6">
+      <div className="space-y-6" data-field-path="behavioral_profile.disposition_effect_tendency.self_assessed">
         <div className="space-y-1">
           <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
             How often do you sell winning positions too early?
@@ -99,7 +117,7 @@ export function Section7_Behavioral() {
       </div>
 
       {/* 7.2 LOSS AVERSION */}
-      <div className="pt-10 border-t border-white/5 space-y-6">
+      <div className="pt-10 border-t border-white/5 space-y-6" data-field-path="behavioral_profile.loss_aversion_coefficient">
         <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
           When you lose $1,000, how does it feel compared to gaining $1,000?
         </label>
@@ -143,6 +161,7 @@ export function Section7_Behavioral() {
             </p>
           </div>
           <Stepper
+            label="Consecutive losses before review"
             value={profile.max_consecutive_losses_review_trigger || 5}
             onChange={(val) => updateField('behavioral_profile.max_consecutive_losses_review_trigger', val)}
             min={3}
@@ -179,6 +198,7 @@ export function Section7_Behavioral() {
               </p>
             </div>
             <Stepper
+              label="Cooling-off duration"
               value={profile.cooling_off_requirements.cooling_off_days || 3}
               onChange={(val) => updateField('behavioral_profile.cooling_off_requirements.cooling_off_days', val)}
               min={1}

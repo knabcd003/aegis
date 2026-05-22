@@ -6,19 +6,24 @@ import { Toggle } from '../Toggle';
 import { Info, AlertTriangle } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 
-export function Section8_Tax() {
+interface SectionProps {
+  onFieldFocus?: (path: string) => void;
+  onFieldBlur?: () => void;
+}
+
+export function Section8_Tax({ onFieldFocus, onFieldBlur }: SectionProps) {
   const schema = useIntakeStore((state) => state.schema);
   const updateField = useIntakeStore((state) => state.updateField);
 
   // Robust field access with fallbacks
   const tax = schema?.tax_and_legal || {};
-  const mandate = schema?.mandate_and_capital || {};
+  const mandate = schema?.mandate_identification || {};
   const returnMandate = schema?.return_mandate || {};
   const strategy = schema?.strategy_mandate || {};
 
   // AUTO-SUGGEST TAX STATUS BASED ON SECTION 1
   useEffect(() => {
-    if (tax && !tax.account_tax_status) {
+    if (!schema?.tax_and_legal?.account_tax_status) {
       const mapping: Record<string, string> = {
         individual_taxable: 'fully_taxable',
         traditional_ira: 'tax_deferred_traditional',
@@ -31,7 +36,7 @@ export function Section8_Tax() {
         updateField('tax_and_legal.account_tax_status', suggested);
       }
     }
-  }, [mandate.account_type, tax, updateField]);
+  }, [mandate.account_type, schema?.tax_and_legal?.account_tax_status, updateField]);
 
   const isTaxable = tax.account_tax_status === 'fully_taxable';
 
@@ -62,10 +67,23 @@ export function Section8_Tax() {
   const showERISA = ['traditional_ira', '401k_solo', 'sep_ira'].includes(mandate.account_type);
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div 
+      className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700"
+      onFocusCapture={(e) => {
+        const target = e.target as HTMLElement;
+        const fieldEl = target.closest('[data-field-path]');
+        if (fieldEl) {
+          const path = fieldEl.getAttribute('data-field-path');
+          if (path && onFieldFocus) onFieldFocus(path);
+        }
+      }}
+      onBlurCapture={() => {
+        if (onFieldBlur) onFieldBlur();
+      }}
+    >
       
       {/* 8.1 ACCOUNT TAX STATUS */}
-      <div className="space-y-6">
+      <div className="space-y-6" data-field-path="tax_and_legal.account_tax_status">
         <div className="space-y-1">
           <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
             Account tax treatment

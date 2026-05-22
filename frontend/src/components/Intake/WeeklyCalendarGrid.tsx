@@ -66,7 +66,7 @@ export function WeeklyCalendarGrid({
       
       if (dayHours.length === 0) return;
 
-      let currentWindow: { days: string[], start: number, end: number } | null = null;
+      let currentWindow: any = null;
 
       dayHours.forEach(h => {
         if (!currentWindow) {

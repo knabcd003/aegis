@@ -2,7 +2,7 @@ import { useIntakeStore } from '../../../store/intakeStore';
 import { WeeklyCalendarGrid } from '../WeeklyCalendarGrid';
 import { Toggle } from '../Toggle';
 import { SegmentedControl } from '../SegmentedControl';
-import { Info, AlertTriangle } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { useState } from 'react';
 
 const BROKERAGE_SUGGESTIONS = [
@@ -16,7 +16,12 @@ const BROKERAGE_SUGGESTIONS = [
   'Other'
 ];
 
-export function Section6_Operations() {
+interface SectionProps {
+  onFieldFocus?: (path: string) => void;
+  onFieldBlur?: () => void;
+}
+
+export function Section6_Operations({ onFieldFocus, onFieldBlur }: SectionProps) {
   const schema = useIntakeStore((state) => state.schema);
   const updateField = useIntakeStore((state) => state.updateField);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -27,14 +32,27 @@ export function Section6_Operations() {
   const strategy = schema.strategy_mandate;
 
   // CROSS-SECTION WARNING
-  const peadPermitted = strategy.catalyst_types.some(c => c.catalyst_type === 'pead_earnings_momentum' && c.permitted);
+  const peadPermitted = strategy.catalyst_types.some((c: any) => c.catalyst_type === 'pead_earnings_momentum' && c.permitted);
   const showLatencyWarning = (constraints.max_execution_latency_minutes || 0) >= 90 && peadPermitted;
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div 
+      className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700"
+      onFocusCapture={(e) => {
+        const target = e.target as HTMLElement;
+        const fieldEl = target.closest('[data-field-path]');
+        if (fieldEl) {
+          const path = fieldEl.getAttribute('data-field-path');
+          if (path && onFieldFocus) onFieldFocus(path);
+        }
+      }}
+      onBlurCapture={() => {
+        if (onFieldBlur) onFieldBlur();
+      }}
+    >
       
       {/* 6.1 EXECUTION WINDOWS */}
-      <div className="space-y-6">
+      <div className="space-y-6" data-field-path="operational_mandate.tier_1_operational_constraints.available_windows">
         <div className="space-y-1">
           <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
             When can you trade?
@@ -58,7 +76,7 @@ export function Section6_Operations() {
       </div>
 
       {/* 6.2 EXECUTION SPEED */}
-      <div className="pt-10 border-t border-white/5 space-y-6">
+      <div className="pt-10 border-t border-white/5 space-y-6" data-field-path="operational_mandate.tier_1_operational_constraints.max_execution_latency_minutes">
         <div className="space-y-1">
           <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
             How quickly can you act on a signal?

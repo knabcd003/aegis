@@ -20,7 +20,12 @@ const GICS_SECTORS = [
   { value: 'biotech', label: 'Biotech' }
 ];
 
-export function Section9_Macro() {
+interface SectionProps {
+  onFieldFocus?: (path: string) => void;
+  onFieldBlur?: () => void;
+}
+
+export function Section9_Macro({ onFieldFocus, onFieldBlur }: SectionProps) {
   const schema = useIntakeStore((state) => state.schema);
   const updateField = useIntakeStore((state) => state.updateField);
   const [sectorConflictError, setSectorConflictError] = useState<string | null>(null);
@@ -42,17 +47,30 @@ export function Section9_Macro() {
   };
 
   const headwindConflicts = useMemo(() => {
-    return macro.sectors_with_headwinds?.filter(s => sectorsOfInterest.includes(s)) || [];
+    return macro.sectors_with_headwinds?.filter((s: any) => sectorsOfInterest.includes(s)) || [];
   }, [macro.sectors_with_headwinds, sectorsOfInterest]);
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div 
+      className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700"
+      onFocusCapture={(e) => {
+        const target = e.target as HTMLElement;
+        const fieldEl = target.closest('[data-field-path]');
+        if (fieldEl) {
+          const path = fieldEl.getAttribute('data-field-path');
+          if (path && onFieldFocus) onFieldFocus(path);
+        }
+      }}
+      onBlurCapture={() => {
+        if (onFieldBlur) onFieldBlur();
+      }}
+    >
       
       {/* 9.1 PORTFOLIO CONTEXT */}
       <div className="space-y-12">
         {isProfessional && (
           <div className="space-y-8 animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="space-y-4">
+            <div className="space-y-4" data-field-path="portfolio_scope_and_macro.market_beta_intent">
               <Slider
                 label="Target market beta"
                 min={-1.0}
@@ -76,7 +94,7 @@ export function Section9_Macro() {
           </div>
         )}
 
-        <div className="space-y-6">
+        <div className="space-y-6" data-field-path="portfolio_scope_and_macro.regime_adaptivity_intent">
           <div className="space-y-1">
             <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
               Regime adaptivity
@@ -101,7 +119,7 @@ export function Section9_Macro() {
           <p className="text-xs text-[#8e8e88]/60">Your views on sector momentum bias strategy selection within permitted sectors.</p>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-6" data-field-path="portfolio_scope_and_macro.sectors_with_tailwinds">
           <div className="flex justify-between items-center">
             <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
               Sectors with tailwinds
@@ -116,11 +134,11 @@ export function Section9_Macro() {
             value={macro.sectors_with_tailwinds || []}
             onChange={(val) => handleSectorSelect('portfolio_scope_and_macro.sectors_with_tailwinds', macro.sectors_with_tailwinds || [], macro.sectors_with_headwinds || [], val)}
             options={GICS_SECTORS}
-            helper="Sectors you currently see as having positive momentum or strong fundamentals"
           />
+          <p className="text-xs text-[#8e8e88]/60 mt-1">Sectors you currently see as having positive momentum or strong fundamentals</p>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-6" data-field-path="portfolio_scope_and_macro.sectors_with_headwinds">
           <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
             Sectors with headwinds
           </label>
@@ -128,8 +146,8 @@ export function Section9_Macro() {
             value={macro.sectors_with_headwinds || []}
             onChange={(val) => handleSectorSelect('portfolio_scope_and_macro.sectors_with_headwinds', macro.sectors_with_headwinds || [], macro.sectors_with_tailwinds || [], val)}
             options={GICS_SECTORS}
-            helper="Sectors you currently see as facing pressure or deteriorating fundamentals"
           />
+          <p className="text-xs text-[#8e8e88]/60 mt-1">Sectors you currently see as facing pressure or deteriorating fundamentals</p>
           
           {headwindConflicts.length > 0 && (
             <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-start gap-3 animate-in fade-in duration-500">
@@ -137,7 +155,7 @@ export function Section9_Macro() {
               <div className="space-y-1">
                 <p className="text-[0.8125rem] font-bold text-blue-400">Sector Focus Overlap</p>
                 <p className="text-xs text-blue-400/80 leading-relaxed">
-                  One or more sectors you see as facing headwinds ({headwindConflicts.map(s => GICS_SECTORS.find(g => g.value === s)?.label).join(', ')}) are in your preferred universe from Section 4. Aria will flag this during validation.
+                  One or more sectors you see as facing headwinds ({headwindConflicts.map((s: any) => GICS_SECTORS.find((g: any) => g.value === s)?.label).join(', ')}) are in your preferred universe from Section 4. Aria will flag this during validation.
                 </p>
               </div>
             </div>
@@ -148,12 +166,12 @@ export function Section9_Macro() {
       {/* 9.3 DETAIL BOX */}
       <div className="pt-10 border-t border-white/5 space-y-3">
         <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
-          Market Regime & Macro Views
+          Current regime beliefs
         </label>
         <textarea
-          value={macro.macro_views || ''}
-          onChange={(e) => updateField('portfolio_scope_and_macro.macro_views', e.target.value)}
-          placeholder="What's your current read on the market? Describe your macro views — interest rates, inflation, regime, sector rotation..."
+          value={macro.current_regime_beliefs || ''}
+          onChange={(e) => updateField('portfolio_scope_and_macro.current_regime_beliefs', e.target.value)}
+          placeholder="Describe your current view on market conditions..."
           className="w-full bg-surface-container/30 border border-white/5 rounded-xl px-4 py-3 text-sm text-on-surface placeholder-[#8e8e88]/30 min-h-[150px] outline-none focus:border-secondary/30 transition-all"
         />
       </div>

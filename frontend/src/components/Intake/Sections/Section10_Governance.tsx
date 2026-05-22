@@ -7,7 +7,12 @@ import { Stepper } from '../Stepper';
 import { CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-export function Section10_Governance() {
+interface SectionProps {
+  onFieldFocus?: (path: string) => void;
+  onFieldBlur?: () => void;
+}
+
+export function Section10_Governance({ onFieldFocus, onFieldBlur }: SectionProps) {
   const navigate = useNavigate();
   const schema = useIntakeStore((state) => state.schema);
   const sections = useIntakeStore((state) => state.sections);
@@ -37,7 +42,20 @@ export function Section10_Governance() {
   };
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div 
+      className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700"
+      onFocusCapture={(e) => {
+        const target = e.target as HTMLElement;
+        const fieldEl = target.closest('[data-field-path]');
+        if (fieldEl) {
+          const path = fieldEl.getAttribute('data-field-path');
+          if (path && onFieldFocus) onFieldFocus(path);
+        }
+      }}
+      onBlurCapture={() => {
+        if (onFieldBlur) onFieldBlur();
+      }}
+    >
       
       {/* COMPLETION BANNER */}
       {allLocked && (
@@ -69,13 +87,12 @@ export function Section10_Governance() {
       )}
 
       {/* MANDATE REVIEW */}
-      <div className="space-y-6">
+      <div className="space-y-6" data-field-path="governance_and_review.mandate_review_frequency">
         <div className="space-y-1">
           <label className="text-[1.125rem] font-light text-on-surface serif-text">Mandate Review Frequency</label>
           <p className="text-xs text-[#8e8e88]/60">Define the cadence for comprehensive structural assessment of your mandate.</p>
         </div>
         <SegmentedControl
-          label="How often do you want to formally review this mandate?"
           value={gov.mandate_review_frequency}
           onChange={(val) => updateField('governance_and_review.mandate_review_frequency', val)}
           options={[
@@ -172,8 +189,10 @@ export function Section10_Governance() {
       {/* REPORTING */}
       <div className="pt-10 border-t border-white/5 space-y-8">
         <div className="space-y-6">
+          <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
+            Performance reporting frequency
+          </label>
           <SegmentedControl
-            label="Performance reporting frequency"
             value={reporting}
             onChange={(val) => updateField('governance_and_review.performance_reporting_frequency', val)}
             options={[

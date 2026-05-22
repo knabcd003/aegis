@@ -47,7 +47,7 @@ const setNestedValue = (obj: any, path: string, value: any) => {
   const keys = path.split('.');
   let current = obj;
   for (let i = 0; i < keys.length - 1; i++) {
-    if (!current[keys[i]]) current[keys[i]] = {};
+    if (current[keys[i]] === undefined || current[keys[i]] === null) current[keys[i]] = {};
     current = current[keys[i]];
   }
   current[keys[keys.length - 1]] = value;
@@ -89,9 +89,33 @@ export const useIntakeStore = create<IntakeState & IntakeActions>((set) => ({
   updateField: (path, value) => set(produce((state: IntakeState) => {
     setNestedValue(state.schema, path, value);
     
+    // Lock Invalidation: If section N is edited, invalidate it and unlock/invalidate downstream (N+1 to 10)
+    const getSectionForPath = (p: string): number => {
+      if (p.startsWith('mandate_identification') || p.startsWith('capital_structure')) return 1;
+      if (p.startsWith('risk_mandate')) return 2;
+      if (p.startsWith('return_mandate')) return 3;
+      if (p.startsWith('universe_mandate')) return 4;
+      if (p.startsWith('strategy_mandate')) return 5;
+      if (p.startsWith('operational_mandate')) return 6;
+      if (p.startsWith('behavioral_profile')) return 7;
+      if (p.startsWith('tax_and_legal')) return 8;
+      if (p.startsWith('portfolio_scope_and_macro')) return 9;
+      if (p.startsWith('governance_and_review')) return 10;
+      return 0;
+    };
+
+    const n = getSectionForPath(path);
+    if (n > 0) {
+      state.sections[n].validated = false;
+      for (let i = n + 1; i <= 10; i++) {
+        state.sections[i].locked = false;
+        state.sections[i].validated = false;
+        state.sections[i].validatedAt = null;
+      }
+    }
+
     // Trigger automated checks if relevant fields changed
     if (path.includes('max_portfolio_drawdown_pct') || path.includes('target_annual_return_pct')) {
-      // Access the internal runSharpeCheck logic
       const drawdown = state.schema.risk_mandate.tier_1_risk_constraints.max_portfolio_drawdown_pct;
       const targetReturn = state.schema.return_mandate.target_annual_return_pct;
 
@@ -143,30 +167,7 @@ export const useIntakeStore = create<IntakeState & IntakeActions>((set) => ({
     isThinking: false,
   }),
 
-  // Automated Checks (Stub)
-  runSharpeCheck: () => set(produce((state: IntakeState) => {
-    const drawdown = state.schema.risk_mandate.tier_1_risk_constraints.max_portfolio_drawdown_pct;
-    const targetReturn = state.schema.return_mandate.target_annual_return_pct;
 
-    if (drawdown && targetReturn) {
-      // Stub logic: Implied Sharpe = Return / (Drawdown * 0.5)
-      // institutional baseline: drawdown is usually ~2x volatility
-      const impliedVol = drawdown / 2;
-      const impliedSharpe = targetReturn / impliedVol;
-      
-      let feasibility: 'achievable' | 'difficult' | 'implausible' = 'achievable';
-      if (impliedSharpe > 2.0) feasibility = 'implausible';
-      else if (impliedSharpe > 1.2) feasibility = 'difficult';
-
-      state.schema.filing_notes.sharpe_feasibility_check = {
-        implied_sharpe_required: parseFloat(impliedSharpe.toFixed(2)),
-        feasibility,
-        explanation: feasibility === 'implausible' 
-          ? `Target return of ${targetReturn}% with only ${drawdown}% drawdown implies a Sharpe ratio of ${impliedSharpe.toFixed(2)}. This is statistically implausible for institutional-grade strategies.`
-          : `Calculated implied Sharpe: ${impliedSharpe.toFixed(2)}.`
-      };
-    }
-  })),
 }));
 
 // Debounced Persistence

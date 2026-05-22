@@ -5,15 +5,6 @@ import { SegmentedControl } from '../SegmentedControl';
 import { CatalystCardGrid } from '../CatalystCardGrid';
 import { HorizonAllocationBuilder } from '../HorizonAllocationBuilder';
 import { AlertTriangle, Info } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-/**
- * Utility to merge tailwind classes
- */
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
 const BIOTECH_CATALYSTS = [
   'fda_pdufa_biotech',
@@ -21,7 +12,12 @@ const BIOTECH_CATALYSTS = [
   'clinical_trial_readout_phase2'
 ];
 
-export function Section5_Strategy() {
+interface SectionProps {
+  onFieldFocus?: (path: string) => void;
+  onFieldBlur?: () => void;
+}
+
+export function Section5_Strategy({ onFieldFocus, onFieldBlur }: SectionProps) {
   const schema = useIntakeStore((state) => state.schema);
   const updateField = useIntakeStore((state) => state.updateField);
 
@@ -35,10 +31,10 @@ export function Section5_Strategy() {
 
   // CROSS-SECTION WARNINGS LOGIC
   const activeBiotechCatalysts = useMemo(() => {
-    return strategy.catalyst_types.filter(c => 
+    return strategy.catalyst_types.filter((c: any) => 
       c.permitted && 
       BIOTECH_CATALYSTS.includes(c.catalyst_type) &&
-      Object.values(c.risk_acknowledgments).every(v => v === true)
+      Object.values(c.risk_acknowledgments).every((v: any) => v === true)
     );
   }, [strategy.catalyst_types]);
 
@@ -53,21 +49,34 @@ export function Section5_Strategy() {
 
   // Condition B: Biotech permitted but profitability screen applied
   const screens = universe.fundamental_screens.screens || [];
-  const hasProfitabilityConflict = hasActiveBiotech && screens.some(s => 
+  const hasProfitabilityConflict = hasActiveBiotech && screens.some((s: any) => 
     s.screen_type === 'profitability_required' && (
       s.applies_to_catalyst_types.includes('all') ||
-      s.applies_to_catalyst_types.some(t => BIOTECH_CATALYSTS.includes(t))
+      s.applies_to_catalyst_types.some((t: any) => BIOTECH_CATALYSTS.includes(t))
     )
   );
 
   // Condition C: Short squeeze setup but short selling disabled
-  const squeezePermitted = strategy.catalyst_types.find(c => c.catalyst_type === 'short_squeeze_setup')?.permitted;
+  const squeezePermitted = strategy.catalyst_types.find((c: any) => c.catalyst_type === 'short_squeeze_setup')?.permitted;
   const hasShortSellingConflict = squeezePermitted && !capital.short_selling_permitted;
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div 
+      className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700"
+      onFocusCapture={(e) => {
+        const target = e.target as HTMLElement;
+        const fieldEl = target.closest('[data-field-path]');
+        if (fieldEl) {
+          const path = fieldEl.getAttribute('data-field-path');
+          if (path && onFieldFocus) onFieldFocus(path);
+        }
+      }}
+      onBlurCapture={() => {
+        if (onFieldBlur) onFieldBlur();
+      }}
+    >
       {/* 5.1 CATALYST TYPES */}
-      <div className="space-y-6">
+      <div className="space-y-6" data-field-path="strategy_mandate.catalyst_types">
         <div className="space-y-1">
           <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
             Active Catalysts
@@ -127,7 +136,7 @@ export function Section5_Strategy() {
       </div>
 
       {/* 5.2 HORIZON ALLOCATION */}
-      <div className="pt-10 border-t border-white/5 space-y-6">
+      <div className="pt-10 border-t border-white/5 space-y-6" data-field-path="strategy_mandate.horizon_allocation">
         <div className="space-y-1">
           <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
             Capital Allocation by Holding Period

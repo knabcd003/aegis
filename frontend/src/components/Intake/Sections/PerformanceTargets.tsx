@@ -3,7 +3,12 @@ import { SegmentedControl } from '../SegmentedControl';
 import { NumberInput } from '../NumberInput';
 import { Stepper } from '../Stepper';
 
-export function PerformanceTargets() {
+interface SectionProps {
+  onFieldFocus?: (path: string) => void;
+  onFieldBlur?: () => void;
+}
+
+export function PerformanceTargets({ onFieldFocus, onFieldBlur }: SectionProps) {
   const schema = useIntakeStore((state) => state.schema);
   const updateField = useIntakeStore((state) => state.updateField);
 
@@ -11,9 +16,22 @@ export function PerformanceTargets() {
   const investorSophistication = schema.mandate_identification.investor_sophistication;
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div 
+      className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700"
+      onFocusCapture={(e) => {
+        const target = e.target as HTMLElement;
+        const fieldEl = target.closest('[data-field-path]');
+        if (fieldEl) {
+          const path = fieldEl.getAttribute('data-field-path');
+          if (path && onFieldFocus) onFieldFocus(path);
+        }
+      }}
+      onBlurCapture={() => {
+        if (onFieldBlur) onFieldBlur();
+      }}
+    >
       {/* 3.1 PRIMARY OBJECTIVE */}
-      <div className="space-y-4">
+      <div className="space-y-4" data-field-path="return_mandate.primary_objective">
         <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
           Primary Objective
         </label>
@@ -117,7 +135,6 @@ export function PerformanceTargets() {
             label="Min Acceptable Sharpe"
             value={returnMandate.min_acceptable_sharpe}
             onChange={(val) => updateField('return_mandate.min_acceptable_sharpe', val)}
-            step={0.1}
             min={0.1}
             max={3.0}
             subtext="Hard filter on strategy selection based on risk-adjusted returns."
@@ -139,7 +156,7 @@ export function PerformanceTargets() {
       </div>
 
       {/* 3.7 FEASIBILITY WARNING (SHARPE STUB) */}
-      {schema.filing_notes.sharpe_feasibility_check?.feasibility !== 'achievable' && (
+      {schema.filing_notes.sharpe_feasibility_check?.feasibility != null && schema.filing_notes.sharpe_feasibility_check.feasibility !== 'achievable' && (
         <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-3 animate-in fade-in zoom-in duration-300">
           <span className="material-symbols-outlined text-amber-500 mt-0.5">warning</span>
           <div className="space-y-1">
@@ -156,12 +173,24 @@ export function PerformanceTargets() {
       {/* 3.8 DETAIL BOX */}
       <div className="space-y-3">
         <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
-          Success & Failure Definition
+          What does success look like?
         </label>
         <textarea
           value={returnMandate.success_definition || ''}
           onChange={(e) => updateField('return_mandate.success_definition', e.target.value)}
           placeholder="What does success look like for this system? And what would make you pull the plug..."
+          className="w-full bg-surface-container/30 border border-white/5 rounded-xl px-4 py-3 text-sm text-on-surface placeholder-[#8e8e88]/30 min-h-[120px] outline-none focus:border-secondary/30 transition-all"
+        />
+      </div>
+
+      <div className="space-y-3">
+        <label className="text-[0.6875rem] font-bold uppercase tracking-[0.15em] text-[#8e8e88]">
+          What does failure look like?
+        </label>
+        <textarea
+          value={returnMandate.failure_definition || ''}
+          onChange={(e) => updateField('return_mandate.failure_definition', e.target.value)}
+          placeholder="e.g. More than 3 consecutive losing months, or drawdown exceeding my stated limit..."
           className="w-full bg-surface-container/30 border border-white/5 rounded-xl px-4 py-3 text-sm text-on-surface placeholder-[#8e8e88]/30 min-h-[120px] outline-none focus:border-secondary/30 transition-all"
         />
       </div>

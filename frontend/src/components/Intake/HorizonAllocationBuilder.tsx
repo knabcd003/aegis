@@ -159,6 +159,7 @@ export function HorizonAllocationBuilder({
             <div className="space-y-1.5">
               <label className="text-[0.625rem] font-bold uppercase tracking-widest text-[#8e8e88]">Min Days</label>
               <Stepper
+                label="Min Days"
                 value={bucket.min_days}
                 onChange={(val) => updateBucket(bucket.id, { min_days: val })}
                 min={1}
@@ -170,6 +171,7 @@ export function HorizonAllocationBuilder({
             <div className="space-y-1.5">
               <label className="text-[0.625rem] font-bold uppercase tracking-widest text-[#8e8e88]">Max Days</label>
               <Stepper
+                label="Max Days"
                 value={bucket.max_days}
                 onChange={(val) => updateBucket(bucket.id, { max_days: val })}
                 min={bucket.min_days + 1}
@@ -186,6 +188,7 @@ export function HorizonAllocationBuilder({
                 </span>
               </div>
               <Slider
+                label="Allocation Weight"
                 value={bucket.capital_weight}
                 onChange={(val) => updateBucket(bucket.id, { capital_weight: val })}
                 min={0}

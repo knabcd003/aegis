@@ -16,7 +16,6 @@ interface NumberInputProps {
   suffix?: string;
   placeholder?: string;
   subtext?: string;
-  step?: number;
   min?: number;
   max?: number;
   disabled?: boolean;
@@ -30,7 +29,6 @@ export function NumberInput({
   suffix,
   placeholder = "0.00",
   subtext,
-  step = 1,
   min,
   max,
   disabled = false,

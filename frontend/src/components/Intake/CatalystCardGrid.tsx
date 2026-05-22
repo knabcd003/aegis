@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { AlertTriangle, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { AlertTriangle, Check } from 'lucide-react';
 import type { CatalystTypeEntry } from '../../types/intake';
 import { Toggle } from './Toggle';
 
