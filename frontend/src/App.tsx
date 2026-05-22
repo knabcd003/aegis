@@ -49,8 +49,8 @@ function App() {
           <Route path="/budget" element={<PlaceholderPage title="Budget Dashboard" description="Token quotas, provider spend tracking, and session quality distribution." />} />
 
           {/* SETTINGS */}
-          <Route path="/intake" element={<IntakePage />} />
-          <Route path="/intake-v10" element={<IntakePageV10 />} />
+          <Route path="/intake" element={<IntakePageV10 />} />
+          <Route path="/intake/legacy" element={<IntakePage />} />
           <Route path="/llm-intake" element={<LLMIntakePage />} />
           <Route path="/settings" element={<SetupPage />} />
 

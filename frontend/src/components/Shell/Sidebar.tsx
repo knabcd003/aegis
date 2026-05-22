@@ -41,7 +41,7 @@ const NAV_GROUPS: NavGroup[] = [
     title: 'Settings',
     items: [
       { label: 'Intake', icon: 'tune', path: '/intake' },
-      { label: 'LLM Intake', icon: 'smart_toy', path: '/llm-intake' },
+      { label: 'Guided Intake', icon: 'smart_toy', path: '/llm-intake' },
       { label: 'Connectors', icon: 'settings', path: '/settings' },
     ],
   },
