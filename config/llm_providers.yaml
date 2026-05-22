@@ -214,10 +214,10 @@ role_assignments:
     - groq/qwen3-32b
     is_critical: false
   adversarial_reasoning:
-    primary: groq/kimi-k2-instruct
+    primary: groq/qwen3-32b
     fallback_chain:
-    - cerebras/qwen-3-235b
-    - groq/gpt-oss-120b
+    - groq/llama-4-scout-17b-16e-instruct
+    - local/qwen3:8b
     is_critical: false
   debate_moderator:
     primary: groq/gpt-oss-120b
@@ -263,8 +263,9 @@ role_assignments:
   intake_advisor:
     primary: groq/llama-4-scout-17b-16e-instruct
     fallback_chain:
-    - gemini/gemini-2.5-flash
-    is_critical: true
+    - groq/qwen3-32b
+    - local/qwen3:8b
+    is_critical: false
 settings:
   context_size_threshold_tokens: 50000
   context_override_provider: gemini/gemini-2.5-flash
