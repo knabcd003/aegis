@@ -29,14 +29,19 @@ class RoutingDecision:
 from api.services.user_profile import UserProfileService
 
 class ProviderRouter:
-    def __init__(self, user_id: str = "default", quota_tracker: Optional[QuotaTracker] = None):
+    def __init__(self, user_id: str = "default", quota_tracker: Optional[QuotaTracker] = None, config_path: Optional[str] = None):
         self.user_id = user_id
+        self.config_path = config_path
         self._load_config()
         self.quota = quota_tracker or QuotaTracker(providers=self.providers)
 
     def _load_config(self) -> None:
-        """Load and validate the configuration from the DB."""
-        self.config = UserProfileService().get_provider_config(self.user_id)
+        """Load and validate the configuration from the DB or a file."""
+        if self.config_path:
+            with open(self.config_path, "r") as f:
+                self.config = yaml.safe_load(f)
+        else:
+            self.config = UserProfileService().get_provider_config(self.user_id)
 
         # Build lookup tables
         self.providers = {p["id"]: p for p in self.config.get("providers", [])}
@@ -122,7 +127,7 @@ class ProviderRouter:
             # Force override to gemini
             if not self._is_excluded(self.context_override) and not self.quota.is_exhausted(self.context_override) and self.context_override not in exclude_set:
                 p, m = self._split_provider_model(self.context_override)
-                return self._build_decision(self.context_override, was_primary=False, fallback_reason="context_length_override", session_quality="nominal", quota_state=quota_state)
+                return self._build_decision(self.context_override, was_primary=False, fallback_reason="context_size_override", session_quality="nominal", quota_state=quota_state)
 
         # 2. Lookup role
         assignment = self.roles.get(role)

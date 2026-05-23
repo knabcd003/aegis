@@ -14,11 +14,23 @@ def base_config():
 def test_holdout_sealed_and_disjoint(base_config, mocker):
     """T4.1 — Held-out partition sealed at start, disjoint from optimization dates"""
     # Mock data ingestion so it runs fast and offline
-    mocker.patch("engines.simulation.loop.YFinanceConnector")
+    mock_yf = mocker.patch("engines.simulation.loop.YFinanceConnector")
+    import pandas as pd
+    dates = pd.date_range("2023-01-01", "2023-12-31", freq='B').strftime("%Y-%m-%d").tolist()
+    dummy_df = pd.DataFrame({
+        'date': dates,
+        'open': [100.0] * len(dates),
+        'high': [101.0] * len(dates),
+        'low': [99.0] * len(dates),
+        'close': [100.0] * len(dates),
+        'volume': [100000] * len(dates),
+    })
+    mock_yf.return_value.get_prices.return_value = dummy_df
     mocker.patch("engines.simulation.loop.EarningsRevisionTracker")
     mocker.patch("engines.simulation.loop.InsiderActivityMonitor")
     mocker.patch("engines.simulation.loop.MacroOverlay")
     
+    base_config.agent.enabled = False
     loop = SimulationLoop(base_config)
     result = loop.run(date(2023, 1, 1), date(2023, 12, 31))
     
@@ -30,18 +42,32 @@ def test_holdout_sealed_and_disjoint(base_config, mocker):
     # 260 business days approx in a year, holdout should be ~20%
     assert len(hold) > 40
 
+
 def test_holdout_reproducible(mocker):
     """T4.2 — Same run_id produces same partition every time"""
     # Mock network calls to prevent hanging tests
-    mocker.patch("engines.simulation.loop.YFinanceConnector")
+    mock_yf = mocker.patch("engines.simulation.loop.YFinanceConnector")
+    import pandas as pd
+    dates = pd.date_range("2023-01-01", "2023-12-31", freq='B').strftime("%Y-%m-%d").tolist()
+    dummy_df = pd.DataFrame({
+        'date': dates,
+        'open': [100.0] * len(dates),
+        'high': [101.0] * len(dates),
+        'low': [99.0] * len(dates),
+        'close': [100.0] * len(dates),
+        'volume': [100000] * len(dates),
+    })
+    mock_yf.return_value.get_prices.return_value = dummy_df
     mocker.patch("engines.simulation.loop.EarningsRevisionTracker")
     mocker.patch("engines.simulation.loop.InsiderActivityMonitor")
     mocker.patch("engines.simulation.loop.MacroOverlay")
     
     c1 = ConfigManager.load("config/templates/tech_breakout_v1.json")
     c1.run_id = "12345678-1234-5678-1234-567812345678"
+    c1.agent.enabled = False
     c2 = ConfigManager.load("config/templates/tech_breakout_v1.json")
     c2.run_id = "12345678-1234-5678-1234-567812345678"
+    c2.agent.enabled = False
     
     l1 = SimulationLoop(c1)
     l2 = SimulationLoop(c2)
@@ -60,6 +86,7 @@ def test_holdout_reproducible(mocker):
     
     assert res1["holdout_dates"] == res2["holdout_dates"]
 
+
 def test_slippage_and_latency(base_config, mocker):
     """T4.3 - Slippage direction and T4.4 - Execution latency"""
     
@@ -71,17 +98,23 @@ def test_slippage_and_latency(base_config, mocker):
     import numpy as np
     
     # Let signal price = 100 on Jan 2. Let open price = 102 on Jan 3. 
-    def mock_get_prices(ticker, **kwargs):
-        return pd.DataFrame({'close': [100.0], 'open': [102.0], 'volume': [1e6]})
+    def mock_get_prices(*args, **kwargs):
+        return pd.DataFrame({
+            'date': ['2023-01-02', '2023-01-03', '2023-01-04', '2023-01-05'],
+            'close': [100.0, 101.0, 102.0, 103.0],
+            'open': [99.0, 102.0, 101.0, 102.0],
+            'volume': [1e6, 1e6, 1e6, 1e6]
+        })
         
     yf_instance.get_prices.side_effect = mock_get_prices
     
+    base_config.agent.enabled = False
     loop = SimulationLoop(base_config)
     
     # We only have AAPL in the universe for this loop to prevent StopIteration 
     # and we just want to force a Buy on Day 1.
     def mock_eval(signals, config):
-        return True
+        return True, False
         
     mocker.patch("engines.simulation.loop.SignalGate.evaluate", side_effect=mock_eval)
     
@@ -97,7 +130,7 @@ def test_slippage_and_latency(base_config, mocker):
     
     assert buy["action"] == "BUY"
     assert buy["signal_date"] == date(2023, 1, 2)
-    assert buy["fill_date"] == date(2023, 1, 3) # Latency: next bar
+    assert buy["fill_date"] == date(2023, 1, 3) # Next business day (next bar)
     
     # Signal price was 100. Next bar open was 102. 
     # Slippage (10bps + market impact) should make fill > 102.

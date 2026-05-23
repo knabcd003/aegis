@@ -7,6 +7,14 @@ from engines.system.llm_adapter import LLMAdapter, AllProvidersExhaustedError, A
 from engines.system.llm_router.quota_tracker import QuotaTracker
 from engines.system.llm_router.router import ProviderRouter
 
+@pytest.fixture(autouse=True)
+def isolate_quota(tmp_path, monkeypatch):
+    original_init = QuotaTracker.__init__
+    def patched_init(self, providers, persist_path=None):
+        original_init(self, providers, persist_path=str(tmp_path / "test_llm_quota.json"))
+    monkeypatch.setattr(QuotaTracker, "__init__", patched_init)
+
+
 @pytest.fixture
 def mock_yaml(tmp_path):
     yaml_db = tmp_path / "test_providers.yaml"

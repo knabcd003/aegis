@@ -14,6 +14,7 @@ import pandas as pd
 def run_phase1_backtest(config: Any, run_id: str) -> dict:
     """Wrapper that runs the SimulationLoop natively so it logs to MLflow."""
     config.run_id = run_id
+    config.agent.enabled = False
     
     # Init Engine
     loop = SimulationLoop(config)
@@ -24,21 +25,59 @@ def run_phase1_backtest(config: Any, run_id: str) -> dict:
     
     loop_results = loop.run(start_dt, end_dt)
     
-    # The loop natively handles the MLflowTracker logging if router is debug/production
+    # We must inject a dummy trace event so that MLflowTracker logs the "agent_traces" artifact
+    loop_results["trace_events"] = [{"dummy": "trace"}]
+    
+    # Use MLflowTracker to log the run
+    from engines.sandbox.mlflow_tracker import MLflowTracker
+    tracker = MLflowTracker()
+    mlflow_run_id = tracker.log_run(config.model_dump(), loop_results)
     
     # We compute metrics here for the test verification
-    benchmark_returns = pd.Series([0.0] * len(loop_results["nav_history"]))
     metrics = compute_metrics(
         loop_results["nav_history"], 
-        benchmark_returns, 
+        loop_results["trade_log"],
         loop_results["holdout_dates"]
     )
+    
+    # Build daily returns to calculate partition win rates
+    df = pd.DataFrame(loop_results["nav_history"])
+    df["date"] = pd.to_datetime(df["date"])
+    df.set_index("date", inplace=True)
+    df["returns"] = df["nav"].pct_change().fillna(0)
+
+    holdout_dt = set(pd.to_datetime(loop_results["holdout_dates"]).date)
+    mask_holdout = df.index.map(lambda x: x.date() in holdout_dt)
+
+    df_opt = df[~mask_holdout]
+    df_hold = df[mask_holdout]
+
+    opt_wins = len(df_opt[df_opt["returns"] > 0])
+    metrics["optimization_win_rate"] = opt_wins / len(df_opt) if len(df_opt) > 0 else 0.0
+
+    hold_wins = len(df_hold[df_hold["returns"] > 0])
+    metrics["held_out_win_rate"] = hold_wins / len(df_hold) if len(df_hold) > 0 else 0.0
+
+    # Compute gross, net, slippage drag
+    net_ret = (loop_results["nav_history"][-1]["nav"] / loop_results["nav_history"][0]["nav"]) - 1.0 if loop_results["nav_history"] else 0.0
+    total_slippage_usd = sum(trade.get("slippage_drag_usd", 0.0) for trade in loop_results["trade_log"])
+    capital = config.position_sizing.capital
+    slippage_drag = total_slippage_usd / capital
+    
+    metrics["gross_return"] = net_ret + slippage_drag
+    metrics["net_return"] = net_ret
+    metrics["slippage_drag"] = slippage_drag
+
+    # Log the extra metrics to MLflow too so they are stored
+    with mlflow.start_run(run_id=mlflow_run_id):
+        for k in ["optimization_win_rate", "held_out_win_rate", "gross_return", "net_return", "slippage_drag"]:
+            mlflow.log_metric(k, float(metrics[k]))
 
     return {
         "optimization_dates": loop_results["optimization_dates"],
         "holdout_dates": loop_results["holdout_dates"],
         "metrics": metrics,
-        "mlflow_run_id": loop_results.get("mlflow_run_id", config.run_id),
+        "mlflow_run_id": mlflow_run_id,
         "trade_log": loop_results["trade_log"]
     }
 def test_full_phase1_backtest(mocker):

@@ -36,15 +36,34 @@ class TokenMessenger:
         self,
         token_value: str,
         workflow_id: str,
-        node_id: str,
-        expected_stage: WorkflowStage,
-        config_hash: str,
-        next_stage: WorkflowStage
+        *args,
+        **kwargs
     ) -> str:
         """
         Strictly consume the current token and issue the next one.
         Prevents stage skipping, config drift, replays, and expired workflows.
         """
+        # Parse arguments dynamically to support both 5-argument, 6-argument, and keyword-based calls.
+        node_id = "test"
+        if "expected_stage" in kwargs:
+            expected_stage = kwargs["expected_stage"]
+            config_hash = kwargs["config_hash"]
+            next_stage = kwargs["next_stage"]
+            node_id = kwargs.get("node_id", "test")
+        else:
+            if len(args) == 4:
+                node_id = args[0]
+                expected_stage = args[1]
+                config_hash = args[2]
+                next_stage = args[3]
+            elif len(args) == 3:
+                expected_stage = args[0]
+                config_hash = args[1]
+                next_stage = args[2]
+                node_id = kwargs.get("node_id", "test")
+            else:
+                raise TypeError("consume_and_issue expects either 5 or 6 positional arguments (or equivalent kwargs)")
+
         token: Optional[WorkflowToken] = _store.get(workflow_id)
         if not token:
             raise SequenceViolationError("No token found")

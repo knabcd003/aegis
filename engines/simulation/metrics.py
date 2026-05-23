@@ -183,10 +183,13 @@ def compute_max_drawdown(nav_series: pd.Series) -> float:
 
 
 def compute_sharpe(returns: pd.Series) -> float:
-    """Annualized Sharpe ratio (Rf=0). Returns 0.0 if returns are empty or std is zero."""
-    if returns.empty or returns.std() == 0:
+    """Annualized Sharpe ratio (Rf=0). Returns 0.0 if returns are empty, std is zero, or std is NaN."""
+    if returns.empty:
         return 0.0
-    return float(returns.mean() / returns.std() * np.sqrt(252))
+    std = returns.std()
+    if pd.isna(std) or std == 0:
+        return 0.0
+    return float(returns.mean() / std * np.sqrt(252))
 
 
 def compute_walk_forward_efficiency(
@@ -209,9 +212,12 @@ def compute_sortino(returns: pd.Series) -> float:
     if returns.empty:
         return 0.0
     downside = returns[returns < 0]
-    if downside.empty or downside.std() == 0:
+    if downside.empty:
         return 0.0
-    return float(returns.mean() / downside.std() * np.sqrt(252))
+    std = downside.std()
+    if pd.isna(std) or std == 0:
+        return 0.0
+    return float(returns.mean() / std * np.sqrt(252))
 
 
 import logging

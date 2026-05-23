@@ -159,14 +159,14 @@ class PromotionGate(VCLComponent):
             current_stage = GateStage.BACKTEST.value
 
         if current_stage == GateStage.BACKTEST.value:
-            return self._evaluate_backtest(
+            return self.evaluate_backtest(
                 run_id=run_id,
                 session_quality=kwargs.get("session_quality", "nominal"),
                 scenario_pass_rate=kwargs.get("scenario_pass_rate"),
                 debate_confidence=kwargs.get("debate_confidence"),
             )
         elif current_stage == GateStage.PROVING_GROUND.value:
-            return self._evaluate_proving_ground(
+            return self.evaluate_proving_ground(
                 sentinel_id=run_id,
                 observation_days=kwargs.get("observation_days", 0),
                 signals_generated=kwargs.get("signals_generated", 0),
@@ -179,7 +179,7 @@ class PromotionGate(VCLComponent):
                 user_signed_off=kwargs.get("user_signed_off", False)
             )
         else:
-            return self._evaluate_live_expansion(
+            return self.evaluate_live_expansion(
                 sentinel_id=run_id,
                 live_days=kwargs.get("live_days", 0),
                 live_sharpe=kwargs.get("live_sharpe", 0.0),
@@ -187,7 +187,7 @@ class PromotionGate(VCLComponent):
                 positive_months=kwargs.get("positive_months", 0)
             )
 
-    def _evaluate_backtest(
+    def evaluate_backtest(
         self,
         run_id: str,
         session_quality: str = "nominal",
@@ -394,7 +394,7 @@ class PromotionGate(VCLComponent):
     # ========================
     # Stage 2 Evaluation
     # ========================
-    def _evaluate_proving_ground(
+    def evaluate_proving_ground(
         self,
         sentinel_id: str,
         observation_days: int,
@@ -456,7 +456,7 @@ class PromotionGate(VCLComponent):
     # ========================
     # Stage 3 Evaluation
     # ========================
-    def _evaluate_live_expansion(
+    def evaluate_live_expansion(
         self,
         sentinel_id: str,
         live_days: int,

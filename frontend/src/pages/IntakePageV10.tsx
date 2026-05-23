@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useIntakeStore } from '../store/intakeStore';
 import { SectionShell } from '../components/Intake/SectionShell';
 import { AriaCard } from '../components/Intake/AriaCard';
@@ -28,7 +28,8 @@ export function IntakePageV10() {
     unlockSection,
     setValidated,
     schema,
-    updateField
+    updateField,
+    setCurrentSection,
   } = useIntakeStore();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -205,6 +206,28 @@ export function IntakePageV10() {
   const handleFieldFocus = (path: string) => setActiveFieldPath(path);
   const handleFieldBlur = () => setActiveFieldPath(null);
 
+  // Track which section is most visible and update store so Aria knows
+  const sectionRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let bestRatio = 0;
+        let bestSection = -1;
+        entries.forEach(entry => {
+          if (entry.intersectionRatio > bestRatio) {
+            bestRatio = entry.intersectionRatio;
+            const n = parseInt(entry.target.getAttribute('data-section-num') ?? '-1');
+            if (n > 0) bestSection = n;
+          }
+        });
+        if (bestSection > 0) setCurrentSection(bestSection);
+      },
+      { threshold: [0.1, 0.3, 0.5], rootMargin: '-80px 0px -40% 0px' }
+    );
+    Object.values(sectionRefs.current).forEach(el => { if (el) observer.observe(el); });
+    return () => observer.disconnect();
+  }, [setCurrentSection]);
+
   const canLockSection1 = () => {
     const ident = schema.mandate_identification;
     const structure = schema.capital_structure;
@@ -301,7 +324,7 @@ export function IntakePageV10() {
 
   return (
     <div className="flex min-h-screen bg-surface">
-      <div className="flex-1 pr-[380px]">
+      <div className="flex-1 pr-[340px]">
         <div className="max-w-4xl mx-auto px-8 space-y-12 pb-32 pt-12">
           <div className="space-y-2">
             <h1 className="font-headline text-5xl font-light tracking-tight text-on-surface serif-text">
@@ -313,6 +336,7 @@ export function IntakePageV10() {
           </div>
 
           <div className="space-y-8">
+            <div ref={el => { sectionRefs.current[1] = el; }} data-section-num="1">
             <SectionShell
               sectionNumber={1}
               title="Mandate & Capital"
@@ -330,7 +354,9 @@ export function IntakePageV10() {
                 </div>
               </div>
             </SectionShell>
+            </div>
 
+            <div ref={el => { sectionRefs.current[2] = el; }} data-section-num="2">
             <SectionShell
               sectionNumber={2}
               title="Risk Mandate"
@@ -348,7 +374,9 @@ export function IntakePageV10() {
                 </div>
               </div>
             </SectionShell>
+            </div>
 
+            <div ref={el => { sectionRefs.current[3] = el; }} data-section-num="3">
             <SectionShell
               sectionNumber={3}
               title="Performance Targets"
@@ -366,7 +394,9 @@ export function IntakePageV10() {
                 </div>
               </div>
             </SectionShell>
+            </div>
 
+            <div ref={el => { sectionRefs.current[4] = el; }} data-section-num="4">
             <SectionShell
               sectionNumber={4}
               title="Universe & Asset Class"
@@ -384,7 +414,9 @@ export function IntakePageV10() {
                 </div>
               </div>
             </SectionShell>
+            </div>
 
+            <div ref={el => { sectionRefs.current[5] = el; }} data-section-num="5">
             <SectionShell
               sectionNumber={5}
               title="Strategy & Catalysts"
@@ -402,7 +434,9 @@ export function IntakePageV10() {
                 </div>
               </div>
             </SectionShell>
+            </div>
 
+            <div ref={el => { sectionRefs.current[6] = el; }} data-section-num="6">
             <SectionShell
               sectionNumber={6}
               title="Operational Mandate"
@@ -420,7 +454,9 @@ export function IntakePageV10() {
                 </div>
               </div>
             </SectionShell>
+            </div>
 
+            <div ref={el => { sectionRefs.current[7] = el; }} data-section-num="7">
             <SectionShell
               sectionNumber={7}
               title="Behavioral Profile"
@@ -438,7 +474,9 @@ export function IntakePageV10() {
                 </div>
               </div>
             </SectionShell>
+            </div>
 
+            <div ref={el => { sectionRefs.current[8] = el; }} data-section-num="8">
             <SectionShell
               sectionNumber={8}
               title="Tax & Legal"
@@ -456,7 +494,9 @@ export function IntakePageV10() {
                 </div>
               </div>
             </SectionShell>
+            </div>
 
+            <div ref={el => { sectionRefs.current[9] = el; }} data-section-num="9">
             <SectionShell
               sectionNumber={9}
               title="Portfolio Scope & Macro"
@@ -474,7 +514,9 @@ export function IntakePageV10() {
                 </div>
               </div>
             </SectionShell>
+            </div>
 
+            <div ref={el => { sectionRefs.current[10] = el; }} data-section-num="10">
             <SectionShell
               sectionNumber={10}
               title="Governance & Attestation"
@@ -492,6 +534,7 @@ export function IntakePageV10() {
                 </div>
               </div>
             </SectionShell>
+            </div>
 
             {/* SUBMIT MANDATE CONTROL CARD */}
             <div className="p-8 rounded-2xl bg-[#1c1c18]/40 border-2 border-[#8e8e88]/20 backdrop-blur-xl shadow-xl space-y-6">

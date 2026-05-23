@@ -28,12 +28,15 @@ def test_mlflow_tracker_log_run(mock_mlflow):
 
     config_dump = {"run_id": "test_1", "param1": "val1"}
     
-    # Mock some fake results with empty dates to avoid pandas dependency issues during unit test
+    # Mock some fake results with non-empty NAV to allow compute_metrics to run
     results = {
-        "optimization_dates": [],
-        "holdout_dates": [],
+        "optimization_dates": ["2023-01-01"],
+        "holdout_dates": ["2023-01-02"],
         "trade_log": [],
-        "nav_history": [],
+        "nav_history": [
+            {"date": "2023-01-01", "nav": 100000.0},
+            {"date": "2023-01-02", "nav": 100000.0}
+        ],
         "trace_events": []
     }
     
@@ -41,6 +44,6 @@ def test_mlflow_tracker_log_run(mock_mlflow):
     
     assert run_id == "test_run_123"
     mock_mlflow.log_param.assert_called_with("param1", "val1")
-    mock_mlflow.log_metric.assert_any_call("opt_total_return", 0.0)
-    mock_mlflow.log_metric.assert_any_call("opt_sharpe", 0.0)
-    mock_mlflow.log_metric.assert_any_call("opt_num_trades", 0.0)
+    mock_mlflow.log_metric.assert_any_call("optimization_total_return", 0.0)
+    mock_mlflow.log_metric.assert_any_call("optimization_sharpe", 0.0)
+    mock_mlflow.log_metric.assert_any_call("trade_count", 0.0)

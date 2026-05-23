@@ -16,7 +16,7 @@ def test_signal_gate_passes():
         "earnings_revision": {"direction": "up"}
     }
     gate_config = {"finbert_above": 0.5, "earnings_revision_direction": "up"}
-    assert SignalGate.evaluate(signals, gate_config) is True
+    assert SignalGate.evaluate(signals, gate_config)[0] is True
     import math
     assert math.isclose(signals["_gate_margin"]["finbert"], 0.22, rel_tol=1e-5)
 
@@ -25,7 +25,7 @@ def test_signal_gate_fails_on_low_sentiment():
     """T3.2 — Gate fails when one condition is unmet"""
     signals = {"finbert_score": 0.3, "earnings_revision": {"direction": "up"}}
     gate_config = {"finbert_above": 0.5, "earnings_revision_direction": "up"}
-    assert SignalGate.evaluate(signals, gate_config) is False
+    assert SignalGate.evaluate(signals, gate_config)[0] is False
     assert signals["_gate_margin"]["finbert"] == -0.2
 
 
@@ -38,14 +38,14 @@ def test_earnings_revision_point_in_time(mocker):
     mock_fh = mocker.patch("engines.fundamental.earnings_revision_tracker.FinnhubConnector")
     instance = mock_fh.return_value
     instance.get_earnings_revisions.return_value = [
-        {"up": 5, "down": 1, "public_disclosure_ts": "2023-03-31"}
+        {"actual": 2.5, "estimate": 2.0, "surprise": 0.5, "public_disclosure_ts": "2023-03-31"}
     ]
     
     tracker = EarningsRevisionTracker()
     sim_date = date(2023, 4, 1)
     result = tracker.compute("AAPL", as_of_date=sim_date)
     
-    # Assert direction up due to 5 up vs 1 down
+    # Assert direction up due to actual > estimate
     assert result["direction"] == "up"
     # Ensure it only evaluated things prior to 4/1
     assert result["revision_date"] < sim_date

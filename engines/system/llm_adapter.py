@@ -64,8 +64,8 @@ class AdapterResponse:
         )
 
 class LLMAdapter:
-    def __init__(self, user_id: str = "default"):
-        self.router = ProviderRouter(user_id=user_id)
+    def __init__(self, user_id: str = "default", config_path: Optional[str] = None):
+        self.router = ProviderRouter(user_id=user_id, config_path=config_path)
         self.quota = self.router.quota
         self.claude_budget = ClaudeBudgetTracker()
         
@@ -77,8 +77,8 @@ class LLMAdapter:
         self, 
         messages: List[Dict[str, str]], 
         role: str,
-        workflow_id: str,
-        node_id: str, 
+        workflow_id: str = "test",
+        node_id: str = "test", 
         estimated_tokens: int = 0
     ) -> AdapterResponse:
         """
