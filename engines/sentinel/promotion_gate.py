@@ -342,7 +342,13 @@ class PromotionGate(VCLComponent):
             )
 
         # 4h. Held-out degradation (non-configurable invariant)
-        held_out_degradation = metrics.get("held_out_degradation", 1.0)
+        if "held_out_degradation" in metrics:
+            held_out_degradation = float(metrics["held_out_degradation"])
+        else:
+            opt_s = float(metrics.get("optimization_sharpe", 0.0))
+            hold_s = float(metrics.get("held_out_sharpe", 0.0))
+            held_out_degradation = max(0.0, 1.0 - (hold_s / opt_s)) if opt_s > 0 else 0.0
+
         metrics_snapshot["held_out_degradation"] = held_out_degradation
         if held_out_degradation > self.HELD_OUT_DEGRADATION_MAX:
             failures.append(

@@ -287,25 +287,33 @@ class SimulationLoop:
         """
         print(f"[{self.run_id}] Starting Phase 1 Simulation: {start_date} to {end_date}")
         
-        # 1. Trading Calendar & Holdout sealing
-        all_dates = pd.date_range(start_date, end_date, freq='B').date.tolist()
-        
-        if holdout_dates is None:
-            # Fallback for standalone runs: contiguous trailing 20% block
-            num_holdout = int(len(all_dates) * 0.2)
-            holdout_dates = sorted(all_dates[-num_holdout:])
-
-        opt_dates = sorted(all_dates[:-len(holdout_dates)])
-        
         # 1b. Pre-fetch prices for the entire window to avoid O(N*T) disk I/O bottleneck
         print(f"[{self.run_id}] Pre-fetching price history for {len(self.config.asset_universe.tickers)} tickers...")
         price_cache: Dict[str, pd.DataFrame] = {}
-        # Correctly calculate calendar days for YFinance lookback
         calendar_days = (end_date - start_date).days + 100
         for ticker in self.config.asset_universe.tickers:
             df = self.yf.get_prices(ticker, days=calendar_days, as_of_date=end_date)
             if df is not None:
                 price_cache[ticker] = df
+
+        # Filter all_dates to only include actual market trading days (excluding US market holidays)
+        valid_trading_dates = set()
+        for ticker, df in price_cache.items():
+            if "date" in df.columns and not df.empty:
+                dates_in_range = pd.to_datetime(df["date"]).dt.date
+                mask = (dates_in_range >= start_date) & (dates_in_range <= end_date)
+                valid_trading_dates.update(dates_in_range[mask])
+
+        if valid_trading_dates:
+            all_dates = sorted(list(valid_trading_dates))
+        else:
+            all_dates = pd.date_range(start_date, end_date, freq='B').date.tolist()
+        
+        if holdout_dates is None:
+            num_holdout = int(len(all_dates) * 0.2)
+            holdout_dates = sorted(all_dates[-num_holdout:])
+
+        opt_dates = sorted(all_dates[:-len(holdout_dates)])
         
         # State tracking for execution
         pending_orders = [] # [{ticker, action, shares, signal_date, signal_price}]
@@ -445,8 +453,9 @@ class SimulationLoop:
                 current_holdings = self.positions[ticker]
                 
                 if passed and current_holdings == 0:
-                    # Determine Position Size based on conviction
-                    max_alloc = self.config.position_sizing.max_position_pct * self.capital * conviction
+                    # Determine Position Size based on live NAV / current portfolio equity
+                    current_equity = daily_nav if daily_nav > 0 else self.capital
+                    max_alloc = self.config.position_sizing.max_position_pct * current_equity * conviction
                     shares_to_buy = int(max_alloc / price)
                     
                     if shares_to_buy > 0:

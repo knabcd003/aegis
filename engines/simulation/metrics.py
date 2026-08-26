@@ -325,13 +325,15 @@ def compute_metrics(
     # The Promotion Gate handles the actual correlation check against MLflow.
     metrics["correlation_with_existing"] = 0.0
 
-    # Held-out Sharpe change percentage: positive = OOS better than IS, negative = OOS worse than IS
+    # Held-out Sharpe change percentage & degradation ratio
     opt_sharpe = metrics.get("optimization_sharpe", 0.0)
     hold_sharpe = metrics.get("held_out_sharpe", 0.0)
     if opt_sharpe > 0:
         metrics["held_out_sharpe_change_pct"] = (hold_sharpe - opt_sharpe) / opt_sharpe
+        metrics["held_out_degradation"] = max(0.0, 1.0 - (hold_sharpe / opt_sharpe))
     else:
         metrics["held_out_sharpe_change_pct"] = 0.0
+        metrics["held_out_degradation"] = 1.0
 
     # Convenience aliases for Promotion Gate field names
     metrics["sharpe"] = metrics.get("optimization_sharpe", 0.0)
