@@ -321,7 +321,6 @@ class SimulationLoop:
         # 2. Daily Loop
         for current_date_obj in all_dates:
             current_date = current_date_obj.isoformat()
-            daily_nav = self.cash
             
             # 2a. Execute pending orders at the OPEN of this new day
             executed_orders = []
@@ -375,7 +374,10 @@ class SimulationLoop:
             # Remove executed orders
             pending_orders = [o for o in pending_orders if o not in executed_orders]
             
-            # 2b. Mark to market currently held positions
+            # 2b. Snapshot cash AFTER all order execution completes for this day
+            daily_nav = self.cash
+            
+            # 2c. Mark to market currently held post-trade positions
             for ticker, shares in self.positions.items():
                 if shares > 0:
                     # Use cache instead of disk/network

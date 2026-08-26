@@ -116,6 +116,17 @@ def main():
         gate_events=sim_results["gate_events"]
     )
 
+    # Standing Sanity Check: Automated Outlier Daily Return Check (threshold: +/- 15%)
+    nav_check_df = pd.DataFrame(sim_results["nav_history"])
+    nav_check_df["daily_return"] = nav_check_df["nav"].pct_change().fillna(0)
+    outliers = nav_check_df[nav_check_df["daily_return"].abs() > 0.15]
+    if not outliers.empty:
+        print(f"\n⚠️ SANITY CHECK WARNING: {len(outliers)} daily NAV return(s) exceeded +/-15% threshold!")
+        for idx, r in outliers.iterrows():
+            print(f"   Date: {r['date']} | NAV: ${r['nav']:,.2f} | Return: {r['daily_return']*100:+.2f}%")
+    else:
+        print("\n✅ STANDING SANITY CHECK PASSED: All daily NAV returns are strictly within +/-15% bounds.")
+
     print("      Quantitative Metrics Summary:")
     for k, v in metrics.items():
         if isinstance(v, float):
