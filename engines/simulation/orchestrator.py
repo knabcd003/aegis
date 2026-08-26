@@ -111,15 +111,14 @@ class SimulationOrchestrator:
             import pandas as pd
             import numpy as np
             
-            start_date = date(2020, 1, 1)
+            start_date = date(2019, 1, 1)
             end_date = date(2023, 12, 31)
             all_dates = pd.date_range(start_date, end_date, freq='B').date.tolist()
             num_holdout = int(len(all_dates) * 0.2)
             
-            seed_int = int(hashlib.md5(run_id.encode('utf-8'), usedforsecurity=False).hexdigest(), 16) % (2**32)
-            rng = np.random.RandomState(seed_int)
-            holdout_dates = sorted(rng.choice(all_dates, num_holdout, replace=False))
-            opt_dates = sorted([d for d in all_dates if d not in holdout_dates])
+            # Contiguous trailing block: Optimization period is first 80%, Holdout period is final 20%
+            opt_dates = sorted(all_dates[:-num_holdout])
+            holdout_dates = sorted(all_dates[-num_holdout:])
             
             # Step 2: Run primary backtest on optimization period (80%)
             sim_loop = SimulationLoop(config)

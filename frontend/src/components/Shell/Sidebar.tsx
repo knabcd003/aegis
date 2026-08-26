@@ -87,7 +87,7 @@ function NewSentinelModal({ onClose }: { onClose: () => void }) {
           {/* Options */}
           <div className="p-6 grid grid-cols-2 gap-4">
 
-            {/* Option 1 — Guided Form with Aria */}
+            {/* Option 1 — Guided Intake with Aria */}
             <button
               id="new-sentinel-guided-form"
               onClick={() => choose('/intake')}
@@ -105,7 +105,7 @@ function NewSentinelModal({ onClose }: { onClose: () => void }) {
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
                   <span className="text-[0.875rem] font-semibold text-on-surface">
-                    Guided Form
+                    Guided Intake
                   </span>
                   <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#ACCEC5]/10 text-[#ACCEC5]">
                     Aria
@@ -119,12 +119,12 @@ function NewSentinelModal({ onClose }: { onClose: () => void }) {
               </div>
 
               <div className="flex items-center gap-1.5 text-[#ACCEC5] text-[0.75rem] font-medium group-hover:gap-2.5 transition-all">
-                <span>Start form</span>
+                <span>Start intake</span>
                 <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
               </div>
             </button>
 
-            {/* Option 2 — LLM Chat Intake */}
+            {/* Option 2 — Build with your own LLM */}
             <button
               id="new-sentinel-llm-chat"
               onClick={() => choose('/llm-intake')}
@@ -142,20 +142,20 @@ function NewSentinelModal({ onClose }: { onClose: () => void }) {
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
                   <span className="text-[0.875rem] font-semibold text-on-surface">
-                    LLM Chat
+                    Build with your own LLM
                   </span>
                   <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#b8a9f5]/10 text-[#b8a9f5]">
-                    Conversational
+                    Intake Package
                   </span>
                 </div>
                 <p className="text-[0.75rem] text-[#8e8e88] leading-relaxed">
-                  Just talk. The AI extracts your mandate through natural
-                  conversation and builds the schema from your answers.
+                  Download the intake package, upload it to Claude or ChatGPT to
+                  conduct your interview, and upload the completed mandate back.
                 </p>
               </div>
 
               <div className="flex items-center gap-1.5 text-[#b8a9f5] text-[0.75rem] font-medium group-hover:gap-2.5 transition-all">
-                <span>Start chat</span>
+                <span>Get package</span>
                 <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
               </div>
             </button>

@@ -162,10 +162,31 @@ class LLMAdapter:
                 )
                 
             except RateLimitError as e:
-                logger.warning(f"RateLimitError on {full_provider_id}: {e}. Triggering iterative fallback.")
-                self.quota.mark_exhausted(full_provider_id)
-                attempted.add(full_provider_id)
-                # Continue loop securely down the fallback tier
+                logger.warning(f"RateLimitError on {full_provider_id}: {e}. Sleeping 10s for TPM reset...")
+                time.sleep(10.0)
+                try:
+                    t_start = time.time()
+                    response = litellm.completion(
+                        model=decision.litellm_model_string,
+                        messages=messages,
+                        num_retries=0,
+                        **decision.litellm_kwargs
+                    )
+                    latency_ms = (time.time() - t_start) * 1000.0
+                    self.quota.increment(full_provider_id)
+                    usage = getattr(response, "usage", None)
+                    pt = usage.prompt_tokens if usage else 0
+                    ct = usage.completion_tokens if usage else 0
+                    provider_config = self.router.providers.get(full_provider_id, {})
+                    cost_per_1k = provider_config.get("cost_per_1k_tokens", 0.0)
+                    estimated_cost = ((pt + ct) / 1000.0) * cost_per_1k
+                    return AdapterResponse.from_litellm(
+                        response, decision, estimated_cost, latency_ms
+                    )
+                except Exception as retry_err:
+                    logger.warning(f"Retry after rate limit failed on {full_provider_id}: {retry_err}. Moving to fallback.")
+                    self.quota.mark_exhausted(full_provider_id)
+                    attempted.add(full_provider_id)
             except Exception as e:
                 logger.error(f"Unexpected fault on {full_provider_id}: {e}.")
                 attempted.add(full_provider_id)

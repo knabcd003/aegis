@@ -178,7 +178,7 @@ class ProviderRouter:
         if "base_url" in provider_config:
             litellm_kwargs["api_base"] = provider_config["base_url"]
             
-        if "api_key_env" in provider_config:
+        if provider_config.get("api_key_env"):
             import os
             api_key = os.getenv(provider_config["api_key_env"])
             if api_key:

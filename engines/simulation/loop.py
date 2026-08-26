@@ -291,14 +291,11 @@ class SimulationLoop:
         all_dates = pd.date_range(start_date, end_date, freq='B').date.tolist()
         
         if holdout_dates is None:
-            # Fallback for standalone runs, but Orchestrator should normally provide these
+            # Fallback for standalone runs: contiguous trailing 20% block
             num_holdout = int(len(all_dates) * 0.2)
-            import hashlib
-            seed_int = int(hashlib.md5(self.run_id.encode('utf-8'), usedforsecurity=False).hexdigest(), 16) % (2**32)
-            np.random.seed(seed_int)
-            holdout_dates = sorted(np.random.choice(all_dates, num_holdout, replace=False))
+            holdout_dates = sorted(all_dates[-num_holdout:])
 
-        opt_dates = sorted([d for d in all_dates if d not in holdout_dates])
+        opt_dates = sorted(all_dates[:-len(holdout_dates)])
         
         # 1b. Pre-fetch prices for the entire window to avoid O(N*T) disk I/O bottleneck
         print(f"[{self.run_id}] Pre-fetching price history for {len(self.config.asset_universe.tickers)} tickers...")
