@@ -9,6 +9,7 @@
     "type": "technical",
     "entry": "3_month_trailing_total_return",
     "exit": "rank_universe_weekly_hold_top_3_equal_weight",
+    "rebalance_schedule": "twice_weekly_mon_thu_close",
     "fast_sma_days": 10,
     "slow_sma_days": 50,
     "earnings_revision_direction": null,

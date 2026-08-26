@@ -47,23 +47,28 @@ class SignalGate:
              if actual_cluster != required_cluster:
                  passed = False
 
-        # 4. Technical Gate
+        # 4. Technical / Rank-Based Rotation Gate
         if gate_config.get("type", "") == "technical":
             entry_type = gate_config.get("entry")
             exit_type = gate_config.get("exit")
+
+            # Rank-based sector rotation logic
+            if entry_type == "3_month_trailing_total_return" or "rank" in str(exit_type):
+                is_rebalance = signals.get("is_rebalance_day", False)
+                rank = signals.get("rank", 99)
+                
+                entry_passed = is_rebalance and (rank <= 3)
+                exit_passed = is_rebalance and (rank > 3)
+                return entry_passed, exit_passed
+            
+            # SMA crossover logic fallback for legacy technical gate
             fast = signals.get("fast_sma", 0.0)
             slow = signals.get("slow_sma", 0.0)
             p_fast = signals.get("prev_fast_sma", 0.0)
             p_slow = signals.get("prev_slow_sma", 0.0)
             
-            entry_passed = False
-            exit_passed = False
-            
-            if entry_type == "fast_crosses_above_slow" or not entry_type or entry_type == "3_month_trailing_total_return":
-                entry_passed = (fast > slow and p_fast <= p_slow) or (fast > slow and p_fast == 0.0)
-            
-            if exit_type == "fast_crosses_below_slow" or not exit_type or "rank" in str(exit_type):
-                exit_passed = (fast < slow and p_fast >= p_slow)
+            entry_passed = (fast > slow and p_fast <= p_slow) or (fast > slow and p_fast == 0.0)
+            exit_passed = (fast < slow and p_fast >= p_slow)
                 
             return entry_passed, exit_passed
 

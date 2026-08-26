@@ -127,7 +127,6 @@ class SimulationLoop:
 
         for current_date_obj in trading_dates:
             current_date = current_date_obj.isoformat()
-            daily_nav = self.cash
 
             # 1. Execute pending orders at OPEN
             executed_orders = []
@@ -179,7 +178,10 @@ class SimulationLoop:
 
             pending_orders = [o for o in pending_orders if o not in executed_orders]
 
-            # 2. Mark to market
+            # 2. Snapshot cash AFTER all order execution completes for this fold date
+            daily_nav = self.cash
+
+            # 3. Mark to market
             for ticker, shares in self.positions.items():
                 if shares > 0:
                     price = 0.0
@@ -192,7 +194,36 @@ class SimulationLoop:
 
             fold_nav_history.append({"date": current_date_obj, "nav": daily_nav})
 
-            # 3. Signal generation & order placement
+            # 3. Check Rebalance Schedule & Rank Universe for 3-Month Trailing Return
+            reb_schedule = getattr(self.config.signal_gate, "rebalance_schedule", "weekly_friday_close")
+            if reb_schedule == "twice_weekly_mon_thu_close":
+                is_rebalance_day = current_date_obj.weekday() in (0, 3)
+            elif reb_schedule == "weekly_friday_close":
+                is_rebalance_day = current_date_obj.weekday() == 4
+            else:
+                is_rebalance_day = current_date_obj.weekday() == 4
+
+            universe_returns = {}
+            for ticker in self.config.asset_universe.tickers:
+                if ticker in price_cache:
+                    c_df = price_cache[ticker]
+                    mask = c_df["date"] <= current_date
+                    past_df = c_df[mask]
+                    if len(past_df) >= 63:
+                        p_now = float(past_df["close"].iloc[-1])
+                        p_past = float(past_df["close"].iloc[-63])
+                        universe_returns[ticker] = (p_now - p_past) / p_past if p_past > 0 else -999.0
+                    elif len(past_df) > 1:
+                        p_now = float(past_df["close"].iloc[-1])
+                        p_first = float(past_df["close"].iloc[0])
+                        universe_returns[ticker] = (p_now - p_first) / p_first if p_first > 0 else -999.0
+                    else:
+                        universe_returns[ticker] = -999.0
+
+            sorted_tickers = sorted(universe_returns.keys(), key=lambda t: universe_returns[t], reverse=True)
+            ticker_ranks = {t: rank + 1 for rank, t in enumerate(sorted_tickers)}
+
+            # 4. Signal generation & order placement
             for ticker in self.config.asset_universe.tickers:
                 price = 0.0
                 if ticker in price_cache:
@@ -205,6 +236,9 @@ class SimulationLoop:
                     continue
 
                 signals = self.compile_signals(ticker, current_date_obj, price_cache=price_cache)
+                signals["is_rebalance_day"] = is_rebalance_day
+                signals["rank"] = ticker_ranks.get(ticker, 99)
+                signals["return_3m"] = universe_returns.get(ticker, 0.0)
 
                 if not self.config.agent.enabled:
                     passed, sell_signal = SignalGate.evaluate(
@@ -391,7 +425,38 @@ class SimulationLoop:
             
             self.nav_history.append({"date": current_date_obj, "nav": daily_nav})
             
-            # 2c. Signal Generation & Gate Evaluation on Universe
+            # 2c. Check Rebalance Schedule & Rank Universe for 3-Month Trailing Return
+            reb_schedule = getattr(self.config.signal_gate, "rebalance_schedule", "weekly_friday_close")
+            if reb_schedule == "twice_weekly_mon_thu_close":
+                is_rebalance_day = current_date_obj.weekday() in (0, 3) # Monday (0) or Thursday (3)
+            elif reb_schedule == "weekly_friday_close":
+                is_rebalance_day = current_date_obj.weekday() == 4 # Friday (4)
+            else:
+                is_rebalance_day = current_date_obj.weekday() == 4
+
+            # Compute 3-month trailing returns for universe ranking (63 trading days lookback)
+            universe_returns = {}
+            for ticker in self.config.asset_universe.tickers:
+                if ticker in price_cache:
+                    c_df = price_cache[ticker]
+                    mask = c_df["date"] <= current_date
+                    past_df = c_df[mask]
+                    if len(past_df) >= 63:
+                        p_now = float(past_df["close"].iloc[-1])
+                        p_past = float(past_df["close"].iloc[-63])
+                        universe_returns[ticker] = (p_now - p_past) / p_past if p_past > 0 else -999.0
+                    elif len(past_df) > 1:
+                        p_now = float(past_df["close"].iloc[-1])
+                        p_first = float(past_df["close"].iloc[0])
+                        universe_returns[ticker] = (p_now - p_first) / p_first if p_first > 0 else -999.0
+                    else:
+                        universe_returns[ticker] = -999.0
+
+            # Rank tickers descending (1 = highest 3-month return)
+            sorted_tickers = sorted(universe_returns.keys(), key=lambda t: universe_returns[t], reverse=True)
+            ticker_ranks = {t: rank + 1 for rank, t in enumerate(sorted_tickers)}
+
+            # 2d. Signal Generation & Gate Evaluation on Universe
             for ticker in self.config.asset_universe.tickers:
                 # Use cache instead of disk/network
                 price = 0.0
@@ -404,8 +469,11 @@ class SimulationLoop:
                 if price <= 0:
                     continue
                     
-                # Compile fundamental engine outputs
+                # Compile fundamental engine outputs & attach universe rank and schedule metadata
                 signals = self.compile_signals(ticker, current_date_obj, price_cache=price_cache)
+                signals["is_rebalance_day"] = is_rebalance_day
+                signals["rank"] = ticker_ranks.get(ticker, 99)
+                signals["return_3m"] = universe_returns.get(ticker, 0.0)
                 
                 # Diagnostic: Log signals for first 10 days and any day where SMA is non-zero
                 if current_date_obj <= (all_dates[10] if len(all_dates) > 10 else all_dates[-1]) or signals.get("fast_sma", 0) > 0:
