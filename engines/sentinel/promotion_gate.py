@@ -115,9 +115,29 @@ class PromotionGate(VCLComponent):
         "min_positive_months": 2,
     }
 
-    def __init__(self, health_monitor: ConnectorHealthMonitor):
+    def __init__(self, health_monitor: ConnectorHealthMonitor, thresholds_path: Optional[str] = None):
         self.health_monitor = health_monitor
         self._evaluated_runs: Dict[str, GateResult] = {}
+        if thresholds_path and os.path.exists(thresholds_path):
+            try:
+                with open(thresholds_path, "r") as f:
+                    custom = json.load(f)
+                self.BACKTEST_GATE = dict(self.BACKTEST_GATE)
+                if "oos_sharpe_min" in custom:
+                    self.BACKTEST_GATE["min_oos_sharpe"] = float(custom["oos_sharpe_min"])
+                if "max_drawdown_limit" in custom:
+                    self.BACKTEST_GATE["max_drawdown"] = float(custom["max_drawdown_limit"])
+                if "trade_count_min" in custom:
+                    self.BACKTEST_GATE["min_trades"] = int(custom["trade_count_min"])
+                if "held_out_trade_count_min" in custom:
+                    self.BACKTEST_GATE["min_held_out_trades"] = int(custom["held_out_trade_count_min"])
+                if "profit_factor_min" in custom:
+                    self.BACKTEST_GATE["min_profit_factor"] = float(custom["profit_factor_min"])
+                if "scenario_pass_rate_min" in custom:
+                    self.BACKTEST_GATE["min_scenario_pass_rate"] = float(custom["scenario_pass_rate_min"])
+                logger.info(f"Loaded custom gate thresholds from {thresholds_path}: {self.BACKTEST_GATE}")
+            except Exception as e:
+                logger.error(f"Failed to load thresholds from {thresholds_path}: {e}")
 
     def execute(self, input_data: PromotionGateInput) -> PromotionGateOutput:
         """VCL standard execute hook for stage 1 evaluation."""
@@ -271,6 +291,14 @@ class PromotionGate(VCLComponent):
             msg = f"TRADE_COUNT: {trade_count} < {self.BACKTEST_GATE['min_trades']}. Total trades must be at least 100."
             logger.warning(f"[{run_id}] Gate Failure: {msg}")
             failures.append(msg)
+
+        # 4c-2. Held-out trade count
+        if "min_held_out_trades" in self.BACKTEST_GATE:
+            held_out_trades = int(metrics.get("held_out_trade_count", 0))
+            metrics_snapshot["held_out_trade_count"] = held_out_trades
+            if held_out_trades < self.BACKTEST_GATE["min_held_out_trades"]:
+                msg = f"HELD_OUT_TRADE_COUNT: {held_out_trades} < {self.BACKTEST_GATE['min_held_out_trades']}"
+                failures.append(msg)
 
         # 4d. Profit factor
         profit_factor = metrics.get("profit_factor", 0.0)

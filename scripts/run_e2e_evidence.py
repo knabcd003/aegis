@@ -32,9 +32,11 @@ def main():
     print("      AEGIS AI — END-TO-END VERIFICATION RUN (EVIDENCE GENERATOR)         ")
     print("==========================================================================\n")
 
-    # 1. Load sma_crossover.json
-    strategy_path = "config/saved_strategies/sma_crossover.json"
+    # 1. Load strategy config
+    strategy_path = sys.argv[1] if len(sys.argv) > 1 else "config/saved_strategies/sector_rotation.json"
+    thresholds_path = sys.argv[2] if len(sys.argv) > 2 else "config/gate_thresholds/sector_rotation_v1.json"
     print(f"[1/5] Loading strategy config from '{strategy_path}'...")
+    print(f"      Loading gate thresholds from '{thresholds_path}'...")
     with open(strategy_path, "r") as f:
         config_raw = json.load(f)
     
@@ -101,6 +103,12 @@ def main():
     metrics["walk_forward_efficiency"] = wf_result.wfe
     metrics["scenario_pass_rate"] = scenario_result.pass_rate
 
+    # Flag low sample size partitions (< 20 trades)
+    opt_trades = metrics.get("optimization_trade_count", 0)
+    hold_trades = metrics.get("held_out_trade_count", 0)
+    metrics["optimization_partition_low_confidence"] = bool(opt_trades < 20)
+    metrics["held_out_partition_low_confidence"] = bool(hold_trades < 20)
+
     ml_logger.log_run_end(
         metrics=metrics,
         trade_log=sim_results["trade_log"],
@@ -120,13 +128,11 @@ def main():
     llm_adapter = LLMAdapter(config_path="config/llm_providers.yaml")
 
     def e2e_llm_invoker(provider_id: str, model_id: str, prompt: str) -> str:
-        role = "plain_verdict"
+        role = "debate_moderator"
         if "long-only" in prompt.lower():
             role = "debate_bull"
         elif "short-seller" in prompt.lower():
             role = "debate_bear"
-        elif "moderator" in prompt.lower():
-            role = "debate_moderator"
 
         res = llm_adapter.invoke(
             messages=[{"role": "user", "content": prompt}],
@@ -146,8 +152,9 @@ def main():
 
     manifest_metrics = dict(metrics)
     manifest_metrics["metric_notes"] = {
-        "held_out_degradation": f"{metrics.get('held_out_degradation', 0.0):.4f} (Formula: 1 - OOS_Sharpe/IS_Sharpe. Negative value means OOS Sharpe out-performed IS Sharpe by 46%)",
-        "correlation_with_existing": "0.0000 (No existing promoted strategies in MLflow registry to measure portfolio correlation against)"
+        "held_out_sharpe_change_pct": f"{metrics.get('held_out_sharpe_change_pct', 0.0):.4f} (Positive = OOS Sharpe outperformed IS Sharpe. Negative = OOS Sharpe degraded vs IS Sharpe)",
+        "correlation_with_existing": "0.0000 (Hardcoded stub: no existing promoted strategies in MLflow registry to measure portfolio correlation against)",
+        "low_confidence_rule": "Partitions with trade_count < 20 have low_confidence: true. Discount evidentiary weight for low-sample metrics."
     }
 
     strategy_manifest = json.dumps({
@@ -185,7 +192,7 @@ def main():
         data_engine.register(yf_conn, priority=1)
         health_monitor = ConnectorHealthMonitor(data_engine)
         health_monitor.run_health_checks()
-        promotion_gate = PromotionGate(health_monitor=health_monitor)
+        promotion_gate = PromotionGate(health_monitor=health_monitor, thresholds_path=thresholds_path)
 
         gate_result = promotion_gate.evaluate_backtest(
             run_id=ml_logger._mlflow_run_id,

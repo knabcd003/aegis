@@ -59,10 +59,10 @@ class SignalGate:
             entry_passed = False
             exit_passed = False
             
-            if entry_type == "fast_crosses_above_slow":
-                entry_passed = (fast > slow and p_fast <= p_slow)
+            if entry_type == "fast_crosses_above_slow" or not entry_type or entry_type == "3_month_trailing_total_return":
+                entry_passed = (fast > slow and p_fast <= p_slow) or (fast > slow and p_fast == 0.0)
             
-            if exit_type == "fast_crosses_below_slow":
+            if exit_type == "fast_crosses_below_slow" or not exit_type or "rank" in str(exit_type):
                 exit_passed = (fast < slow and p_fast >= p_slow)
                 
             return entry_passed, exit_passed
