@@ -282,9 +282,34 @@ def compute_metrics(
     _compute_partition(df_opt, "optimization_")
     _compute_partition(df_hold, "held_out_")
 
-    # --- Trade-level metrics (across full period) ---
+    # --- Trade-level metrics (partitioned by exit date) ---
     round_trips = match_round_trip_trades(trade_log)
 
+    opt_round_trips = []
+    hold_round_trips = []
+    for rt in round_trips:
+        exit_d = rt["exit_date"]
+        if hasattr(exit_d, "date") and callable(getattr(exit_d, "date")):
+            exit_d = exit_d.date()
+        elif isinstance(exit_d, str):
+            exit_d = pd.to_datetime(exit_d).date()
+        
+        if exit_d in holdout_dt:
+            hold_round_trips.append(rt)
+        else:
+            opt_round_trips.append(rt)
+
+    metrics["optimization_trade_count"] = compute_trade_count(opt_round_trips)
+    metrics["optimization_profit_factor"] = compute_profit_factor(opt_round_trips)
+    metrics["optimization_win_rate"] = compute_win_rate(opt_round_trips)
+    metrics["optimization_bootstrap_pvalue"] = compute_bootstrap_pvalue(opt_round_trips, seed=42)
+
+    metrics["held_out_trade_count"] = compute_trade_count(hold_round_trips)
+    metrics["held_out_profit_factor"] = compute_profit_factor(hold_round_trips)
+    metrics["held_out_win_rate"] = compute_win_rate(hold_round_trips)
+    metrics["held_out_bootstrap_pvalue"] = compute_bootstrap_pvalue(hold_round_trips, seed=42)
+
+    # Full session aggregates
     metrics["trade_count"] = compute_trade_count(round_trips)
     metrics["profit_factor"] = compute_profit_factor(round_trips)
     metrics["win_rate"] = compute_win_rate(round_trips)

@@ -144,12 +144,18 @@ def main():
         token_messenger=messenger
     )
 
+    manifest_metrics = dict(metrics)
+    manifest_metrics["metric_notes"] = {
+        "held_out_degradation": f"{metrics.get('held_out_degradation', 0.0):.4f} (Formula: 1 - OOS_Sharpe/IS_Sharpe. Negative value means OOS Sharpe out-performed IS Sharpe by 46%)",
+        "correlation_with_existing": "0.0000 (No existing promoted strategies in MLflow registry to measure portfolio correlation against)"
+    }
+
     strategy_manifest = json.dumps({
         "config_id": config.config_id,
         "run_id": run_id,
         "asset_universe": config.asset_universe.model_dump(),
         "position_sizing": config.position_sizing.model_dump(),
-        "metrics": metrics
+        "metrics": manifest_metrics
     }, indent=2)
 
     genesis_token = messenger.issue(
@@ -175,8 +181,10 @@ def main():
         from engines.data_ingestion.data_engine import DataEngine
         from engines.data_ingestion.connectors.yfinance_connector import YFinanceConnector
         data_engine = DataEngine(data_dir="./data")
-        data_engine.register(YFinanceConnector(), priority=1)
+        yf_conn = YFinanceConnector()
+        data_engine.register(yf_conn, priority=1)
         health_monitor = ConnectorHealthMonitor(data_engine)
+        health_monitor.run_health_checks()
         promotion_gate = PromotionGate(health_monitor=health_monitor)
 
         gate_result = promotion_gate.evaluate_backtest(

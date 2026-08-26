@@ -248,16 +248,16 @@ class PromotionGate(VCLComponent):
         # 4. Apply all 10 hard metric gates
         metrics_snapshot = {}
 
-        # 4a. OOS Sharpe
-        oos_sharpe = metrics.get("optimization_sharpe", 0.0)
+        # 4a. OOS Sharpe (must evaluate held_out_sharpe)
+        oos_sharpe = metrics.get("held_out_sharpe", metrics.get("optimization_sharpe", 0.0))
         metrics_snapshot["oos_sharpe"] = oos_sharpe
         if oos_sharpe < self.BACKTEST_GATE["min_oos_sharpe"]:
             failures.append(
                 f"OOS_SHARPE: {oos_sharpe:.3f} < {self.BACKTEST_GATE['min_oos_sharpe']}"
             )
 
-        # 4b. Max drawdown
-        max_dd = metrics.get("optimization_max_drawdown", -1.0)
+        # 4b. Max drawdown (evaluated on held-out partition)
+        max_dd = metrics.get("held_out_max_drawdown", metrics.get("optimization_max_drawdown", -1.0))
         metrics_snapshot["max_drawdown"] = max_dd
         if max_dd < self.BACKTEST_GATE["max_drawdown"]:
             failures.append(

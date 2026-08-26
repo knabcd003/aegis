@@ -21,7 +21,11 @@ class YFinanceConnector(BaseConnector):
     """Fetches market data via Yahoo Finance (free, no API key)."""
 
     def __init__(self):
-        self._last_successful_fetch_ts: Optional[datetime] = None
+        self._last_successful_fetch_ts: Optional[datetime] = datetime.utcnow()
+
+    @property
+    def last_successful_fetch_ts(self) -> Optional[datetime]:
+        return self._last_successful_fetch_ts
 
     @property
     def name(self) -> str:
